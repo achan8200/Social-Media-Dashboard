@@ -1,0 +1,13 @@
+<section class="flex-1 p-6 space-y-4">
+  @for (post of posts; track post) {
+    <div class="bg-white p-4 rounded-lg shadow">
+      <h3 class="font-bold text-gray-800">{{ post.user }}</h3>
+      <p class="mt-2 text-gray-700">{{ post.content }}</p>
+      <div class="flex space-x-6 mt-3 text-sm text-gray-500">
+        <span class="cursor-pointer hover:text-blue-600">❤️ Like</span>
+        <span class="cursor-pointer hover:text-blue-600">💬 Comment</span>
+        <span class="cursor-pointer hover:text-blue-600">↗️ Share</span>
+      </div>
+    </div>
+  }
+</section>
