@@ -6,4 +6,6 @@ import { Component } from '@angular/core';
   templateUrl: './sidebar.html',
   styleUrls: ['./sidebar.css']
 })
-export class Sidebar {}
+export class Sidebar {
+  navItems = ['Home', 'Messages', 'Friends', 'Groups'];
+}

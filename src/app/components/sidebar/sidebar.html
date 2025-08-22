@@ -1,9 +1,8 @@
 <aside class="w-64 bg-white p-4 rounded shadow hidden md:block">
       <h2 class="font-semibold mb-4">Navigation</h2>
       <ul class="space-y-2">
-        <li class="hover:text-blue-600 cursor-pointer">Dashboard</li>
-        <li class="hover:text-blue-600 cursor-pointer">Messages</li>
-        <li class="hover:text-blue-600 cursor-pointer">Friends</li>
-        <li class="hover:text-blue-600 cursor-pointer">Groups</li>
+        @for (item of navItems; track item) {
+          <li class="hover:text-blue-600 cursor-pointer">{{ item }}</li>
+        }
       </ul>
 </aside>

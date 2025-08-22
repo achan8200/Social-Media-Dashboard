@@ -1,0 +1,18 @@
+.bounce-badge {
+  animation: bounce-color 0.5s ease-in-out;
+}
+
+@keyframes bounce-color {
+  0% {
+    transform: scale(1);
+    background-color: #ef4444; /* red-500 */
+  }
+  50% {
+    transform: scale(1.5);
+    background-color: #f87171; /* red-400 */
+  }
+  100% {
+    transform: scale(1);
+    background-color: #ef4444; /* red-500 */
+  }
+}
