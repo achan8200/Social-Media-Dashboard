@@ -15,7 +15,7 @@ import { PostsService } from '../../services/posts.service';
 })
 export class Feed implements OnInit, AfterViewInit {
   posts$: Observable<Post[]>;
-  dashboardBadge$: Observable<{ count: number; fading: boolean }>;
+  dashboardState$: Observable<{ count: number; fading: boolean }>;
 
   newPostText: string = '';
 
@@ -23,25 +23,14 @@ export class Feed implements OnInit, AfterViewInit {
   private observer!: IntersectionObserver;
   private isBrowser: boolean;
 
-  dashboardState$: Observable<{ count: number; fading: boolean }>;
-
   constructor(
     private postsService: PostsService,
     private cdr: ChangeDetectorRef,
     @Inject(PLATFORM_ID) platformId: Object
   ) {
     this.posts$ = this.postsService.posts$;
-    this.isBrowser = isPlatformBrowser(platformId);
-
-    // Combine count and fade status into a single observable
-    this.dashboardBadge$ = combineLatest([
-      this.postsService.newPostCount$,
-      this.postsService.dashboardFading$
-    ]).pipe(
-      map(([count, fading]) => ({ count, fading }))
-    );
-
     this.dashboardState$ = this.postsService.dashboardState$;
+    this.isBrowser = isPlatformBrowser(platformId);
   }
 
   ngOnInit() {}
