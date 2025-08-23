@@ -1,8 +1,27 @@
 <aside class="w-64 bg-white p-4 rounded shadow hidden md:block">
-      <h2 class="font-semibold mb-4">Navigation</h2>
-      <ul class="space-y-2">
-        @for (item of navItems; track item) {
-          <li class="hover:text-blue-600 cursor-pointer">{{ item }}</li>
-        }
-      </ul>
+  <nav class="space-y-2">
+    <a routerLink="/home" 
+      routerLinkActive="active-link" 
+      class="sidebar-link">
+      🏠 Home
+    </a>
+
+    <a routerLink="/messages" 
+      routerLinkActive="active-link" 
+      class="sidebar-link">
+      💬 Messages
+    </a>
+
+    <a routerLink="/friends" 
+      routerLinkActive="active-link" 
+      class="sidebar-link">
+      👥 Friends
+    </a>
+
+    <a routerLink="/groups" 
+      routerLinkActive="active-link" 
+      class="sidebar-link">
+      🗺️ Groups
+    </a>
+  </nav>
 </aside>
