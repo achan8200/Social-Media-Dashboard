@@ -17,6 +17,9 @@ export class PostsService {
   private newPostCountSubject = new BehaviorSubject<number>(0);
   newPostCount$ = this.newPostCountSubject.asObservable();
 
+  private dashboardFadingSubject = new BehaviorSubject<boolean>(false);
+  dashboardFading$ = this.dashboardFadingSubject.asObservable();
+
   likePost(id: number) {
     this.posts = this.posts.map(post =>
       post.id === id
@@ -60,20 +63,42 @@ export class PostsService {
     this.updateNewPostCount();
   }
 
-  // Mark a post as seen and automatically remove "New" badge after 2 seconds
+  // Mark a post as seen with fade-out support
   markPostAsSeen(id: number) {
     const post = this.posts.find(p => p.id === id);
     if (post && post.isNew) {
-      post.isNew = false;
-      this.postsSubject.next(this.posts);
-      this.updateNewPostCount();
+      // trigger fade-out
+      (post as any).fadingOut = true;
+      this.postsSubject.next([...this.posts]);
+
+      // after transition (700ms in your HTML), remove the badge
+      setTimeout(() => {
+        post.isNew = false;
+        (post as any).fadingOut = false;
+        this.postsSubject.next([...this.posts]);
+        this.updateNewPostCount();
+      }, 700); // match CSS duration
     }
   }
 
+  private isFadingDashboard = false;
+
   private updateNewPostCount() {
-    const count = this.posts.filter(p => p.isNew).length;
+  const count = this.posts.filter(p => p.isNew).length;
+
+  if (count === 0 && this.newPostCountSubject.value > 0) {
+    // trigger fade-out
+    this.dashboardFadingSubject.next(true);
+    this.newPostCountSubject.next(this.newPostCountSubject.value); // keep last visible count
+
+    setTimeout(() => {
+      this.dashboardFadingSubject.next(false);
+      this.newPostCountSubject.next(0);
+    }, 700); // match CSS duration
+  } else {
     this.newPostCountSubject.next(count);
   }
+}
 
   updatePosts(posts: Post[]) {
     this.postsSubject.next([...posts]); // spread to create new reference

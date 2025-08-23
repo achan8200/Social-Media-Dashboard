@@ -15,6 +15,7 @@ import { PostsService } from '../../services/posts.service';
 export class Feed implements OnInit, AfterViewInit {
   posts$: Observable<Post[]>;
   newPostCount$: Observable<number>;
+  dashboardFading$!: Observable<boolean>;
 
   newPostText: string = '';
 
