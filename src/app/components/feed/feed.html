@@ -1,13 +1,86 @@
 <section class="flex-1 p-6 space-y-4">
-  @for (post of posts; track post) {
-    <div class="bg-white p-4 rounded-lg shadow">
-      <h3 class="font-bold text-gray-800">{{ post.user }}</h3>
-      <p class="mt-2 text-gray-700">{{ post.content }}</p>
-      <div class="flex space-x-6 mt-3 text-sm text-gray-500">
-        <span class="cursor-pointer hover:text-blue-600">❤️ Like</span>
-        <span class="cursor-pointer hover:text-blue-600">💬 Comment</span>
-        <span class="cursor-pointer hover:text-blue-600">↗️ Share</span>
-      </div>
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-4">
+    <div class="relative inline-block">
+      <h2 class="text-xl font-bold text-gray-800">Dashboard</h2>
+      <span *ngIf="(newPostCount$ | async) as count"
+          class="absolute -top-2 -right-10 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full transition-opacity duration-700 ease-in-out"
+          [class.opacity-0]="count === 0">
+          {{ count }}
+        </span>
     </div>
-  }
+  </div>
+
+  <!-- Create Post -->
+  <div class="p-4 border rounded mb-4 bg-white shadow-sm">
+    <textarea
+      [(ngModel)]="newPostText"
+      placeholder="What's on your mind?"
+      rows="3"
+      class="w-full border rounded p-2 text-sm mb-2"
+    ></textarea>
+    <button
+      (click)="addPost()"
+      [disabled]="!newPostText.trim()"
+      class="px-3 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
+    >
+      Post
+    </button>
+  </div>
+
+  <!-- Live Draft Preview -->
+  <div *ngIf="newPostText.trim()" class="p-4 bg-white rounded shadow mb-4 border border-dashed border-gray-300">
+    <div class="flex items-center space-x-2">
+      <div class="font-bold text-gray-800">You</div>
+      <div class="font-semibold text-gray-400 italic">(Draft)</div>
+    </div>
+    <p class="text-gray-700 mt-1">{{ newPostText }}</p>
+    <div class="flex space-x-6 mt-3 text-sm text-gray-600">
+      <button class="hover:text-blue-500">
+        <span>❤️ 0</span>
+      </button>
+      <button class="hover:text-blue-500">
+        <span>💬 0</span>
+      </button>
+      <button class="hover:text-blue-500">
+        <span>↗️ 0</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Feed -->
+  <div *ngFor="let post of posts$ | async" 
+    #postRef
+    [attr.data-id]="post.id"
+    class="p-4 border rounded mb-4 bg-white shadow-sm">
+    <div class="flex items-center justify-between">
+      <h3 class="font-bold text-gray-800">{{ post.author }}</h3>
+      <span 
+        *ngIf="post.isNew" 
+        class="ml-2 text-xs text-white bg-red-500 rounded-full px-2 py-0.5 transition-opacity duration-700 ease-in-out"
+        [class.opacity-0]="post.fadingOut">
+        New
+      </span>
+    </div>
+    <p class="text-gray-700 mt-1">{{ post.content }}</p>
+
+    <div class="flex space-x-6 mt-3 text-sm text-gray-600">
+      <button (click)="likePost(post.id)" class="flex items-center space-x-1 hover:text-blue-600">
+        <!--<span>{{ post.likedByUser ? '💙' : '👍' }}</span> -->
+        <span>❤️</span>
+        <span>{{ post.likes }}</span>
+      </button>
+
+      <button (click)="commentPost(post.id)" class="flex items-center space-x-1 hover:text-blue-600">
+        <span>💬</span>
+        <span>{{ post.comments }}</span>
+      </button>
+
+      <button (click)="sharePost(post.id)" class="flex items-center space-x-1 hover:text-blue-600">
+        <span>↗️</span>
+        <span>{{ post.shares }}</span>
+      </button>
+    </div>
+  </div>
+    <!--❤️💬↗️🔗 -->
 </section>
