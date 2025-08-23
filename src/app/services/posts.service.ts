@@ -81,22 +81,26 @@ export class PostsService {
     }
   }
 
+  private dashboardStateSubject = new BehaviorSubject<{ count: number; fading: boolean }>({ count: 0, fading: false });
+  dashboardState$ = this.dashboardStateSubject.asObservable();
+
   private updateNewPostCount() {
-  const count = this.posts.filter(p => p.isNew).length;
+    const count = this.posts.filter(p => p.isNew).length;
+    const current = this.dashboardStateSubject.value;
 
-  if (count === 0 && this.newPostCountSubject.value > 0) {
-    // trigger fade-out
-    this.dashboardFadingSubject.next(true);
-    this.newPostCountSubject.next(this.newPostCountSubject.value); // keep last visible count
+    if (count === 0 && current.count > 0) {
+      // Trigger fade-out
+      this.dashboardStateSubject.next({ count: 0, fading: true });
 
-    setTimeout(() => {
-      this.dashboardFadingSubject.next(false);
-      this.newPostCountSubject.next(0);
-    }, 700); // match CSS duration
-  } else {
-    this.newPostCountSubject.next(count);
+      setTimeout(() => {
+        // Keep count at 0 and remove fading flag
+        this.dashboardStateSubject.next({ count: 0, fading: false });
+      }, 700);
+    } else {
+      // New posts or no posts but no previous count
+      this.dashboardStateSubject.next({ count, fading: false });
+    }
   }
-}
 
   updatePosts(posts: Post[]) {
     this.postsSubject.next([...posts]); // spread to create new reference

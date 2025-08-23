@@ -3,10 +3,10 @@
   <div class="flex items-center justify-between mb-4">
     <div class="relative inline-block">
       <h2 class="text-xl font-bold text-gray-800">Dashboard</h2>
-        <span *ngIf="(newPostCount$ | async)! > 0 || (dashboardFading$ | async)"
-          class="absolute -top-2 -right-10 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full transition-opacity duration-700 ease-in-out"
-          [class.opacity-0]="dashboardFading$ | async">
-          {{ newPostCount$ | async }}
+        <span *ngIf="dashboardState$ | async as dash"
+              class="absolute -top-2 -right-10 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full transition-opacity duration-700 ease-in-out"
+              [class.opacity-0]="dash.fading || dash.count === 0">
+          {{ dash.count }}
         </span>
     </div>
   </div>
