@@ -71,9 +71,15 @@ export class Feed implements OnInit, AfterViewInit {
     }
   }
 
-  likePost(id: number) { this.postsService.likePost(id); }
-  commentPost(id: number) { this.postsService.commentPost(id); }
-  sharePost(id: number) { this.postsService.sharePost(id); }
+  likePost(id: number) { 
+    this.postsService.likePost(id); 
+  }
 
+  commentPost(id: number) { 
+    this.postsService.commentPost(id); 
   
+  }
+  sharePost(id: number) { 
+    this.postsService.sharePost(id); 
+  }
 }

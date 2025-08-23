@@ -81,8 +81,6 @@ export class PostsService {
     }
   }
 
-  private isFadingDashboard = false;
-
   private updateNewPostCount() {
   const count = this.posts.filter(p => p.isNew).length;
 
