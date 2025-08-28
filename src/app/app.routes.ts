@@ -1,6 +1,4 @@
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
-
+import { Routes } from '@angular/router';
 import { Home } from './pages/home/home';
 import { Messages } from './pages/messages/messages';
 import { Friends } from './pages/friends/friends';
@@ -14,9 +12,3 @@ export const routes: Routes = [
   { path: '', redirectTo: '/home', pathMatch: 'full' }, // default
   { path: '**', redirectTo: '/home' } // fallback
 ];
-
-@NgModule({
-  imports: [RouterModule.forRoot(routes)],
-  exports: [RouterModule]
-})
-export class AppRoutingModule {}

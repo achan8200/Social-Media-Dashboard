@@ -1,11 +1,12 @@
 import { Component } from '@angular/core';
+import { Feed } from '../../components/feed/feed';
+import { RightSidebar } from '../../components/right-sidebar/right-sidebar';
 
 @Component({
   selector: 'app-home',
-  imports: [],
+  standalone: true,
+  imports: [Feed, RightSidebar],
   templateUrl: './home.html',
-  styleUrl: './home.css'
+  styleUrls: ['./home.css']
 })
-export class Home {
-
-}
+export class Home {}
