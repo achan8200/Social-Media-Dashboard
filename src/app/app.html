@@ -4,8 +4,17 @@
 
   <!-- Main Layout -->
   <div class="flex flex-col md:flex-row flex-1 p-4 gap-4 max-w-7xl mx-auto w-full">
-      <app-sidebar class="w-full md:w-64"></app-sidebar>
-      <app-feed class="flex-1"></app-feed>
-      <app-right-sidebar class="w-full md:w-64"></app-right-sidebar>
+    <!-- Left Sidebar -->
+    <app-sidebar class="w-full md:w-64"></app-sidebar>
+
+    <!--
+    <app-feed class="flex-1"></app-feed>
+    <app-right-sidebar class="w-full md:w-64"></app-right-sidebar>
+    -->
+    
+    <!-- Route Content (like app-home) -->
+    <div class="flex-1">
+      <router-outlet></router-outlet>
     </div>
+  </div>
 </div>
