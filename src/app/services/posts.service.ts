@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable  } from 'rxjs';
-import { map, shareReplay } from 'rxjs/operators';
 import { Post } from '../models/post.model';
 
 @Injectable({ providedIn: 'root' })
@@ -14,14 +13,11 @@ export class PostsService {
   private postsSubject = new BehaviorSubject<Post[]>(this.posts);
   posts$ = this.postsSubject.asObservable();
 
-  private newPostCountSubject = new BehaviorSubject<number>(0);
-  newPostCount$ = this.newPostCountSubject.asObservable();
-
-  private dashboardFadingSubject = new BehaviorSubject<boolean>(false);
-  dashboardFading$ = this.dashboardFadingSubject.asObservable();
-
   private dashboardStateSubject = new BehaviorSubject<{ count: number; fading: boolean }>({ count: 0, fading: false });
   dashboardState$ = this.dashboardStateSubject.asObservable();
+
+  /** Track posts that have already been seen */
+  private seenPosts = new Set<number>();
 
   addPost(author: string, content: string) {
     const newPost = {
@@ -32,7 +28,8 @@ export class PostsService {
       comments: 0,
       shares: 0,
       likedByUser: false,
-      isNew: true // marked as new
+      isNew: true, // marked as new
+      fadingOut: false
     };
     this.posts = [newPost, ...this.posts]; // prepend new post
     this.postsSubject.next(this.posts);
@@ -40,16 +37,21 @@ export class PostsService {
     this.updateDashboardState();
   }
 
+  hasBeenSeen(id: number): boolean {
+    return this.seenPosts.has(id);
+  }
+
   // Mark a post as seen with fade
   markPostAsSeen(id: number) {
     const post = this.posts.find(p => p.id === id);
-    if (post && post.isNew) {
+    if (post && post.isNew && !this.seenPosts.has(id)) {
       post.fadingOut = true;
       this.postsSubject.next([...this.posts]);
 
       setTimeout(() => {
         post.isNew = false;
         post.fadingOut = false;
+        this.seenPosts.add(id); // remember this post is seen
         this.postsSubject.next([...this.posts]);
         this.updateDashboardState();
       }, 700); // match CSS transition

@@ -49,6 +49,7 @@
   </div>
 
   <!-- Feed -->
+  <!--
   <div *ngFor="let post of posts$ | async" 
     #postRef
     [attr.data-id]="post.id"
@@ -66,7 +67,6 @@
 
     <div class="flex space-x-6 mt-3 text-sm text-gray-600">
       <button (click)="likePost(post.id)" class="flex items-center space-x-1 hover:text-blue-600">
-        <!--<span>{{ post.likedByUser ? '💙' : '👍' }}</span> -->
         <span>❤️</span>
         <span>{{ post.likes }}</span>
       </button>
@@ -82,5 +82,15 @@
       </button>
     </div>
   </div>
-    <!--❤️💬↗️🔗 -->
+  -->
+  
+  <div *ngFor="let post of posts$ | async" #postRef [attr.data-id]="post.id">
+    <app-post-card
+      [post]="post"
+      [likePost]="likePost.bind(this)"
+      [commentPost]="commentPost.bind(this)"
+      [sharePost]="sharePost.bind(this)">
+    </app-post-card>
+  </div>
+  
 </section>

@@ -1,0 +1,29 @@
+<div class="p-4 border rounded mb-4 bg-white shadow-sm">
+    <div class="flex items-center justify-between">
+        <h3 class="font-bold text-gray-800">{{ post.author }}</h3>
+        <span *ngIf="post.isNew"
+            class="ml-2 text-xs text-white bg-red-500 rounded-full px-2 py-0.5 transition-opacity duration-700 ease-in-out"
+            [class.opacity-0]="post.fadingOut">
+            New
+        </span>
+    </div>
+    <p class="text-gray-700 mt-1">{{ post.content }}</p>
+
+    <div class="flex space-x-6 mt-3 text-sm text-gray-600">
+        <button (click)="likePost(post.id)" class="flex items-center space-x-1 hover:text-blue-600">
+            <span>❤️</span>
+            <span>{{ post.likes }}</span>
+        </button>
+
+        <button (click)="commentPost(post.id)" class="flex items-center space-x-1 hover:text-blue-600">
+            <span>💬</span>
+            <span>{{ post.comments }}</span>
+        </button>
+
+        <button (click)="sharePost(post.id)" class="flex items-center space-x-1 hover:text-blue-600">
+            <span>↗️</span>
+            <span>{{ post.shares }}</span>
+        </button>
+    </div>
+    <!--❤️💬↗️🔗 -->
+</div>

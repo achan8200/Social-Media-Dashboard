@@ -2,14 +2,14 @@ import { Component, OnInit, AfterViewInit, ElementRef, QueryList, ViewChildren, 
 import { AsyncPipe, NgIf, NgFor, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
-import { combineLatest, map } from 'rxjs';
+import { PostCard } from '../post-card/post-card';
 import { Post } from '../../models/post.model';
 import { PostsService } from '../../services/posts.service';
 
 @Component({
   selector: 'app-feed',
   standalone: true,
-  imports: [AsyncPipe, NgIf, NgFor, FormsModule],
+  imports: [AsyncPipe, NgIf, NgFor, FormsModule, PostCard],
   templateUrl: './feed.html',
   styleUrls: ['./feed.css']
 })
@@ -48,9 +48,8 @@ export class Feed implements OnInit, AfterViewInit {
           setTimeout(() => {
             this.postsService.markPostAsSeen(postId);
             this.cdr.markForCheck();
+            this.observer.unobserve(postEl);
           }, 2000);
-
-          this.observer.unobserve(postEl);
         }
       });
     }, { threshold: 0.5 });
