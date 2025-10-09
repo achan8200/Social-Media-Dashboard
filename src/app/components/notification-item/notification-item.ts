@@ -9,5 +9,5 @@ import { NgIf } from '@angular/common';
 })
 export class NotificationItem {
   @Input() notification!: { text: string; read: boolean; };
-  @Output() markRead = new EventEmitter<MouseEvent>();
+  @Output() markRead = new EventEmitter<void>();
 }

@@ -1,9 +1,9 @@
-<li class="flex items-center justify-between p-2 rounded hover:bg-gray-100 cursor-pointer transition-colors duration-200">
+<div class="flex items-center justify-between p-2 rounded hover:bg-gray-100 cursor-pointer transition-colors duration-200">
     <div class="flex items-center space-x-2">
         <span *ngIf="!notification.read" 
             class="h-2 w-2 bg-red-500 rounded-full"
-            (click)="markRead.emit($event); $event.stopPropagation()"></span>
+            (click)="markRead.emit(); $event.stopPropagation()"></span>
         <span>{{ notification.text }}</span>
     </div>
     <span class="text-gray-400 text-xs">2h</span>
-</li>
+</div>
