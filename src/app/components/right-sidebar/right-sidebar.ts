@@ -3,11 +3,12 @@ import { AsyncPipe } from '@angular/common';
 import { NgIf, NgFor } from '@angular/common';
 import { NotificationsService } from '../../services/notifications.service';
 import { map, Observable } from 'rxjs';
+import { NotificationItem } from '../notification-item/notification-item';
 
 @Component({
   selector: 'app-right-sidebar',
   standalone: true,
-  imports: [AsyncPipe, NgIf, NgFor],
+  imports: [AsyncPipe, NgIf, NgFor, NotificationItem],
   templateUrl: './right-sidebar.html',
   styleUrls: ['./right-sidebar.css']
 })

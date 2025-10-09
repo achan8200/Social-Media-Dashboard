@@ -21,6 +21,7 @@
       </span>
     </h2>
     <ul class="p-2 space-y-2 pb-3 text-gray-700 text-sm max-h-64 overflow-y-auto">
+      
       <li *ngFor="let note of notifications$ | async; let i = index"
           class="flex items-center justify-between p-2 rounded hover:bg-gray-100 cursor-pointer transition-colors duration-200">
         <div class="flex items-center space-x-2">
@@ -31,6 +32,15 @@
         </div>
         <span class="text-gray-400 text-xs">2h</span>
       </li>
+      
+      <!--
+      <li *ngFor="let note of notifications$ | async; let i = index">
+        <app-notification-item
+          [notification]="note"
+          (markRead)="markNotificationRead(i)">
+        </app-notification-item>
+      </li>
+      -->
     </ul>
 
     <!-- Sticky button at bottom -->
