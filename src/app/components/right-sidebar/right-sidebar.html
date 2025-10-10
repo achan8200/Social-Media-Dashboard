@@ -4,7 +4,15 @@
     <h2 class="font-semibold text-gray-700 mb-3">🔥 Trending</h2>
     <ul class="space-y-2 text-sm text-gray-600">
       @for (tag of trending; track tag) {
-        <li class="hover:text-blue-600 cursor-pointer">{{ tag }}</li>
+        <!--
+        <li class="hover:text-blue-600 cursor-pointer transition-colors duration-200">{{ tag }}</li>
+        -->
+        <li>
+          <app-trending-tag 
+            [label]="tag" 
+            (tagClick)="onTagClicked($event)">
+          </app-trending-tag>
+        </li>
       }
     </ul>
   </div>

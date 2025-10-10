@@ -4,11 +4,12 @@ import { NgIf, NgFor } from '@angular/common';
 import { NotificationsService } from '../../services/notifications.service';
 import { map, Observable } from 'rxjs';
 import { NotificationItem } from '../notification-item/notification-item';
+import { TrendingTag } from '../trending-tag/trending-tag';
 
 @Component({
   selector: 'app-right-sidebar',
   standalone: true,
-  imports: [AsyncPipe, NgIf, NgFor, NotificationItem],
+  imports: [AsyncPipe, NgIf, NgFor, NotificationItem, TrendingTag],
   templateUrl: './right-sidebar.html',
   styleUrls: ['./right-sidebar.css']
 })
@@ -46,5 +47,10 @@ export class RightSidebar {
 
   markNotificationRead(index: number) {
     this.notificationsService.markAsRead(index);
+  }
+
+  onTagClicked(tag: string) {
+    console.log('Tag clicked:', tag);
+    // later → this.router.navigate(['/search'], { queryParams: { tag } });
   }
 }
