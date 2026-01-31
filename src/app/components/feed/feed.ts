@@ -1,5 +1,5 @@
 import { Component, OnInit, AfterViewInit, ElementRef, QueryList, ViewChildren, Inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
-import { AsyncPipe, NgIf, NgFor, isPlatformBrowser } from '@angular/common';
+import { AsyncPipe, CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { PostCard } from '../post-card/post-card';
@@ -9,7 +9,7 @@ import { PostsService } from '../../services/posts.service';
 @Component({
   selector: 'app-feed',
   standalone: true,
-  imports: [AsyncPipe, NgIf, NgFor, FormsModule, PostCard],
+  imports: [AsyncPipe, CommonModule, FormsModule, PostCard],
   templateUrl: './feed.html',
   styleUrls: ['./feed.css']
 })

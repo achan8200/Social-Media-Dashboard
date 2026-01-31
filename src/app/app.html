@@ -14,7 +14,7 @@
     
     <!-- Route Content (like app-home) -->
     <div class="flex-1">
-      <router-outlet></router-outlet>
+      <router-outlet *ngIf="authService.authReady$ | async"></router-outlet>
     </div>
   </div>
 </div>

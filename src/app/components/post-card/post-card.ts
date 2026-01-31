@@ -1,10 +1,10 @@
 import { Component, Input } from '@angular/core';
-import { NgIf } from '@angular/common'
+import { CommonModule } from '@angular/common'
 import { Post } from '../../models/post.model';
 
 @Component({
   selector: 'app-post-card',
-  imports: [NgIf],
+  imports: [CommonModule],
   templateUrl: './post-card.html',
   styleUrl: './post-card.css'
 })

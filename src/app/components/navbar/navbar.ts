@@ -1,13 +1,14 @@
 import { Component } from '@angular/core';
-import { AsyncPipe } from '@angular/common';
-import { NgIf, NgFor } from '@angular/common';
+import { AsyncPipe, CommonModule } from '@angular/common';
 import { NotificationsService } from '../../services/notifications.service';
 import { map, Observable } from 'rxjs';
+import { AuthService } from '../../services/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [AsyncPipe, NgIf, NgFor],
+  imports: [AsyncPipe, CommonModule],
   templateUrl: './navbar.html',
   styleUrls: ['./navbar.css']
 })
@@ -19,7 +20,11 @@ export class Navbar {
 
   newNotification = false;
 
-  constructor(private notificationsService: NotificationsService) {
+  constructor(
+    public auth: AuthService,
+    private router: Router,
+    private notificationsService: NotificationsService
+  ) {
     this.notifications$ = this.notificationsService.notifications$;
     this.unreadCount$ = this.notifications$.pipe(
       map(notifications => notifications.filter(n => !n.read).length)
@@ -44,5 +49,11 @@ export class Navbar {
 
   markNotificationRead(index: number) {
     this.notificationsService.markAsRead(index);
+  }
+
+  async logout() {
+    console.log('[NAVBAR] logout clicked'); // test
+    await this.auth.logout();
+    this.router.navigate(['/login'], { replaceUrl: true });
   }
 }

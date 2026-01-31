@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
-import { AsyncPipe } from '@angular/common';
-import { NgIf, NgFor } from '@angular/common';
+import { AsyncPipe, CommonModule } from '@angular/common';
 import { NotificationsService } from '../../services/notifications.service';
 import { map, Observable } from 'rxjs';
 import { NotificationItem } from '../notification-item/notification-item';
@@ -9,7 +8,7 @@ import { TrendingTag } from '../trending-tag/trending-tag';
 @Component({
   selector: 'app-right-sidebar',
   standalone: true,
-  imports: [AsyncPipe, NgIf, NgFor, NotificationItem, TrendingTag],
+  imports: [AsyncPipe, CommonModule, NotificationItem, TrendingTag],
   templateUrl: './right-sidebar.html',
   styleUrls: ['./right-sidebar.css']
 })

@@ -1,0 +1,40 @@
+<div class="flex items-center justify-center min-h-screen">
+  <div class="w-80 space-y-4">
+    <h1 class="text-xl font-bold">Login</h1>
+
+    <form (ngSubmit)="login()" class="space-y-4">
+      <input
+        type="email"
+        class="w-full border p-2 rounded"
+        placeholder="Email"
+        [(ngModel)]="email"
+        name="email"
+        required
+      />
+
+      <input
+        type="password"
+        class="w-full border p-2 rounded"
+        placeholder="Password"
+        [(ngModel)]="password"
+        name="password"
+        required
+      />
+
+      <button
+        type="submit"
+        class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
+      >
+        Login
+      </button>
+    </form>
+
+    <p *ngIf="error" class="text-red-500 text-sm">
+      {{ error }}
+    </p>
+
+    <a routerLink="/signup" class="text-sm text-blue-600 underline">
+      Create an account
+    </a>
+  </div>
+</div>

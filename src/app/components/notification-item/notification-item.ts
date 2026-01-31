@@ -1,9 +1,9 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { NgIf } from '@angular/common';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-notification-item',
-  imports: [NgIf],
+  imports: [CommonModule],
   templateUrl: './notification-item.html',
   styleUrl: './notification-item.css'
 })
