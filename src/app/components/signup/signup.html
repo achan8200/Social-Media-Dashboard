@@ -8,9 +8,12 @@
         class="w-full border p-2 rounded"
         placeholder="Email"
         [(ngModel)]="email"
+        (input)="validateEmail()"
         name="email"
         required
       />
+      <p *ngIf="emailError" class="text-red-500 text-sm">{{ emailError }}
+</p>
 
       <input
         type="password"

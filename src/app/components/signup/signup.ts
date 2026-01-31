@@ -18,12 +18,34 @@ export class Signup {
   displayName = '';
   error = '';
 
+  emailError: string | null = null;
   usernameError: string | null = null;
   displayNameError: string | null = null;
 
   private usernameCheckTimeout: any = null;
 
   constructor(private authService: AuthService, private router: Router) {}
+
+  validateEmail() {
+    const trimmedEmail = this.email.trim();
+
+    // Clear error if empty
+    if (!trimmedEmail) {
+      this.emailError = null;
+      return;
+    }
+
+    // Simple, safe email regex
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailPattern.test(trimmedEmail)) {
+      this.emailError = 'Please enter a valid email address';
+      return;
+    }
+
+    // Valid email -> clear error
+    this.emailError = null;
+  }
 
   // Called when user types in the username input
   async validateUsername() {
@@ -63,13 +85,14 @@ export class Signup {
     this.error = '';
 
     // Final validation before submit
+    this.validateEmail();
     this.validateUsername();
     this.validateDisplayName();
 
-    if (this.usernameError || this.displayNameError) return;
+    if (this.emailError || this.usernameError || this.displayNameError) return;
 
     try {
-      await this.authService.signup(this.email, this.password, this.username, this.displayName);
+      await this.authService.signup(this.email.trim(), this.password.trim(), this.username.trim().toLowerCase(), this.displayName.trim());
       this.router.navigate(['/home'], { replaceUrl: true });
     } catch (err: any) {
       this.error = err.message || 'Signup failed';
