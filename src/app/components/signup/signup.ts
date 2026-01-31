@@ -14,18 +14,62 @@ import { AuthService } from '../../services/auth.service';
 export class Signup {
   email = '';
   password = '';
+  username = '';
+  displayName = '';
   error = '';
 
-  constructor(
-    private authService: AuthService,
-    private router: Router
-  ) {}
+  usernameError: string | null = null;
+  displayNameError: string | null = null;
+
+  private usernameCheckTimeout: any = null;
+
+  constructor(private authService: AuthService, private router: Router) {}
+
+  // Called when user types in the username input
+  async validateUsername() {
+    // Format validation
+    const lowerUsername = this.username.toLowerCase();
+
+    // Clear error if empty
+    if (!lowerUsername) {
+      this.usernameError = null;
+      return;
+    }
+
+    // Synchronous format check
+    const usernameFormatError = this.authService.validateUsername(lowerUsername);
+    if (usernameFormatError) {
+      this.usernameError = usernameFormatError;
+      return;
+    }
+
+    this.usernameError = null;
+
+    // Debounce Firestore check
+    if (this.usernameCheckTimeout) clearTimeout(this.usernameCheckTimeout);
+    this.usernameCheckTimeout = setTimeout(async () => {
+      const unique = await this.authService.isUsernameUnique(lowerUsername);
+      this.usernameError = unique ? null : 'Username already exists';
+    }, 500) // wait 500ms after last keystroke
+  }
+
+  // Called when user types in the displayName input
+  validateDisplayName() {
+    const trimmed = this.displayName.trim();
+    this.displayNameError = trimmed ? null : 'Display name cannot be empty';
+  }
 
   async signup() {
     this.error = '';
 
+    // Final validation before submit
+    this.validateUsername();
+    this.validateDisplayName();
+
+    if (this.usernameError || this.displayNameError) return;
+
     try {
-      await this.authService.signup(this.email, this.password);
+      await this.authService.signup(this.email, this.password, this.username, this.displayName);
       this.router.navigate(['/home'], { replaceUrl: true });
     } catch (err: any) {
       this.error = err.message || 'Signup failed';

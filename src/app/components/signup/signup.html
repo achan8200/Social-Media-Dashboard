@@ -21,6 +21,28 @@
         required
       />
 
+      <input
+        type="text"
+        class="w-full border p-2 rounded"
+        placeholder="Username"
+        [(ngModel)]="username"
+        (input)="validateUsername()"
+        name="username"
+        required
+      />
+      <p *ngIf="usernameError" class="text-red-500 text-sm">{{ usernameError }}</p>
+
+      <input
+        type="text"
+        class="w-full border p-2 rounded"
+        placeholder="Display Name"
+        [(ngModel)]="displayName"
+        (input)="validateDisplayName()"
+        name="displayName"
+        required
+      />
+      <p *ngIf="displayNameError" class="text-red-500 text-sm">{{ displayNameError }}</p>
+
       <button
         type="submit"
         class="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700"

@@ -2,10 +2,9 @@ import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, take } from 'rxjs';
 import { Auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, User } from '@angular/fire/auth';
+import { Firestore, collection, doc, getDocs, query, where, runTransaction } from '@angular/fire/firestore';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class AuthService {
   private userSubject = new BehaviorSubject<User | null>(null);
   user$ = this.userSubject.asObservable();
@@ -13,10 +12,9 @@ export class AuthService {
   private authReadySubject = new BehaviorSubject<boolean>(false);
   authReady$ = this.authReadySubject.asObservable();
 
-  constructor(private auth: Auth, private router: Router) {
+  constructor(private auth: Auth, private router: Router, private firestore: Firestore) {
     // Initialize Firebase Auth state
     onAuthStateChanged(this.auth, (user) => {
-      //console.log('[AUTH STATE]', user ? 'LOGGED IN' : 'LOGGED OUT');
       this.userSubject.next(user);
       this.authReadySubject.next(true);
     });
@@ -28,8 +26,52 @@ export class AuthService {
   }
 
   // SIGNUP
-  signup(email: string, password: string) {
-    return createUserWithEmailAndPassword(this.auth, email, password);
+  async signup(
+    email: string,
+    password: string,
+    username: string,
+    displayName: string,
+    profilePicture?: string
+  ) {
+    // Trim display name
+    const trimmedDisplayName = displayName.trim();
+    if (!trimmedDisplayName) {
+      throw new Error('Display name cannot be empty');
+    }
+
+    // Validate username
+    const lowerUsername = username.toLowerCase();
+    const usernameError = this.validateUsername(lowerUsername);
+    if (usernameError) { 
+      throw new Error(usernameError);
+    }
+
+    const unique = await this.isUsernameUnique(lowerUsername);
+    if (!unique) throw new Error('Username already exists');
+
+    // Create Firebase Auth user
+    const userCredential = await createUserWithEmailAndPassword(this.auth, email, password);
+    const uid = userCredential.user.uid;
+
+    // Generate sequential userId using transaction
+    const counterRef = doc(this.firestore, 'counters/users');
+    await runTransaction(this.firestore, async (transaction) => {
+      const counterDoc = await transaction.get(counterRef);
+      interface UserCounter { lastUserId: number; }
+      const counterData = counterDoc.data() as UserCounter;
+      const newUserId = (counterDoc.exists() ? counterData.lastUserId : 0) + 1;
+      transaction.update(counterRef, { lastUserId: newUserId });
+
+      // Create Firestore user profile
+      const userRef = doc(this.firestore, `users/${uid}`);
+      transaction.set(userRef, {
+        userId: newUserId,
+        username: lowerUsername,
+        displayName,
+        profilePicture: profilePicture || '',
+        email
+      });
+    });
   }
 
   // LOGOUT
@@ -40,5 +82,31 @@ export class AuthService {
   // Helper: get current user once
   getCurrentUser(): Observable<User | null> {
     return this.user$.pipe(take(1));
+  }
+
+  // Username validation rules
+  validateUsername(username: string): string | null {
+    /* 
+      Requirements:
+      Length 3-20
+      Start with letter
+      Lowercase letters/numbers/dot/underscore,
+      No consecutive dot/underscore
+      Not start/end with dot/underscore 
+    */
+    const pattern = /^(?=.{3,20}$)(?!.*[._]{2})(?![._])[a-z][a-z0-9._]*(?<![._])$/;
+    if (!pattern.test(username)) {
+      return 'Invalid username. Must be 3-20 chars, start with a letter, letters/numbers/dots/underscores allowed, no consecutive dots/underscores, cannot start/end with dot/underscore.';
+    }
+    return null;
+  }
+
+  // Check if username exists
+  async isUsernameUnique(username: string): Promise<boolean> {
+    const lowerUsername = username.toLowerCase();
+    const usersRef = collection(this.firestore, 'users');
+    const q = query(usersRef, where('username', '==', lowerUsername));
+    const snapshot = await getDocs(q);
+    return snapshot.empty; // true if no user exists with that username
   }
 }
