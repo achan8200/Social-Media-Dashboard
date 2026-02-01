@@ -3,52 +3,138 @@
     <h1 class="text-xl font-bold">Sign Up</h1>
 
     <form (ngSubmit)="signup()" class="space-y-4">
-      <input
-        type="email"
-        class="w-full border p-2 rounded"
-        placeholder="Email"
-        [(ngModel)]="email"
-        (input)="validateEmail()"
-        name="email"
-        required
-      />
-      <p *ngIf="emailError" class="text-red-500 text-sm">{{ emailError }}
-</p>
+      <div class="relative">
+        <input
+          type="email"
+          class="w-full border p-2 rounded"
+          placeholder="Email"
+          [(ngModel)]="email"
+          (input)="validateEmail()"
+          (blur)="validateEmail(true)"
+          name="email"
+          required
+        />
+        <span *ngIf="email && !emailError"
+          class="absolute right-2 top-1/2 -translate-y-1/2 text-green-500">
+          ✔
+        </span>
+      </div>
+      <p *ngIf="emailError" class="text-red-500 text-sm">
+        {{ emailError }}
+      </p>
 
-      <input
-        type="password"
-        class="w-full border p-2 rounded"
-        placeholder="Password"
-        [(ngModel)]="password"
-        name="password"
-        required
-      />
+      <div class="relative">
+        <input
+          [type]="showPassword ? 'text' : 'password'"
+          [(ngModel)]="password"
+          (input)="validatePassword()"
+          name="password"
+          placeholder="Password"
+          required
+          class="w-full border p-2 rounded pr-10"
+        />
 
-      <input
-        type="text"
-        class="w-full border p-2 rounded"
-        placeholder="Username"
-        [(ngModel)]="username"
-        (input)="validateUsername()"
-        name="username"
-        required
-      />
-      <p *ngIf="usernameError" class="text-red-500 text-sm">{{ usernameError }}</p>
+        <button
+          type="button"
+          (click)="togglePasswordVisibility()"
+          class="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-500 hover:text-gray-700"
+          aria-label="Toggle password visibility"
+        >
+          {{ showPassword ? '👁️‍🗨️' : '👁️' }}
+        </button>
+      </div>
 
-      <input
-        type="text"
-        class="w-full border p-2 rounded"
-        placeholder="Display Name"
-        [(ngModel)]="displayName"
-        (input)="validateDisplayName()"
-        name="displayName"
-        required
-      />
-      <p *ngIf="displayNameError" class="text-red-500 text-sm">{{ displayNameError }}</p>
+      <ul class="text-sm space-y-1">
+        <li [class.text-green-600]="passwordStrength.length"
+            [class.text-gray-400]="!passwordStrength.length">
+          • At least 8 characters
+        </li>
+        <li [class.text-green-600]="passwordStrength.uppercase"
+            [class.text-gray-400]="!passwordStrength.uppercase">
+          • One uppercase letter
+        </li>
+        <li [class.text-green-600]="passwordStrength.lowercase"
+            [class.text-gray-400]="!passwordStrength.lowercase">
+          • One lowercase letter
+        </li>
+        <li [class.text-green-600]="passwordStrength.number"
+            [class.text-gray-400]="!passwordStrength.number">
+          • One number
+        </li>
+        <li [class.text-green-600]="passwordStrength.special"
+            [class.text-gray-400]="!passwordStrength.special">
+          • One special character
+        </li>
+      </ul>
+      <p *ngIf="passwordError" class="text-red-500 text-sm">
+        {{ passwordError }}
+      </p>
+
+      <div class="relative">
+        <input
+          [type]="showPassword ? 'text' : 'password'"
+          [(ngModel)]="confirmPassword"
+          (input)="validateConfirmPassword()"
+          name="confirmPassword"
+          placeholder="Confirm password"
+          class="w-full border p-2 rounded pr-10"
+        />
+        <span *ngIf="confirmPassword && !confirmPasswordError"
+          class="absolute right-2 top-1/2 -translate-y-1/2 text-green-500">
+          ✔
+        </span>
+      </div>
+
+      <p *ngIf="confirmPasswordError" class="text-sm text-red-500">
+        {{ confirmPasswordError }}
+      </p>
+
+      <div class="relative">
+        <input
+          type="text"
+          class="w-full border p-2 rounded"
+          placeholder="Username"
+          [(ngModel)]="username"
+          (input)="validateUsername()"
+          name="username"
+          required
+        />
+        <span *ngIf="username && !usernameError"
+          class="absolute right-2 top-1/2 -translate-y-1/2 text-green-500">
+          ✔
+        </span>
+      </div>
+      <p *ngIf="usernameError" class="text-red-500 text-sm">
+        {{ usernameError }}
+      </p>
+
+      <div class="relative">
+        <input
+          type="text"
+          class="w-full border p-2 rounded"
+          placeholder="Display Name"
+          [(ngModel)]="displayName"
+          (input)="validateDisplayName()"
+          name="displayName"
+          required
+        />
+        <span *ngIf="displayName && !displayNameError"
+          class="absolute right-2 top-1/2 -translate-y-1/2 text-green-500">
+          ✔
+        </span>
+      </div>
+      <p *ngIf="displayNameError" class="text-red-500 text-sm">
+        {{ displayNameError }}
+      </p>
 
       <button
         type="submit"
-        class="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700"
+        [disabled]="!isFormValid || emailChecking"
+        class="w-full bg-green-600 text-white p-2 rounded
+              hover:bg-green-700
+              disabled:bg-gray-400
+              disabled:cursor-not-allowed
+              disabled:hover:bg-gray-400"
       >
         Create Account
       </button>

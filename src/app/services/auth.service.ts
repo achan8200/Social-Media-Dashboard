@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, take } from 'rxjs';
-import { Auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, User } from '@angular/fire/auth';
+import { Auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, User, getAuth, fetchSignInMethodsForEmail } from '@angular/fire/auth';
 import { Firestore, collection, doc, getDocs, query, where, runTransaction } from '@angular/fire/firestore';
 
 @Injectable({ providedIn: 'root' })
@@ -53,25 +53,40 @@ export class AuthService {
     const userCredential = await createUserWithEmailAndPassword(this.auth, email, password);
     const uid = userCredential.user.uid;
 
-    // Generate sequential userId using transaction
-    const counterRef = doc(this.firestore, 'counters/users');
-    await runTransaction(this.firestore, async (transaction) => {
-      const counterDoc = await transaction.get(counterRef);
-      interface UserCounter { lastUserId: number; }
-      const counterData = counterDoc.data() as UserCounter;
-      const newUserId = (counterDoc.exists() ? counterData.lastUserId : 0) + 1;
-      transaction.update(counterRef, { lastUserId: newUserId });
+    try {
+      // Generate sequential userId using transaction
+      const counterRef = doc(this.firestore, 'counters/users');
 
-      // Create Firestore user profile
-      const userRef = doc(this.firestore, `users/${uid}`);
-      transaction.set(userRef, {
-        userId: newUserId,
-        username: lowerUsername,
-        displayName,
-        profilePicture: profilePicture || '',
-        email
+      await runTransaction(this.firestore, async (transaction) => {
+        const counterDoc = await transaction.get(counterRef);
+
+        let newUserId = 1;
+
+        if (!counterDoc.exists()) {
+          // First user ever
+          transaction.set(counterRef, { lastUserId: 1 });
+        } else {
+          const lastUserId = counterDoc.data()['lastUserId'];
+          newUserId = lastUserId + 1;
+          transaction.update(counterRef, { lastUserId: newUserId });
+        }
+
+        // Create Firestore user profile
+        const userRef = doc(this.firestore, `users/${uid}`);
+        transaction.set(userRef, {
+          userId: newUserId,
+          username: lowerUsername,
+          displayName: trimmedDisplayName,
+          profilePicture: profilePicture || '',
+          email
+        });
       });
-    });
+
+    } catch (err) {
+      // Roll back Auth user if Firestore fails
+      await userCredential.user.delete();
+      throw err;
+    }
   }
 
   // LOGOUT
@@ -82,6 +97,11 @@ export class AuthService {
   // Helper: get current user once
   getCurrentUser(): Observable<User | null> {
     return this.user$.pipe(take(1));
+  }
+
+  async checkEmailExists(email: string) {
+    const auth = getAuth();
+    await fetchSignInMethodsForEmail(auth, email);
   }
 
   // Username validation rules
