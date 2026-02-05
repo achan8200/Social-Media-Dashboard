@@ -11,8 +11,7 @@ export class GuestGuard implements CanActivate {
 
   canActivate() {
     return this.authService.authReady$.pipe(
-      filter(ready => ready),
-      take(1),
+      filter(Boolean),
       switchMap(() => this.authService.user$),
       take(1),
       map(user =>
