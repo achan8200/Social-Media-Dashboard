@@ -17,7 +17,7 @@ export const routes: Routes = [
   { path: 'groups', component: Groups, canActivate: [AuthGuard] },
   { path: 'login', component: Login, canActivate: [GuestGuard] },
   { path: 'signup', component: Signup, canActivate: [GuestGuard] },
-  { path: 'profile/:uid', component: Profile, canActivate: [AuthGuard] },
+  { path: 'profile/:userId', component: Profile, canActivate: [AuthGuard] },
   { path: '', redirectTo: 'login', pathMatch: 'full' }, // default
   { path: '**', redirectTo: 'login' }, // fallback
 ];

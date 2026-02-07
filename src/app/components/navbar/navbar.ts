@@ -1,9 +1,10 @@
 import { Component } from '@angular/core';
 import { AsyncPipe, CommonModule } from '@angular/common';
 import { NotificationsService } from '../../services/notifications.service';
-import { map, Observable } from 'rxjs';
+import { map, Observable, of, switchMap, take } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { Router } from '@angular/router';
+import { doc, docData, Firestore, getDoc } from '@angular/fire/firestore';
 
 @Component({
   selector: 'app-navbar',
@@ -23,6 +24,7 @@ export class Navbar {
   constructor(
     public auth: AuthService,
     private router: Router,
+    private firestore: Firestore,
     private notificationsService: NotificationsService
   ) {
     this.notifications$ = this.notificationsService.notifications$;
@@ -52,15 +54,16 @@ export class Navbar {
   }
 
   goToProfile() {
-    this.auth.getCurrentUser().subscribe(user => {
-      if (!user) {
-        console.warn('[NAVBAR] No authenticated user');
-        return;
-      }
+  this.auth.getCurrentUser().pipe(take(1)).subscribe(user => {
+    if (!user) {
+      console.warn('[NAVBAR] No authenticated user');
+      return;
+    }
 
-      this.router.navigate(['/profile', user.uid]);
-    });
-  }
+    // Use UID directly — no extra Firestore read needed
+    this.router.navigate(['/profile', user.uid]);
+  });
+}
 
   async logout() {
     console.log('[NAVBAR] logout clicked'); // test

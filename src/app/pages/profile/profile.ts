@@ -1,9 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Firestore, doc, docData, serverTimestamp, setDoc } from '@angular/fire/firestore';
-import { Observable, map, switchMap, filter, combineLatest } from 'rxjs';
+import { Firestore, collection, query, where, getDocs, doc, serverTimestamp, setDoc, getDoc } from '@angular/fire/firestore';
+import { ActivatedRoute } from '@angular/router';
+import { Observable, map, from, filter, combineLatest, switchMap, of, debounceTime, distinctUntilChanged, take } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-profile',
@@ -17,10 +19,16 @@ export class Profile {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private cdr = inject(ChangeDetectorRef);
+  private route = inject(ActivatedRoute);
 
   profile$!: Observable<any>;
   isOwner$!: Observable<boolean>;
-  fileInputElement!: HTMLInputElement;
+
+  editMode = false;
+  originalProfile: any = null;
+  hasChanges$!: Observable<boolean>;
+
+  usernameAvailable: boolean | null = null;
 
   profileForm = this.fb.group({
     displayName: ['', Validators.required],
@@ -45,45 +53,85 @@ export class Profile {
   private initialScale = 1;
 
   constructor() {
-    // Profile observable from currentUser
-    this.profile$ = this.authService.user$.pipe(
-      filter((u): u is any => !!u),
-      switchMap(user => {
-        const userRef = doc(this.firestore, `users/${user.uid}`);
-        return docData(userRef, { idField: 'uid' });
+    this.loadProfileFromRoute();
+    this.profileForm.get('username')!
+    .valueChanges
+    .pipe(
+      debounceTime(400),
+      distinctUntilChanged()
+    )
+    .subscribe(async username => {
+      if (!this.editMode) return;
+      if (!username || username === this.originalProfile?.username) {
+        this.usernameAvailable = null;
+        return;
+      }
+
+      const isUnique = await this.authService.isUsernameUnique(username);
+      this.usernameAvailable = isUnique;
+    });
+
+    this.profile$
+    .pipe(takeUntilDestroyed())
+    .subscribe(profile => {
+      if (!profile) return;
+
+      this.originalProfile = profile;
+
+      // Keep form in sync when NOT editing
+      if (!this.editMode) {
+        this.profileForm.patchValue({
+          displayName: profile.displayName ?? '',
+          username: profile.username ?? '',
+          bio: profile.bio ?? ''
+        }, { emitEvent: false });
+      }
+    });
+
+    this.hasChanges$ = this.profileForm.valueChanges.pipe(
+      map(values => {
+        if (!this.originalProfile) return false;
+
+        return (
+          values.displayName !== this.originalProfile.displayName ||
+          values.username !== this.originalProfile.username ||
+          values.bio !== this.originalProfile.bio
+        );
       })
     );
 
-    // Owner observable (boolean)
     this.isOwner$ = combineLatest([
-      this.authService.user$.pipe(filter((u): u is any => !!u)),
-      this.profile$.pipe(filter(p => !!p))
+      this.authService.user$,
+      this.profile$
     ]).pipe(
-      map(([user, profile]) => user.uid === profile.uid)
+      map(([authUser, profile]) => {
+        if (!authUser || !profile) return false;
+        return authUser.uid === profile.uid;
+      })
     );
 
-    // Patch form whenever profile$ emits
-    this.profile$.subscribe(profile => {
-      console.log('profile$ emitted:', profile);
-      if (!profile) return;
-      this.profileForm.patchValue(profile);
+    // Optional but VERY useful while debugging
+    this.isOwner$.subscribe(isOwner => {
+      console.log('[PROFILE] isOwner =', isOwner);
     });
   }
 
-  async save() {
-    const currentUser = await this.authService.getCurrentUser().toPromise();
-    if (!currentUser) return;
+  /** Load profile based on /profile/:userId */
+  private loadProfileFromRoute() {
+    this.profile$ = this.route.params.pipe(
+      map(params => params['userId'] as string),
+      switchMap(uid => {
+        if (!uid) return of(null);
 
-    if (this.profileForm.invalid) return;
-
-    const ref = doc(this.firestore, `users/${currentUser!.uid}`);
-    await setDoc(
-      ref,
-      {
-        ...this.profileForm.value,
-        updatedAt: serverTimestamp()
-      },
-      { merge: true }
+        const ref = doc(this.firestore, `users/${uid}`);
+        return from(getDoc(ref)).pipe(
+          map(snap =>
+            snap.exists()
+              ? { uid: snap.id, ...snap.data() }
+              : null
+          )
+        );
+      })
     );
   }
 
@@ -259,5 +307,72 @@ export class Profile {
     ];
 
     return colors[Math.abs(hash) % colors.length];
+  }
+
+  enterEditMode() {
+    this.editMode = true;
+    
+    this.profileForm.patchValue({
+      displayName: this.originalProfile.displayName,
+      username: this.originalProfile.username,
+      bio: this.originalProfile.bio
+    }, { emitEvent: false });
+  }
+
+  cancelEditProfile() {
+    this.editMode = false;
+    this.usernameAvailable = null;
+
+    this.profileForm.patchValue({
+      displayName: this.originalProfile.displayName,
+      username: this.originalProfile.username,
+      bio: this.originalProfile.bio
+    }, { emitEvent: false });
+  }
+
+  hasChanges(): boolean {
+    if (!this.originalProfile) return false;
+
+    const v = this.profileForm.value;
+    return (
+      v.displayName !== this.originalProfile.displayName ||
+      v.username !== this.originalProfile.username ||
+      v.bio !== this.originalProfile.bio
+    );
+  }
+
+  async saveEditProfile() {
+    const currentUser = await this.authService.getCurrentUser().toPromise();
+    if (!currentUser) return;
+
+    if (!this.hasChanges()) return;
+
+    if (this.usernameAvailable === false) {
+      alert('Username is already taken');
+      return;
+    }
+
+    const updatedData: any = {
+      updatedAt: serverTimestamp()
+    };
+
+    const v = this.profileForm.value;
+
+    if (v.displayName?.trim() !== this.originalProfile.displayName) {
+      updatedData.displayName = v.displayName!.trim();
+    }
+
+    if (v.username !== this.originalProfile.username) {
+      updatedData.username = v.username!.toLowerCase();
+    }
+
+    if (v.bio !== this.originalProfile.bio) {
+      updatedData.bio = v.bio;
+    }
+
+    const userRef = doc(this.firestore, `users/${currentUser.uid}`);
+    await setDoc(userRef, updatedData, { merge: true });
+
+    this.editMode = false;
   }
 }
