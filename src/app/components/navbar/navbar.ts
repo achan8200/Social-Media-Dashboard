@@ -54,16 +54,21 @@ export class Navbar {
   }
 
   goToProfile() {
-  this.auth.getCurrentUser().pipe(take(1)).subscribe(user => {
-    if (!user) {
-      console.warn('[NAVBAR] No authenticated user');
-      return;
-    }
+    this.auth.getCurrentUser().pipe(take(1)).subscribe(async user => {
+      if (!user) return;
 
-    // Use UID directly — no extra Firestore read needed
-    this.router.navigate(['/profile', user.uid]);
-  });
-}
+      const userRef = doc(this.firestore, `users/${user.uid}`);
+      const snap = await getDoc(userRef);
+
+      if (!snap.exists()) {
+        console.warn('[NAVBAR] User doc missing');
+        return;
+      }
+
+      const userId = snap.data()['userId'];
+      this.router.navigate(['/profile', userId]);
+    });
+  }
 
   async logout() {
     console.log('[NAVBAR] logout clicked'); // test

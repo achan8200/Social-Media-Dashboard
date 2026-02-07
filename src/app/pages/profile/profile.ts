@@ -119,17 +119,22 @@ export class Profile {
   /** Load profile based on /profile/:userId */
   private loadProfileFromRoute() {
     this.profile$ = this.route.params.pipe(
-      map(params => params['userId'] as string),
-      switchMap(uid => {
-        if (!uid) return of(null);
+      map(params => Number(params['userId'])),
+      filter(userId => !isNaN(userId)),
+      switchMap(userId => {
+        const usersRef = collection(this.firestore, 'users');
+        const q = query(usersRef, where('userId', '==', userId));
 
-        const ref = doc(this.firestore, `users/${uid}`);
-        return from(getDoc(ref)).pipe(
-          map(snap =>
-            snap.exists()
-              ? { uid: snap.id, ...snap.data() }
-              : null
-          )
+        return from(getDocs(q)).pipe(
+          map(snapshot => {
+            if (snapshot.empty) return null;
+
+            const docSnap = snapshot.docs[0];
+            return {
+              uid: docSnap.id,
+              ...docSnap.data()
+            };
+          })
         );
       })
     );
