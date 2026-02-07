@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, take } from 'rxjs';
 import { Auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, User, getAuth, fetchSignInMethodsForEmail } from '@angular/fire/auth';
-import { Firestore, collection, doc, getDocs, query, where, runTransaction } from '@angular/fire/firestore';
+import { Firestore, collection, doc, getDocs, query, where, runTransaction, getDoc, setDoc, serverTimestamp } from '@angular/fire/firestore';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -14,9 +14,33 @@ export class AuthService {
 
   constructor(private auth: Auth, private router: Router, private firestore: Firestore) {
     // Initialize Firebase Auth state
-    onAuthStateChanged(this.auth, (user) => {
+    onAuthStateChanged(this.auth, async (user) => {
       this.userSubject.next(user);
+      if (user) {
+        await this.ensureUserDoc(user);
+      }
       this.authReadySubject.next(true);
+    });
+  }
+
+  private async ensureUserDoc(user: User) {
+    const userRef = doc(this.firestore, `users/${user.uid}`);
+    const snap = await getDoc(userRef);
+
+    if (snap.exists()) {
+      return; // Already created
+    }
+
+    // Create minimal default profile
+    await setDoc(userRef, {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName ?? '',
+      username: '',
+      bio: '',
+      profilePicture: '',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
     });
   }
 

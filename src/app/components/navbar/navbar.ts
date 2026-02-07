@@ -51,6 +51,17 @@ export class Navbar {
     this.notificationsService.markAsRead(index);
   }
 
+  goToProfile() {
+    this.auth.getCurrentUser().subscribe(user => {
+      if (!user) {
+        console.warn('[NAVBAR] No authenticated user');
+        return;
+      }
+
+      this.router.navigate(['/profile', user.uid]);
+    });
+  }
+
   async logout() {
     console.log('[NAVBAR] logout clicked'); // test
     await this.auth.logout();
