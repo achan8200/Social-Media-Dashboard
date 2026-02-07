@@ -1,9 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Firestore, doc, docData, serverTimestamp, setDoc } from '@angular/fire/firestore';
-import { firstValueFrom, Observable } from 'rxjs';
-import { ActivatedRoute } from '@angular/router';
+import { Observable, map, switchMap, filter, combineLatest } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -14,16 +13,16 @@ import { AuthService } from '../../services/auth.service';
   styleUrl: './profile.css'
 })
 export class Profile {
-  private route = inject(ActivatedRoute);
   private firestore = inject(Firestore);
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
+  private cdr = inject(ChangeDetectorRef);
 
-  uid = this.route.snapshot.paramMap.get('uid')!;
-  user$!: Observable<any>;
-  currentUser$ = this.authService.user$; // currently logged-in user
+  profile$!: Observable<any>;
+  isOwner$!: Observable<boolean>;
+  fileInputElement!: HTMLInputElement;
 
-   profileForm = this.fb.group({
+  profileForm = this.fb.group({
     displayName: ['', Validators.required],
     username: ['', Validators.required],
     bio: [''],
@@ -46,27 +45,38 @@ export class Profile {
   private initialScale = 1;
 
   constructor() {
-    const userRef = doc(this.firestore, `users/${this.uid}`);
-    this.user$ = docData(userRef, { idField: 'uid' });
-  }
+    // Profile observable from currentUser
+    this.profile$ = this.authService.user$.pipe(
+      filter((u): u is any => !!u),
+      switchMap(user => {
+        const userRef = doc(this.firestore, `users/${user.uid}`);
+        return docData(userRef, { idField: 'uid' });
+      })
+    );
 
-  ngOnInit() {
-    this.loadProfile();
-  }
+    // Owner observable (boolean)
+    this.isOwner$ = combineLatest([
+      this.authService.user$.pipe(filter((u): u is any => !!u)),
+      this.profile$.pipe(filter(p => !!p))
+    ]).pipe(
+      map(([user, profile]) => user.uid === profile.uid)
+    );
 
-   async loadProfile() {
-    const profile = await firstValueFrom(this.user$);
-    if (!profile) return;
-    this.profileForm.patchValue(profile);
+    // Patch form whenever profile$ emits
+    this.profile$.subscribe(profile => {
+      console.log('profile$ emitted:', profile);
+      if (!profile) return;
+      this.profileForm.patchValue(profile);
+    });
   }
 
   async save() {
-    const currentUser = await firstValueFrom(this.currentUser$);
-    if (!currentUser || currentUser.uid !== this.uid) return;
+    const currentUser = await this.authService.getCurrentUser().toPromise();
+    if (!currentUser) return;
 
     if (this.profileForm.invalid) return;
-    const ref = doc(this.firestore, `users/${this.uid}`);
 
+    const ref = doc(this.firestore, `users/${currentUser!.uid}`);
     await setDoc(
       ref,
       {
@@ -91,6 +101,8 @@ export class Profile {
       this.cropX = 0;
       this.cropY = 0;
       this.cropScale = 1;
+      input.value = '';
+      this.cdr.detectChanges();
     };
     reader.readAsDataURL(file);
   }
@@ -153,22 +165,14 @@ export class Profile {
     this.isPinching = false;
   }
 
-  private getTouchDistance(touches: TouchList): number {
-    const dx = touches[0].clientX - touches[1].clientX;
-    const dy = touches[0].clientY - touches[1].clientY;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-
   zoom(delta: number) {
     this.cropScale = Math.max(0.5, Math.min(3, this.cropScale + delta));
   }
 
   // Save cropped image
   async saveCroppedProfilePicture() {
-    const currentUser = await firstValueFrom(this.currentUser$);
-    if (!currentUser || currentUser.uid !== this.uid) return;
-    
-    if (!this.cropImageSrc) return;
+    const currentUser = await this.authService.getCurrentUser().toPromise();
+    if (!currentUser || !this.cropImageSrc) return;
 
     const croppedBase64 = await this.cropAndResize(
       this.cropImageSrc,
@@ -179,7 +183,7 @@ export class Profile {
     );
 
     // Save to Firestore
-    const userRef = doc(this.firestore, `users/${this.uid}`);
+    const userRef = doc(this.firestore, `users/${currentUser.uid}`);
     await setDoc(userRef, { profilePicture: croppedBase64 }, { merge: true });
 
     // Update form and close modal
@@ -211,6 +215,21 @@ export class Profile {
         resolve(canvas.toDataURL('image/jpeg'));
       };
     });
+  }
+
+  async removeProfilePicture() {
+    const currentUser = await this.authService.getCurrentUser().toPromise();
+    if (!currentUser) return;
+
+    // Clear Firestore profilePicture field
+    const userRef = doc(this.firestore, `users/${currentUser.uid}`);
+    await setDoc(userRef, { profilePicture: '' }, { merge: true });
+
+    // Update the local form and reset crop modal
+    this.profileForm.patchValue({ profilePicture: '' });
+    this.cropImageSrc = null;
+
+    console.log('Profile picture removed');
   }
 
   // Avatar helpers

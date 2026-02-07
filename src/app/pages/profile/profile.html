@@ -1,53 +1,54 @@
-<div class="max-w-4xl mx-auto space-y-6">
+<div class="max-w-4xl mx-auto space-y-6" *ngIf="profile$ | async as profile">
 
   <!-- Profile Card -->
-  <div class="bg-white rounded-xl shadow p-6">
-    <div class="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+  <div class="bg-white rounded-xl shadow p-6 flex flex-col sm:flex-row items-center sm:items-start gap-6">
 
-      <!-- Avatar -->
-      <div class="relative w-32 h-32">
-        <img *ngIf="profileForm.value.profilePicture; else defaultAvatar"
-             [src]="profileForm.value.profilePicture"
-             alt="Profile picture"
-             class="w-32 h-32 rounded-full object-cover border"/>
+    <!-- Avatar -->
+    <div class="relative w-32 h-32">
 
-        <ng-template #defaultAvatar>
-          <div class="w-32 h-32 rounded-full flex items-center justify-center text-white text-6xl font-normal select-none"
-               [ngStyle]="{ 'background-color': getAvatarColor(profileForm.value.username) }">
-            {{ getInitial(profileForm.value.username) }}
-          </div>
-        </ng-template>
+      <!-- Profile image -->
+      <img *ngIf="profile.profilePicture; else defaultAvatar"
+           [src]="profile.profilePicture"
+           alt="Profile picture"
+           class="w-32 h-32 rounded-full object-cover border"/>
 
-        <!-- Show upload only for owner -->
-        <ng-container *ngIf="(currentUser$ | async)?.uid === uid">
-          <input type="file" accept="image/*" class="hidden" #fileInput (change)="onProfilePictureSelected($event)"/>
-          <button type="button" (click)="fileInput.click()"
-                  class="absolute bottom-0 right-0 bg-gray-900 text-white rounded-full p-2 hover:bg-gray-700"
-                  title="Change profile picture">
-            ✎
-          </button>
-        </ng-container>
-      </div>
+      <!-- Default avatar -->
+      <ng-template #defaultAvatar>
+        <div class="w-32 h-32 rounded-full flex items-center justify-center text-white text-6xl font-normal select-none"
+             [ngStyle]="{ 'background-color': getAvatarColor(profile.username) }">
+          {{ getInitial(profile.username) }}
+        </div>
+      </ng-template>
 
-      <!-- User Info -->
-      <div class="flex-1 text-center sm:text-left space-y-2">
-        <h1 class="text-2xl font-bold">{{ profileForm.value.displayName || 'Your Name' }}</h1>
-        <p class="text-gray-500">@{{ profileForm.value.username || 'username' }}</p>
-        <p class="text-gray-700 max-w-xl">{{ profileForm.value.bio || 'No bio yet.' }}</p>
-      </div>
+      <!-- Always present file input (hidden) -->
+      <input type="file" accept="image/*" class="hidden" #fileInput (change)="onProfilePictureSelected($event)"/>
 
-      <!-- Actions (Edit button) -->
-      <div class="self-center sm:self-start">
-        <button *ngIf="(currentUser$ | async)?.uid === uid"
-                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-          Edit Profile
-        </button>
-      </div>
-
+      <!-- Pencil button (owner only) -->
+      <button *ngIf="isOwner$ | async"
+              type="button" (click)="fileInput.click()"
+              class="absolute bottom-0 right-0 bg-gray-900 text-white rounded-full p-2 hover:bg-gray-700"
+              title="Change profile picture">
+        ✎
+      </button>
     </div>
+
+    <!-- User Info -->
+    <div class="flex-1 text-center sm:text-left space-y-2">
+      <h1 class="text-2xl font-bold">{{ profile.displayName || 'Your Name' }}</h1>
+      <p class="text-gray-500">@{{ profile.username || 'username' }}</p>
+      <p class="text-gray-700 max-w-xl">{{ profile.bio || 'No bio yet.' }}</p>
+    </div>
+
+    <!-- Edit Profile button (owner only) -->
+    <div class="self-center sm:self-start" *ngIf="isOwner$ | async">
+      <button class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+        Edit Profile
+      </button>
+    </div>
+
   </div>
 
-  <!-- Stats -->
+  <!-- Stats (Posts, Friends, Groups) -->
   <div class="grid grid-cols-3 gap-4 text-center">
     <div class="bg-white rounded-lg shadow p-4">
       <p class="text-xl font-bold">0</p>
@@ -63,8 +64,8 @@
     </div>
   </div>
 
-  <!-- Crop Modal (owner only) -->
-  <div *ngIf="cropImageSrc && (currentUser$ | async)?.uid === uid"
+  <!-- Crop Modal -->
+  <div *ngIf="cropImageSrc && (isOwner$ | async)"
        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
     <div class="bg-white p-4 rounded-lg relative w-full max-w-sm h-auto flex flex-col items-center">
       <h2 class="text-lg font-bold mb-4">Adjust Profile Picture</h2>
