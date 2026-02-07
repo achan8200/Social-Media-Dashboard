@@ -65,8 +65,21 @@ export class Navbar {
         return;
       }
 
-      const userId = snap.data()['userId'];
-      this.router.navigate(['/profile', userId]);
+      const data = snap.data();
+
+      // Prefer username-based route
+      if (data['username']) {
+        this.router.navigate(['/u', data['username']]);
+        return;
+      }
+
+      // Fallback to numeric userId
+      if (data['userId'] != null) {
+        this.router.navigate(['/profile', data['userId']]);
+        return;
+      }
+
+      console.warn('[NAVBAR] No username or userId available for profile navigation');
     });
   }
 

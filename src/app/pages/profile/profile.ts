@@ -116,29 +116,64 @@ export class Profile {
     });
   }
 
-  /** Load profile based on /profile/:userId */
-  private loadProfileFromRoute() {
-    this.profile$ = this.route.params.pipe(
-      map(params => Number(params['userId'])),
-      filter(userId => !isNaN(userId)),
-      switchMap(userId => {
-        const usersRef = collection(this.firestore, 'users');
-        const q = query(usersRef, where('userId', '==', userId));
+  // Load profile based on /u/:username or /profile/:userId
+ private loadProfileFromRoute() {
+    this.profile$ = this.route.paramMap.pipe(
+      switchMap(params => {
+        const username = params.get('username');
+        const userIdParam = params.get('userId');
 
-        return from(getDocs(q)).pipe(
-          map(snapshot => {
-            if (snapshot.empty) return null;
+        // ─────────────────────────────
+        // /u/:username
+        // ─────────────────────────────
+        if (username) {
+          const usersRef = collection(this.firestore, 'users');
+          const q = query(
+            usersRef,
+            where('username', '==', username.toLowerCase())
+          );
 
-            const docSnap = snapshot.docs[0];
-            return {
-              uid: docSnap.id,
-              ...docSnap.data()
-            };
-          })
-        );
+          return from(getDocs(q)).pipe(
+            map(snapshot => {
+              if (snapshot.empty) {
+                console.warn('[PROFILE] No user found for username:', username);
+                return null;
+              }
+
+              const docSnap = snapshot.docs[0];
+              return { uid: docSnap.id, ...docSnap.data() };
+            })
+          );
+        }
+
+        // ─────────────────────────────
+        // /profile/:userId
+        // ─────────────────────────────
+        if (userIdParam) {
+          const userId = Number(userIdParam);
+          if (isNaN(userId)) return of(null);
+
+          const usersRef = collection(this.firestore, 'users');
+          const q = query(usersRef, where('userId', '==', userId));
+
+          return from(getDocs(q)).pipe(
+            map(snapshot => {
+              if (snapshot.empty) {
+                console.warn('[PROFILE] No user found for userId:', userId);
+                return null;
+              }
+
+              const docSnap = snapshot.docs[0];
+              return { uid: docSnap.id, ...docSnap.data() };
+            })
+          );
+        }
+
+        return of(null);
       })
     );
   }
+
 
   // Profile picture selection
   onProfilePictureSelected(event: Event) {
