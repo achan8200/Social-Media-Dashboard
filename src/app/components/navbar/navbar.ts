@@ -67,15 +67,15 @@ export class Navbar {
 
       const data = snap.data();
 
-      // Prefer username-based route
-      if (data['username']) {
-        this.router.navigate(['/u', data['username']]);
+      // Prefer numeric userId route
+      if (data['userId'] != null) {
+        this.router.navigate(['/profile', data['userId']]);
         return;
       }
 
-      // Fallback to numeric userId
-      if (data['userId'] != null) {
-        this.router.navigate(['/profile', data['userId']]);
+      // Fallback to username-based route
+      if (data['username']) {
+        this.router.navigate(['/u', data['username']]);
         return;
       }
 
