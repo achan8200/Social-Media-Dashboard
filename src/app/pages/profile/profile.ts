@@ -35,6 +35,7 @@ export class Profile {
   hasChanges$!: Observable<boolean>;
 
   usernameStatus$!: Observable<UsernameStatus>;
+  currentUsernameStatus: UsernameStatus = null;
   checkingUsername = false;
   isSaving = false;
 
@@ -146,6 +147,11 @@ export class Profile {
       }),
       shareReplay(1)
     );
+
+    this.usernameStatus$.subscribe(status => {
+      this.currentUsernameStatus = status;
+      this.cdr.detectChanges(); // optional to immediately update the button
+    });
 
     // Optional but VERY useful while debugging
     this.isOwner$.subscribe(isOwner => {
@@ -431,7 +437,9 @@ export class Profile {
     return (
       this.hasChanges() &&
       this.profileForm.valid &&
-      !this.isSaving
+      !this.isSaving &&
+      this.currentUsernameStatus !== 'invalid' &&
+      this.currentUsernameStatus !== 'taken'
     );
   }
 
