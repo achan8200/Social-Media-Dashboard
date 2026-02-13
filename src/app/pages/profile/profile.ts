@@ -3,9 +3,15 @@ import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Firestore, collection, query, where, getDocs, doc, serverTimestamp, setDoc, docData } from '@angular/fire/firestore';
 import { ActivatedRoute } from '@angular/router';
-import { Observable, map, from, combineLatest, switchMap, of, debounceTime, distinctUntilChanged, shareReplay } from 'rxjs';
+import { Observable, map, from, combineLatest, switchMap, of, debounceTime, distinctUntilChanged, shareReplay, tap, finalize } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
+type UsernameStatus =
+  | 'available'
+  | 'invalid'
+  | 'taken'
+  | null;
 
 @Component({
   selector: 'app-profile',
@@ -28,7 +34,8 @@ export class Profile {
   originalProfile: any = null;
   hasChanges$!: Observable<boolean>;
 
-  usernameAvailable: boolean | null = null;
+  usernameStatus$!: Observable<UsernameStatus>;
+  checkingUsername = false;
   isSaving = false;
 
   profileForm = this.fb.group({
@@ -55,34 +62,50 @@ export class Profile {
 
   constructor() {
     this.loadProfileFromRoute();
-    this.profileForm.get('username')!
+    this.usernameStatus$ = this.profileForm.get('username')!
     .valueChanges
     .pipe(
+      map(value => value?.trim().toLowerCase() ?? ''),
       debounceTime(400),
-      distinctUntilChanged()
-    )
-    .subscribe(async username => {
-      if (!this.editMode) return;
-      this.usernameAvailable = null;
-      if (!username || !this.originalProfile) return;
+      distinctUntilChanged(),
+      switchMap(trimmed => {
+        if (!this.editMode || !this.originalProfile) {
+          this.cdr.detectChanges();
+          this.checkingUsername = false;
+          return of(null);
+        }
 
-      const trimmed = username.trim().toLowerCase();
+        this.checkingUsername = true;
+        this.cdr.detectChanges();
 
-      if (trimmed === this.originalProfile?.username) {
-        this.usernameAvailable = null;
-        return;
-      }
+        const original = this.originalProfile.username
+        ?.trim()
+        .toLowerCase();
 
-      // Validate format first
-      const validationError = this.authService.validateUsername(trimmed);
-      if (validationError) {
-        this.usernameAvailable = false;
-        return;
-      }
+        if (trimmed === original) {
+          this.checkingUsername = false;
+          this.cdr.detectChanges();
+          return of(null);
+        }
 
-      const isUnique = await this.authService.isUsernameUnique(trimmed);
-      this.usernameAvailable = isUnique;
-    });
+        const validationError = this.authService.validateUsername(trimmed);
+        if (validationError) {
+          this.checkingUsername = false;
+          this.cdr.detectChanges();
+          return of('invalid' as const);
+        }
+
+        return from(this.authService.isUsernameUnique(trimmed)).pipe(
+          map(isUnique => isUnique ? ('available' as const) : ('taken' as const)),
+          finalize(() => {
+            this.checkingUsername = false;
+            this.cdr.detectChanges();
+          })
+        );
+      }),
+      shareReplay(1)
+    );
+
 
     this.profile$
     .pipe(takeUntilDestroyed())
@@ -384,7 +407,6 @@ export class Profile {
 
   cancelEditProfile() {
     this.editMode = false;
-    this.usernameAvailable = null;
 
     this.profileForm.patchValue({
       displayName: this.originalProfile.displayName,
@@ -398,16 +420,15 @@ export class Profile {
 
     const v = this.profileForm.value;
     return (
-      v.displayName !== this.originalProfile.displayName ||
-      v.username !== this.originalProfile.username ||
-      v.bio !== this.originalProfile.bio
+      v.displayName?.trim() !== this.originalProfile.displayName ||
+      v.username?.trim() !== this.originalProfile.username ||
+      v.bio?.trim() !== this.originalProfile.bio
     );
   }
 
   get canSave(): boolean {
     return (
       this.hasChanges() &&
-      this.usernameAvailable !== false &&
       this.profileForm.valid &&
       !this.isSaving
     );
@@ -418,7 +439,6 @@ export class Profile {
     if (!currentUser) return;
 
     if (!this.hasChanges()) return;
-    if (this.usernameAvailable === false) return;
 
     this.isSaving = true;
 
@@ -468,7 +488,6 @@ export class Profile {
       };
 
       this.editMode = false;
-      this.usernameAvailable = null;
     } finally {
       this.isSaving = false;
     }

@@ -51,22 +51,28 @@
           <label class="font-semibold">Username</label>
           <input type="text" formControlName="username" class="border rounded p-1 w-full"/>
             <!-- Current username hint -->
-            <p *ngIf="profile.username === profileForm.value.username"
-                class="text-gray-400 text-sm">
+            <p class="text-gray-400 text-sm mt-1">
                 Your current username {{ profile.username }} is available.
             </p>
+            <div class="flex items-center gap-2 mt-1 min-h-[20px] text-sm leading-none">
+            <!-- Spinner -->
+            <div *ngIf="checkingUsername" 
+                class="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin">
+            </div>
+            <ng-container *ngIf="usernameStatus$ | async as status">
+                <!-- Format error -->
+                <p *ngIf="status === 'invalid' || status === 'taken'"
+                    class="text-red-600 text-sm">
+                    Invalid or already taken username.
+                </p>
 
-            <!-- Format error -->
-            <p *ngIf="usernameAvailable === false"
-                class="text-red-600 text-sm">
-                Invalid or already taken username.
-            </p>
-
-            <!-- Available -->
-            <p *ngIf="usernameAvailable === true"
-                class="text-green-600 text-sm">
-                ✓ Username available
-            </p>
+                <!-- Available -->
+                <p *ngIf="status === 'available'"
+                    class="text-green-600 text-sm">
+                    ✓ Username available
+                </p>
+            </ng-container>
+            </div>
         </ng-container>
         <ng-template #viewUsername>
           <p class="text-gray-500">@{{ profile.username || 'username' }}</p>
