@@ -23,13 +23,27 @@
       <!-- Always present file input (hidden) -->
       <input type="file" accept="image/*" class="hidden" #fileInput (change)="onProfilePictureSelected($event)"/>
 
-      <!-- Pencil button (owner only) -->
-      <button *ngIf="isOwner$ | async"
-              type="button" (click)="fileInput.click()"
-              class="absolute bottom-0 right-0 bg-gray-900 text-white w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-700"
-              title="Change profile picture">
-        ✎
-      </button>
+      <!-- Buttons container (only for owner) -->
+        <div *ngIf="isOwner$ | async" class="absolute bottom-0 right-0 flex flex-col items-center">
+
+            <!-- Remove button: only in edit mode, slightly above pencil -->
+            <button
+            *ngIf="editMode && profileForm.value.profilePicture"
+            type="button"
+            (click)="removeProfilePicture()"
+            class="w-8 h-8 bg-red-600 text-white flex items-center justify-center rounded-full hover:bg-red-700 shadow -mb-1"
+            title="Remove profile picture">
+            ✕
+            </button>
+
+            <!-- Pencil / Change button -->
+            <button
+            type="button"
+            (click)="fileInput.click()"
+            class="w-8 h-8 bg-gray-900 text-white flex items-center justify-center rounded-full hover:bg-gray-700 shadow">
+            ✎
+            </button>
+        </div>
     </div>
 
     <!-- User Info -->

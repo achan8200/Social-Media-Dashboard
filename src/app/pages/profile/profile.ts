@@ -401,7 +401,8 @@ export class Profile {
     this.profileForm.patchValue({
       displayName: this.originalProfile.displayName,
       username: this.originalProfile.username,
-      bio: this.originalProfile.bio
+      bio: this.originalProfile.bio,
+      profilePicture: this.originalProfile.profilePicture || ''
     }, { emitEvent: false });
   }
 
