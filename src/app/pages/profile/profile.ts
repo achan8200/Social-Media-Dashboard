@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Firestore, collection, query, where, getDocs, doc, serverTimestamp, setDoc, getDoc } from '@angular/fire/firestore';
+import { Firestore, collection, query, where, getDocs, doc, serverTimestamp, setDoc, docData } from '@angular/fire/firestore';
 import { ActivatedRoute } from '@angular/router';
-import { Observable, map, from, filter, combineLatest, switchMap, of, debounceTime, distinctUntilChanged, take } from 'rxjs';
+import { Observable, map, from, combineLatest, switchMap, of, debounceTime, distinctUntilChanged, shareReplay } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -29,6 +29,7 @@ export class Profile {
   hasChanges$!: Observable<boolean>;
 
   usernameAvailable: boolean | null = null;
+  isSaving = false;
 
   profileForm = this.fb.group({
     displayName: ['', Validators.required],
@@ -62,12 +63,24 @@ export class Profile {
     )
     .subscribe(async username => {
       if (!this.editMode) return;
-      if (!username || username === this.originalProfile?.username) {
+      this.usernameAvailable = null;
+      if (!username || !this.originalProfile) return;
+
+      const trimmed = username.trim().toLowerCase();
+
+      if (trimmed === this.originalProfile?.username) {
         this.usernameAvailable = null;
         return;
       }
 
-      const isUnique = await this.authService.isUsernameUnique(username);
+      // Validate format first
+      const validationError = this.authService.validateUsername(trimmed);
+      if (validationError) {
+        this.usernameAvailable = false;
+        return;
+      }
+
+      const isUnique = await this.authService.isUsernameUnique(trimmed);
       this.usernameAvailable = isUnique;
     });
 
@@ -107,12 +120,17 @@ export class Profile {
       map(([authUser, profile]) => {
         if (!authUser || !profile) return false;
         return authUser.uid === profile.uid;
-      })
+      }),
+      shareReplay(1)
     );
 
     // Optional but VERY useful while debugging
     this.isOwner$.subscribe(isOwner => {
       console.log('[PROFILE] isOwner =', isOwner);
+    });
+
+    this.profile$.subscribe(p => {
+      console.log('[PROFILE STREAM]', p);
     });
   }
 
@@ -134,14 +152,16 @@ export class Profile {
           );
 
           return from(getDocs(q)).pipe(
-            map(snapshot => {
+            switchMap(snapshot => {
               if (snapshot.empty) {
                 console.warn('[PROFILE] No user found for username:', username);
-                return null;
+                return  of(null);
               }
 
               const docSnap = snapshot.docs[0];
-              return { uid: docSnap.id, ...docSnap.data() };
+              const userRef = doc(this.firestore, `users/${docSnap.id}`);
+
+              return docData(userRef, { idField: 'uid' });
             })
           );
         }
@@ -157,20 +177,23 @@ export class Profile {
           const q = query(usersRef, where('userId', '==', userId));
 
           return from(getDocs(q)).pipe(
-            map(snapshot => {
+            switchMap(snapshot => {
               if (snapshot.empty) {
                 console.warn('[PROFILE] No user found for userId:', userId);
-                return null;
+                return of(null);
               }
 
               const docSnap = snapshot.docs[0];
-              return { uid: docSnap.id, ...docSnap.data() };
+              const userRef = doc(this.firestore, `users/${docSnap.id}`);
+
+              return docData(userRef, { idField: 'uid' });
             })
           );
         }
 
         return of(null);
-      })
+      }),
+      shareReplay(1)
     );
   }
 
@@ -381,38 +404,73 @@ export class Profile {
     );
   }
 
+  get canSave(): boolean {
+    return (
+      this.hasChanges() &&
+      this.usernameAvailable !== false &&
+      this.profileForm.valid &&
+      !this.isSaving
+    );
+  }
+
   async saveEditProfile() {
     const currentUser = await this.authService.getCurrentUser().toPromise();
     if (!currentUser) return;
 
     if (!this.hasChanges()) return;
+    if (this.usernameAvailable === false) return;
 
-    if (this.usernameAvailable === false) {
-      alert('Username is already taken');
-      return;
-    }
-
-    const updatedData: any = {
-      updatedAt: serverTimestamp()
-    };
+    this.isSaving = true;
 
     const v = this.profileForm.value;
 
-    if (v.displayName?.trim() !== this.originalProfile.displayName) {
-      updatedData.displayName = v.displayName!.trim();
+    const username = v.username?.trim().toLowerCase();
+
+    // Validate format
+    const validationError = this.authService.validateUsername(username!);
+    if (validationError) {
+      alert(validationError);
+      return;
     }
 
-    if (v.username !== this.originalProfile.username) {
-      updatedData.username = v.username!.toLowerCase();
+    // Check uniqueness ONLY if changed
+    if (username !== this.originalProfile.username) {
+      const isUnique = await this.authService.isUsernameUnique(username!);
+      if (!isUnique) {
+        alert('Username is already taken');
+        return;
+      }
     }
 
-    if (v.bio !== this.originalProfile.bio) {
-      updatedData.bio = v.bio;
+    try {
+      const updatedData: any = {
+        updatedAt: serverTimestamp()
+      };
+
+      if (v.displayName?.trim() !== this.originalProfile.displayName) {
+        updatedData.displayName = v.displayName!.trim();
+      }
+
+      if (v.username !== this.originalProfile.username) {
+        updatedData.username = v.username!.toLowerCase();
+      }
+
+      if (v.bio !== this.originalProfile.bio) {
+        updatedData.bio = v.bio;
+      }
+
+      const userRef = doc(this.firestore, `users/${currentUser.uid}`);
+      await setDoc(userRef, updatedData, { merge: true });
+
+      this.originalProfile = {
+        ...this.originalProfile,
+        ...updatedData
+      };
+
+      this.editMode = false;
+      this.usernameAvailable = null;
+    } finally {
+      this.isSaving = false;
     }
-
-    const userRef = doc(this.firestore, `users/${currentUser.uid}`);
-    await setDoc(userRef, updatedData, { merge: true });
-
-    this.editMode = false;
   }
 }

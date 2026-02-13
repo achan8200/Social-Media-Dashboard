@@ -50,12 +50,22 @@
         <ng-container *ngIf="editMode; else viewUsername">
           <label class="font-semibold">Username</label>
           <input type="text" formControlName="username" class="border rounded p-1 w-full"/>
-          <!-- Live feedback -->
-            <p *ngIf="usernameAvailable === true" class="text-green-600 text-sm">
-              ✓ Username available
+            <!-- Current username hint -->
+            <p *ngIf="profile.username === profileForm.value.username"
+                class="text-gray-400 text-sm">
+                Your current username {{ profile.username }} is available.
             </p>
-            <p *ngIf="usernameAvailable === false" class="text-red-600 text-sm">
-              ✕ Username taken
+
+            <!-- Format error -->
+            <p *ngIf="usernameAvailable === false"
+                class="text-red-600 text-sm">
+                Invalid or already taken username.
+            </p>
+
+            <!-- Available -->
+            <p *ngIf="usernameAvailable === true"
+                class="text-green-600 text-sm">
+                ✓ Username available
             </p>
         </ng-container>
         <ng-template #viewUsername>
@@ -87,8 +97,13 @@
       <!-- Save / Cancel buttons -->
       <div *ngIf="editMode" class="flex gap-2">
         <button 
-            *ngIf="hasChanges$ | async" (click)="saveEditProfile()"
-            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+            (click)="saveEditProfile()"
+            [disabled]="!canSave"
+            class="px-4 py-2 text-white rounded-lg transition-colors duration-200 disabled:opacity-80"
+            [ngClass]="{
+                'bg-gray-400 cursor-not-allowed': !canSave,
+                'bg-green-600 hover:bg-green-700': canSave
+            }">
           Save
         </button>
         <button (click)="cancelEditProfile()"
