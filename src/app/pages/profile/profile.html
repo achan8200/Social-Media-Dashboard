@@ -156,7 +156,7 @@
        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
     <div class="bg-white p-4 rounded-lg relative w-full max-w-sm h-auto flex flex-col items-center">
       <h2 class="text-lg font-bold mb-4">Adjust Profile Picture</h2>
-      <div class="relative w-64 h-64 rounded-full overflow-hidden border-4 border-gray-200 shadow-inner touch-none"
+      <div #cropCircle class="relative w-64 h-64 rounded-full overflow-hidden border-4 border-gray-200 shadow-inner touch-none"
            (mousedown)="startDrag($event)" (mousemove)="drag($event)" (mouseup)="endDrag()" (mouseleave)="endDrag()"
            (touchstart)="startDrag($event)" (touchmove)="drag($event)" (touchend)="endDrag()" (touchcancel)="endDrag()">
         <img [src]="cropImageSrc" class="absolute"
