@@ -69,15 +69,16 @@ export class Profile {
       map(value => value?.trim().toLowerCase() ?? ''),
       debounceTime(400),
       distinctUntilChanged(),
-      switchMap(trimmed => {
-        if (!this.editMode || !this.originalProfile) {
-          this.cdr.detectChanges();
-          this.checkingUsername = false;
-          return of(null);
-        }
-
+      tap(() => {
         this.checkingUsername = true;
         this.cdr.detectChanges();
+      }),
+      switchMap(trimmed => {
+        if (!this.editMode || !this.originalProfile) {
+          this.checkingUsername = false;
+          this.cdr.detectChanges();
+          return of(null);
+        }
 
         const original = this.originalProfile.username
         ?.trim()
@@ -414,6 +415,7 @@ export class Profile {
 
   cancelEditProfile() {
     this.editMode = false;
+    this.checkingUsername = false;
 
     this.profileForm.patchValue({
       displayName: this.originalProfile.displayName,
@@ -434,12 +436,25 @@ export class Profile {
   }
 
   get canSave(): boolean {
+    if (!this.originalProfile) return false;
+
+    const trimmed = this.profileForm.value.username?.trim().toLowerCase();
+    const original = this.originalProfile.username?.trim().toLowerCase();
+
+    const usernameChanged = trimmed !== original;
+
     return (
       this.hasChanges() &&
       this.profileForm.valid &&
       !this.isSaving &&
-      this.currentUsernameStatus !== 'invalid' &&
-      this.currentUsernameStatus !== 'taken'
+      !this.checkingUsername &&
+      (
+        // If username didn't change → fine
+        !usernameChanged ||
+
+        // If changed → must explicitly be available
+        this.currentUsernameStatus === 'available'
+      )
     );
   }
 
