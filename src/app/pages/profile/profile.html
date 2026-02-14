@@ -160,6 +160,7 @@
            (mousedown)="startDrag($event)" (mousemove)="drag($event)" (mouseup)="endDrag()" (mouseleave)="endDrag()"
            (touchstart)="startDrag($event)" (touchmove)="drag($event)" (touchend)="endDrag()" (touchcancel)="endDrag()">
         <img [src]="cropImageSrc" class="absolute"
+             [style.transform-origin]="'center center'"
              [style.left.px]="cropX" [style.top.px]="cropY"
              [style.transform]="'scale(' + cropScale + ')'" draggable="false"/>
       </div>

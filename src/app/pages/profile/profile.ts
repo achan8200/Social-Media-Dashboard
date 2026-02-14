@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, inject, ViewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Firestore, collection, query, where, getDocs, doc, serverTimestamp, setDoc, docData } from '@angular/fire/firestore';
 import { ActivatedRoute } from '@angular/router';
@@ -51,6 +51,8 @@ export class Profile {
   cropX = 0;
   cropY = 0;
   cropScale = 1;
+
+  @ViewChild('cropCircle') cropCircle!: ElementRef<HTMLDivElement>;
 
   private isDragging = false;
   private lastMouseX = 0;
@@ -315,9 +317,11 @@ export class Profile {
     const currentUser = await this.authService.getCurrentUser().toPromise();
     if (!currentUser || !this.cropImageSrc) return;
 
+    const avatarSize = 528;
+
     const croppedBase64 = await this.cropAndResize(
       this.cropImageSrc,
-      256,
+      avatarSize,
       this.cropX,
       this.cropY,
       this.cropScale
@@ -325,7 +329,7 @@ export class Profile {
 
     // Save to Firestore
     const userRef = doc(this.firestore, `users/${currentUser.uid}`);
-    await setDoc(userRef, { profilePicture: croppedBase64 }, { merge: true });
+    await setDoc(userRef, { profilePicture: croppedBase64, updatedAt: serverTimestamp() }, { merge: true });
 
     // Update form and close modal
     this.profileForm.patchValue({ profilePicture: croppedBase64 });
@@ -348,12 +352,20 @@ export class Profile {
         canvas.height = size;
         const ctx = canvas.getContext('2d')!;
 
-        const dx = offsetX + img.width / 2 - size / 2;
-        const dy = offsetY + img.height / 2 - size / 2;
+        // Move origin to center of canvas (same as circular preview center)
+        ctx.translate(size / 2, size / 2);
 
-        ctx.drawImage(img, -dx, -dy, img.width * scale, img.height * scale);
+        // Apply scaling (same as CSS transform scale)
+        ctx.scale(scale, scale);
 
-        resolve(canvas.toDataURL('image/jpeg'));
+        // Draw image using same offset logic as modal
+        ctx.drawImage(
+          img,
+          offsetX - img.width / 2,
+          offsetY - img.height / 2
+        );
+
+        resolve(canvas.toDataURL('image/jpeg', 0.9));
       };
     });
   }
@@ -364,7 +376,7 @@ export class Profile {
 
     // Clear Firestore profilePicture field
     const userRef = doc(this.firestore, `users/${currentUser.uid}`);
-    await setDoc(userRef, { profilePicture: '' }, { merge: true });
+    await setDoc(userRef, { profilePicture: '', updatedAt: serverTimestamp() }, { merge: true });
 
     // Update the local form and reset crop modal
     this.profileForm.patchValue({ profilePicture: '' });
