@@ -10,7 +10,6 @@
           placeholder="Email"
           [(ngModel)]="email"
           (input)="validateEmail()"
-          (blur)="validateEmail(true)"
           name="email"
           required
         />
@@ -129,7 +128,7 @@
 
       <button
         type="submit"
-        [disabled]="!isFormValid || emailChecking"
+        [disabled]="!isFormValid"
         class="w-full transition-colors duration-200 bg-green-600 text-white p-2 rounded 
               hover:bg-green-700
               disabled:bg-gray-400

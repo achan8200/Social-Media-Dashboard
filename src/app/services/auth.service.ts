@@ -123,11 +123,6 @@ export class AuthService {
     return this.user$.pipe(take(1));
   }
 
-  async checkEmailExists(email: string) {
-    const auth = getAuth();
-    await fetchSignInMethodsForEmail(auth, email);
-  }
-
   // Username validation rules
   validateUsername(username: string): string | null {
     /* 

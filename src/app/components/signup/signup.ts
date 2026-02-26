@@ -28,7 +28,6 @@ export class Signup {
   private usernameCheckTimeout: any = null;
 
   showPassword = false;
-  emailChecking = false;
 
   passwordStrength = {
     length: false,
@@ -55,7 +54,7 @@ export class Signup {
     );
   }
 
-  async validateEmail(onBlur = false) {
+  validateEmail() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!this.email) {
@@ -68,20 +67,7 @@ export class Signup {
       return;
     }
 
-    if (!onBlur) return;
-
-    this.emailChecking = true;
-
-    try {
-      await this.authService.checkEmailExists(this.email);
-      this.emailError = null;
-    } catch (err: any) {
-      if (err.code === 'auth/email-already-in-use') {
-        this.emailError = 'Email already in use';
-      }
-    } finally {
-      this.emailChecking = false;
-    }
+    this.emailError = null;
   }
 
   validatePassword() {
@@ -164,7 +150,8 @@ export class Signup {
     this.error = '';
 
     // Run synchronous validations
-    await this.validateEmail(true);
+    this.email = this.email.trim();
+    this.validateEmail();
     this.validatePassword();
     this.validateConfirmPassword();
     this.validateDisplayName();
@@ -205,7 +192,11 @@ export class Signup {
 
       this.router.navigate(['/home'], { replaceUrl: true });
     } catch (err: any) {
-      this.error = err.message || 'Signup failed';
+      if (err.code === 'auth/email-already-in-use') {
+        this.emailError = 'Email already in use';
+      } else {
+        this.error = err.message || 'Signup failed';
+      }
     }
   }
 
