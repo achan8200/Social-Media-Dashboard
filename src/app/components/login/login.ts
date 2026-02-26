@@ -28,7 +28,22 @@ export class Login {
       await this.authService.login(this.email, this.password);
       this.router.navigate(['/home'], { replaceUrl: true });
     } catch (err: any) {
-      this.error = err.message || 'Login failed';
+      let message = 'Login failed. Please try again.';
+
+      if (err.code === 'auth/user-not-found') {
+        message = 'No account found with this email.';
+      } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        // Sometimes Firebase throws "invalid-credential" instead of "wrong-password"
+        message = 'Incorrect password.';
+      } else if (err.code === 'auth/invalid-email') {
+        message = 'Invalid email address.';
+      } else if (err.code === 'auth/user-disabled') {
+        message = 'This account has been disabled.';
+      } else if (err.message) {
+        message = err.message;
+      }
+
+      this.error = message;
     }
   }
 }
