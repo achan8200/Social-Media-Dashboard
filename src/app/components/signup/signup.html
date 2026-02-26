@@ -91,15 +91,23 @@
       <div class="relative">
         <input
           type="text"
-          class="w-full border p-2 rounded"
+          class="w-full border p-2 rounded pr-10"
           placeholder="Username"
           [(ngModel)]="username"
           (input)="validateUsername()"
           name="username"
           required
         />
-        <span *ngIf="username && !usernameError"
-          class="absolute right-2 top-1/2 -translate-y-1/2 text-green-500">
+
+        <!-- Spinner -->
+        <div *ngIf="usernameChecking"
+            class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center w-4 h-4">
+          <div class="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+        </div>
+
+        <!-- Success checkmark -->
+        <span *ngIf="usernameValid && !usernameChecking"
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-green-500">
           ✔
         </span>
       </div>
@@ -128,7 +136,7 @@
 
       <button
         type="submit"
-        [disabled]="!isFormValid"
+        [disabled]="!isFormValid || usernameChecking"
         class="w-full transition-colors duration-200 bg-green-600 text-white p-2 rounded 
               hover:bg-green-700
               disabled:bg-gray-400

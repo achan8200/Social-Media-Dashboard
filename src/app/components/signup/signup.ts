@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -25,7 +25,10 @@ export class Signup {
   usernameError: string | null = null;
   displayNameError: string | null = null;
 
+  usernameValid = false;
+  usernameChecking = false;
   private usernameCheckTimeout: any = null;
+  private usernameValidationId = 0; // for race condition safety
 
   showPassword = false;
 
@@ -37,7 +40,7 @@ export class Signup {
     special: false
   };
 
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(private authService: AuthService, private router: Router, private cdr: ChangeDetectorRef) {}
 
   get isFormValid(): boolean {
     return (
@@ -45,6 +48,7 @@ export class Signup {
       this.emailError === null &&
       !!this.username &&
       this.usernameError === null &&
+      this.usernameValid &&
       !!this.displayName &&
       this.displayNameError === null &&
       !!this.password &&
@@ -114,12 +118,21 @@ export class Signup {
 
   // Called when user types in the username input
   async validateUsername() {
-    // Format validation
-    const lowerUsername = this.username.toLowerCase();
+    const lowerUsername = this.username.trim().toLowerCase();
 
-    // Clear error if empty
+    // Clear error and reset validity if empty
     if (!lowerUsername) {
       this.usernameError = null;
+      this.usernameValid = false;
+      this.usernameChecking = false;
+
+      // Cancel any pending debounce
+      if (this.usernameCheckTimeout) {
+        clearTimeout(this.usernameCheckTimeout);
+        this.usernameCheckTimeout = null;
+      }
+
+      this.cdr.markForCheck();
       return;
     }
 
@@ -127,22 +140,73 @@ export class Signup {
     const usernameFormatError = this.authService.validateUsername(lowerUsername);
     if (usernameFormatError) {
       this.usernameError = usernameFormatError;
+      this.usernameValid = false;
+      this.usernameChecking = false;
+
+      if (this.usernameCheckTimeout) {
+        clearTimeout(this.usernameCheckTimeout);
+        this.usernameCheckTimeout = null;
+      }
+      
+      this.cdr.markForCheck();
       return;
     }
 
+    // Passed format check
     this.usernameError = null;
+    this.usernameValid = false;
 
-    // Debounce Firestore check
+    // Show spinner immediately
+    this.usernameChecking = true;
+    this.cdr.markForCheck();
+
+    // Cancel previous debounce
     if (this.usernameCheckTimeout) clearTimeout(this.usernameCheckTimeout);
+
+    // Increment validationId to prevent race conditions
+    const validationId = ++this.usernameValidationId;
+
+    // Debounce Firestore uniqueness check
     this.usernameCheckTimeout = setTimeout(async () => {
-      const unique = await this.authService.isUsernameUnique(lowerUsername);
-      this.usernameError = unique ? null : 'Username already exists';
-    }, 500) // wait 500ms after last keystroke
+      // Stop immediately if input is now empty
+      const currentValue = this.username.trim().toLowerCase();
+      if (!currentValue) {
+        this.usernameChecking = false;
+        this.usernameValid = false;
+        this.usernameError = null;
+        this.cdr.markForCheck();
+        return;
+      }
+      
+      try {
+        const isUnique = await this.authService.isUsernameUnique(lowerUsername);
+
+        // Prevent race condition
+        if (validationId !== this.usernameValidationId) return;
+
+        if (isUnique) {
+          this.usernameError = null;
+          this.usernameValid = true;
+        } else {
+          this.usernameError = 'Username already exists';
+          this.usernameValid = false;
+        }
+      } finally {
+        if (validationId === this.usernameValidationId) {
+          this.usernameChecking = false; // stop spinner
+          this.cdr.markForCheck();
+        }
+      }
+    }, 400); // wait 400ms after last keystroke
   }
 
   // Called when user types in the displayName input
   validateDisplayName() {
     const trimmed = this.displayName.trim();
+    if (!this.displayName) {
+      this.displayNameError = null;
+      return;
+    }
     this.displayNameError = trimmed ? null : 'Display name cannot be empty';
   }
 
