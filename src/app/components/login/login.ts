@@ -16,6 +16,8 @@ export class Login {
   password = '';
   error = '';
 
+  showPassword = false;
+
   constructor(
     private authService: AuthService,
     private router: Router
@@ -45,5 +47,9 @@ export class Login {
 
       this.error = message;
     }
+  }
+
+  togglePasswordVisibility() {
+    this.showPassword = !this.showPassword;
   }
 }

@@ -12,14 +12,25 @@
         required
       />
 
-      <input
-        type="password"
-        class="w-full border p-2 rounded"
-        placeholder="Password"
-        [(ngModel)]="password"
-        name="password"
-        required
-      />
+      <div class="relative">
+        <input
+          [type]="showPassword ? 'text' : 'password'"
+          class="w-full border p-2 rounded"
+          placeholder="Password"
+          [(ngModel)]="password"
+          name="password"
+          required
+        />
+
+        <button
+          type="button"
+          (click)="togglePasswordVisibility()"
+          class="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-500 hover:text-gray-700"
+          aria-label="Toggle password visibility"
+        >
+          {{ showPassword ? '👁️‍🗨️' : '👁️' }}
+        </button>
+      </div>
 
       <button
         type="submit"
