@@ -16,40 +16,16 @@ export class AuthService {
     // Initialize Firebase Auth state
     onAuthStateChanged(this.auth, async (user) => {
       this.userSubject.next(user);
-      if (user) {
-        await this.ensureUserDoc(user);
-      }
       this.authReadySubject.next(true);
     });
   }
 
-  private async ensureUserDoc(user: User) {
-    const userRef = doc(this.firestore, `users/${user.uid}`);
-    const snap = await getDoc(userRef);
-
-    if (snap.exists()) {
-      return; // Already created
-    }
-
-    // Create minimal default profile
-    await setDoc(userRef, {
-      uid: user.uid,
-      email: user.email,
-      displayName: user.displayName ?? '',
-      username: '',
-      bio: '',
-      profilePicture: '',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
-  }
-
-  // LOGIN
+  // Login
   login(email: string, password: string) {
     return signInWithEmailAndPassword(this.auth, email, password);
   }
 
-  // SIGNUP
+  // Signup
   async signup(
     email: string,
     password: string,
@@ -98,11 +74,15 @@ export class AuthService {
         // Create Firestore user profile
         const userRef = doc(this.firestore, `users/${uid}`);
         transaction.set(userRef, {
+          uid,
           userId: newUserId,
+          email,
           username: lowerUsername,
           displayName: trimmedDisplayName,
           profilePicture: profilePicture || '',
-          email
+          bio: '',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
         });
       });
 
@@ -113,7 +93,7 @@ export class AuthService {
     }
   }
 
-  // LOGOUT
+  // Logout
   async logout() {
     await signOut(this.auth);
   }
@@ -147,5 +127,25 @@ export class AuthService {
     const q = query(usersRef, where('username', '==', lowerUsername));
     const snapshot = await getDocs(q);
     return snapshot.empty; // true if no user exists with that username
+  }
+
+  // For OAuth users later
+  async ensureUserProfileExists(user: User) {
+    const userRef = doc(this.firestore, `users/${user.uid}`);
+    const snap = await getDoc(userRef);
+
+    if (snap.exists()) return;
+
+    await setDoc(userRef, {
+      uid: user.uid,
+      email: user.email,
+      userId: null, // handled separately
+      username: '',
+      displayName: user.displayName ?? '',
+      profilePicture: user.photoURL ?? '',
+      bio: '',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
   }
 }
