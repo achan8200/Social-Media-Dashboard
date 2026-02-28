@@ -2,6 +2,8 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Post } from '../../models/post.model';
 import { Avatar } from '../avatar/avatar';
+import { UserService } from '../../services/user.service';
+import { map, Observable, of } from 'rxjs';
 
 @Component({
   selector: 'app-post-card',
@@ -17,6 +19,21 @@ export class PostCard {
   @Output() like = new EventEmitter<string>();
   @Output() comment = new EventEmitter<string>();
   @Output() seen = new EventEmitter<string>();
+
+  username$: Observable<string> = of('Unknown');
+  displayName$: Observable<string> = of('Unknown');
+  userAvatar$: Observable<string | null> = of(null);
+
+  constructor(private userService: UserService) {}
+
+  ngOnChanges() {
+    if (this.post?.uid) {
+      const user$ = this.userService.getUserByUid(this.post.uid);
+      this.username$ = user$.pipe(map(u => u?.username || 'Unknown'));
+      this.displayName$ = user$.pipe(map(u => u?.displayName || 'Unknown'));
+      this.userAvatar$ = user$.pipe(map(u => u?.profilePicture || null));
+    }
+  }
 
   get firstMediaUrl(): string | undefined {
     return this.post?.media?.[0]?.url;

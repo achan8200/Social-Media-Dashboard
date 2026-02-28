@@ -5,10 +5,10 @@
     <div class="flex items-center justify-between p-4">
         <div class="flex items-center space-x-3">
             <!-- Avatar -->
-            <app-avatar [username]="post?.username" [imageUrl]="post?.userAvatar"></app-avatar>
+            <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async"></app-avatar>
 
             <!-- Username -->
-            <h3 class="font-normal text-gray-800">{{ post?.username ?? "Unknown" }}</h3>
+            <h3 class="font-normal text-gray-800">{{ username$ | async }}</h3>
         </div>
 
       <span *ngIf="post?.isNew"

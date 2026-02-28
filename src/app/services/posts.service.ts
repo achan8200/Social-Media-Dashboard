@@ -4,8 +4,7 @@ import { Storage, ref, uploadBytes, getDownloadURL } from '@angular/fire/storage
 import { Observable, BehaviorSubject, from, combineLatest, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 import { Auth } from '@angular/fire/auth';
-import { Post } from '../models/post.model';
-import { PostMedia } from '../models/post.model';
+import { Post, PostMedia } from '../models/post.model';
 
 @Injectable({ providedIn: 'root' })
 export class PostsService {
@@ -15,6 +14,9 @@ export class PostsService {
 
   private seenPostsKey = 'seenPosts';
   private seenPosts = new Set<string>();
+
+  private postsSubject = new BehaviorSubject<Post[]>([]);
+  posts$ = this.postsSubject.asObservable();
 
   constructor(
     private firestore: Firestore,
@@ -29,22 +31,26 @@ export class PostsService {
         this.seenPosts = new Set(ids);
       } catch {}
     }
+
+    this.listenToPosts();
   }
 
   // Real-time posts stream
   getPosts(): Observable<Post[]> {
+    return this.posts$;
+  }
+
+  private listenToPosts() {
     const postsRef = collection(this.firestore, 'posts');
     const q = query(postsRef, orderBy('createdAt', 'desc'));
 
-    return collectionData(q, { idField: 'id' }).pipe(
+    collectionData(q, { idField: 'id' }).pipe(
       switchMap((posts: any[]) => {
-        if (!posts.length) return of([] as Post[]); // always return Observable<Post[]>
+        if (!posts.length) return of([] as Post[]);
 
-        // Gather unique user IDs
         const uids = [...new Set(posts.map(p => p.uid))];
         const userDocs$ = uids.map(uid => from(getDoc(doc(this.firestore, `users/${uid}`))));
 
-        // Combine all user docs into a map
         return combineLatest(userDocs$).pipe(
           map(userSnaps => {
             const userMap = new Map(
@@ -59,65 +65,130 @@ export class PostsService {
                 displayName: user['displayName'] || 'Unknown',
                 userAvatar: user['profilePicture'] || null,
                 isNew: !this.seenPosts.has(post.id),
-                fadingOut: false
+                fadingOut: false,
+                pending: false
               } as Post;
             });
           })
         );
       })
-    );
+    ).subscribe(posts => {
+      // Preserve optimistic posts
+      const pendingPosts = this.postsSubject.value.filter(p => p.pending);
+      this.postsSubject.next([...pendingPosts, ...posts]);
+    });
   }
 
-  // Create post (text-only for now)
+  // Create post 
   async createPost(caption?: string, files?: File[]) {
     const user = this.auth.currentUser;
     if (!user) throw new Error('Not authenticated');
 
     const uid = user.uid;
 
-    // Upload media files (if any)
-    let media: PostMedia[] | null = null;
+    // Create temporary optimistic post
+    const tempId = `temp-${Date.now()}`;
 
-    if (files && files.length > 0) {
-      media = [];
+    const tempPost: Post = {
+      id: tempId,
+      uid: user.uid,
+      userId: 0,
 
-      for (const file of files) {
+      username: user.displayName || 'You',
+      displayName: user.displayName || 'You',
 
-        // Validate file type
-        if (!file.type.startsWith('image') && !file.type.startsWith('video')) {
-          throw new Error('Only images and videos are allowed');
-        }
-
-        const filePath = `post-media/${uid}/${Date.now()}_${file.name}`;
-        const storageRef = ref(this.storage, filePath);
-
-        // Upload
-        await uploadBytes(storageRef, file);
-
-        // Get public URL
-        const downloadUrl = await getDownloadURL(storageRef);
-
-        // Build media object
-        media.push({
-          url: downloadUrl,
-          type: file.type.startsWith('video') ? 'video' : 'image'
-        });
-      }
-    }
-
-    // Create Firestore post document
-    await addDoc(collection(this.firestore, 'posts'), {
-      uid,
-
-      caption: caption || null,
-      media: media || null,
+      caption: caption ?? undefined,
+      media: undefined,
 
       likesCount: 0,
       commentsCount: 0,
 
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
+      createdAt: new Date(),
+      updatedAt: new Date(),
+
+      pending: true
+    };
+
+    // Insert immediately into local feed
+    this.addPostToLocalFeed(tempPost);
+
+    // Upload media files (if any)
+    let media: PostMedia[] | null = null;
+
+    try {
+      if (files && files.length > 0) {
+        media = [];
+
+        for (const file of files) {
+
+          // Validate file type
+          if (!file.type.startsWith('image') && !file.type.startsWith('video')) {
+            throw new Error('Only images and videos are allowed');
+          }
+
+          const filePath = `post-media/${uid}/${Date.now()}_${file.name}`;
+          const storageRef = ref(this.storage, filePath);
+
+          // Upload
+          await uploadBytes(storageRef, file);
+
+          // Get public URL
+          const downloadUrl = await getDownloadURL(storageRef);
+
+          // Build media object
+          media.push({
+            url: downloadUrl,
+            type: file.type.startsWith('video') ? 'video' : 'image'
+          });
+        }
+      }
+
+      // Create Firestore document
+      const docRef = await addDoc(collection(this.firestore, 'posts'), {
+        uid,
+        caption: caption || null,
+        media: media || null,
+        likesCount: 0,
+        commentsCount: 0,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+
+      // Fetch latest user info
+      const userSnap = await getDoc(doc(this.firestore, `users/${uid}`));
+      const userData = userSnap.exists() ? userSnap.data() : {};
+
+      // Update temp post with latest user info and mark as complete
+      const updated = this.postsSubject.value.map(p =>
+        p.id === tempId
+          ? {
+              ...p,
+              username: userData?.['username'] || p.username,
+              displayName: userData?.['displayName'] || p.displayName,
+              userAvatar: userData?.['profilePicture'] || p.userAvatar,
+              pending: false,
+              media: media ?? undefined
+            }
+          : p
+      );
+
+    } catch (error) {
+      // If anything fails, remove optimistic post
+      this.removeTempPost(tempId);
+      throw error;
+    }
+  }
+
+  // Insert post into local feed immediately
+  private addPostToLocalFeed(post: Post) {
+    const current = this.postsSubject.value;
+    this.postsSubject.next([post, ...current]);
+  }
+
+  // Remove temporary post
+  private removeTempPost(tempId: string) {
+    const updated = this.postsSubject.value.filter(post => post.id !== tempId);
+    this.postsSubject.next(updated);
   }
 
   // Like post (counter only, scalable)

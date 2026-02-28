@@ -28,4 +28,6 @@ export interface Post {
   // UI-only
   isNew?: boolean;
   fadingOut?: boolean;
+
+  pending?: boolean;
 }

@@ -14,10 +14,10 @@
       <div class="flex justify-between items-center mb-2">
         <div class="flex items-center space-x-3">
             <!-- Avatar -->
-            <app-avatar [username]="post.username" [imageUrl]="post.userAvatar"></app-avatar>
+            <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async"></app-avatar>
 
             <!-- Username -->
-            <span class="font-normal">{{ post.username }}</span>
+            <span class="font-normal">{{ username$ | async }}</span>
         </div>
         <button (click)="close.emit()">✕</button>
       </div>
