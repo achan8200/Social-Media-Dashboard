@@ -1,0 +1,17 @@
+<div class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+  <div class="bg-white w-full max-w-lg rounded-lg p-4 flex flex-col space-y-4">
+    <div class="flex justify-between items-center">
+      <h3 class="font-semibold text-lg">Create Post</h3>
+      <button (click)="close.emit()">✕</button>
+    </div>
+
+    <textarea [(ngModel)]="caption" placeholder="What's on your mind?" class="w-full border rounded p-2" rows="4"></textarea>
+
+    <input type="file" multiple (change)="onFileChange($event)" class="text-sm" />
+
+    <div class="flex justify-end space-x-2">
+      <button (click)="close.emit()" class="px-4 py-2 bg-gray-200 rounded">Cancel</button>
+      <button (click)="onCreate()" class="px-4 py-2 bg-blue-500 text-white rounded">Post</button>
+    </div>
+  </div>
+</div>

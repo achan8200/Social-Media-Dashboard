@@ -1,0 +1,36 @@
+<div *ngIf="post" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+  <div class="bg-white w-full max-w-4xl rounded-lg overflow-hidden flex">
+
+    <!-- Left: Media -->
+    <div class="flex-1 bg-black flex items-center justify-center">
+      <img *ngIf="firstMediaUrl"
+           [src]="firstMediaUrl"
+           class="w-full h-full object-contain" />
+      <span *ngIf="!firstMediaUrl" class="text-white">No media</span>
+    </div>
+
+    <!-- Right: Details -->
+    <div class="w-96 p-4 flex flex-col">
+      <div class="flex justify-between items-center mb-2">
+        <div class="flex items-center space-x-3">
+            <!-- Avatar -->
+            <app-avatar [username]="post.username" [imageUrl]="post.userAvatar"></app-avatar>
+
+            <!-- Username -->
+            <span class="font-normal">{{ post.username }}</span>
+        </div>
+        <button (click)="close.emit()">✕</button>
+      </div>
+
+      <p class="text-sm mb-4">{{ post.caption }}</p>
+
+      <button
+        (click)="likePost()"
+        class="text-red-500 font-medium"
+      >
+        ❤️ {{ post.likesCount }}
+      </button>
+    </div>
+
+  </div>
+</div>

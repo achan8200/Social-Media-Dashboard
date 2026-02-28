@@ -5,11 +5,13 @@ import { Observable } from 'rxjs';
 import { PostCard } from '../post-card/post-card';
 import { Post } from '../../models/post.model';
 import { PostsService } from '../../services/posts.service';
+import { CreatePost } from '../create-post/create-post';
+import { PostModal } from '../post-modal/post-modal';
 
 @Component({
   selector: 'app-feed',
   standalone: true,
-  imports: [AsyncPipe, CommonModule, FormsModule, PostCard],
+  imports: [AsyncPipe, CommonModule, FormsModule, PostCard, CreatePost, PostModal],
   templateUrl: './feed.html',
   styleUrls: ['./feed.css']
 })
@@ -17,7 +19,8 @@ export class Feed implements OnInit, AfterViewInit {
   posts$: Observable<Post[]>;
   dashboardState$: Observable<{ count: number; fading: boolean }>;
 
-  newPostText: string = '';
+  showCreateModal = false;
+  selectedPost: Post | null = null;
 
   @ViewChildren('postRef') postElements!: QueryList<ElementRef>;
   private observer!: IntersectionObserver;
@@ -28,57 +31,80 @@ export class Feed implements OnInit, AfterViewInit {
     private cdr: ChangeDetectorRef,
     @Inject(PLATFORM_ID) platformId: Object
   ) {
-    this.posts$ = this.postsService.posts$;
+    this.posts$ = this.postsService.getPosts();
     this.dashboardState$ = this.postsService.dashboardState$;
     this.isBrowser = isPlatformBrowser(platformId);
   }
 
   ngOnInit() {}
 
-  ngAfterViewInit() {
+  ngAfterViewInit(): void {
     if (!this.isBrowser) return;
 
-    this.observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const postEl = entry.target as HTMLElement;
-          const postId = Number(postEl.dataset['id']);
+    this.observer = new IntersectionObserver(
+      (entries: IntersectionObserverEntry[]) => {
+        entries.forEach((entry: IntersectionObserverEntry) => {
+          if (entry.isIntersecting) {
+            const postEl = entry.target as HTMLElement;
+            const postId: string | undefined = postEl.dataset['id'];
 
-          // Delay 2s before marking post as seen
-          setTimeout(() => {
-            this.postsService.markPostAsSeen(postId);
-            this.cdr.markForCheck();
-            this.observer.unobserve(postEl);
-          }, 2000);
-        }
-      });
-    }, { threshold: 0.5 });
+            setTimeout(() => {
+              if (postId) {
+                this.postsService.markPostAsSeen(postId);
+                this.cdr.markForCheck();
+              }
+              this.observer.unobserve(postEl);
+            }, 2000);
+          }
+        });
+      },
+      { threshold: 0.5 }
+    );
 
-    // Observe initial posts
-    this.postElements.forEach(postEl => this.observer.observe(postEl.nativeElement));
+    this.observePosts();
+  }
 
-    // Observe future posts
-    this.postElements.changes.subscribe(posts => {
-      posts.forEach((postEl: { nativeElement: Element; }) => this.observer.observe(postEl.nativeElement));
+  // Observe posts and future changes
+  private observePosts(): void {
+    // Initial posts
+    this.postElements.forEach((postEl: ElementRef<HTMLElement>) =>
+      this.observer.observe(postEl.nativeElement)
+    );
+
+    // Observe new posts added later
+    this.postElements.changes.subscribe((posts: QueryList<ElementRef<HTMLElement>>) => {
+      posts.forEach((postEl: ElementRef<HTMLElement>) =>
+        this.observer.observe(postEl.nativeElement)
+      );
     });
   }
 
-  addPost() {
-    if (this.newPostText.trim()) {
-      this.postsService.addPost('You', this.newPostText);
-      this.newPostText = '';
-    }
+  openCreateModal() {
+    this.showCreateModal = true;
   }
 
-  likePost(id: number) { 
+  closeCreateModal() {
+    this.showCreateModal = false;
+  }
+
+  handleCreatePost(event: { caption: string; media: File[] }) {
+    this.postsService.createPost(event.caption, event.media); // Use PostsService.createPost
+    this.closeCreateModal();
+  }
+
+  openPostModal(post: Post) {
+    this.selectedPost = post;
+  }
+
+  closePostModal() {
+    this.selectedPost = null;
+  }
+
+  likePost(id: string) { 
     this.postsService.likePost(id); 
   }
 
-  commentPost(id: number) { 
-    this.postsService.commentPost(id); 
-  
-  }
-  sharePost(id: number) { 
-    this.postsService.sharePost(id); 
+  commentPost(postId: string) {
+    this.postsService.commentPost(postId);
   }
 }

@@ -1,29 +1,48 @@
-<div class="p-4 border rounded mb-4 bg-white shadow-sm">
-    <div class="flex items-center justify-between">
-        <h3 class="font-bold text-gray-800">{{ post.author }}</h3>
-        <span *ngIf="post.isNew"
+<div (click)="onPostClick()" class="cursor-pointer">
+  <div class="border rounded mb-6 bg-white shadow-sm overflow-hidden">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between p-4">
+        <div class="flex items-center space-x-3">
+            <!-- Avatar -->
+            <app-avatar [username]="post?.username" [imageUrl]="post?.userAvatar"></app-avatar>
+
+            <!-- Username -->
+            <h3 class="font-normal text-gray-800">{{ post?.username ?? "Unknown" }}</h3>
+        </div>
+
+      <span *ngIf="post?.isNew"
             class="ml-2 text-xs text-white bg-red-500 rounded-full px-2 py-0.5 transition-opacity duration-700 ease-in-out"
-            [class.opacity-0]="post.fadingOut">
-            New
-        </span>
+            [class.opacity-0]="post?.fadingOut">
+        New
+      </span>
     </div>
-    <p class="text-gray-700 mt-1">{{ post.content }}</p>
 
-    <div class="flex space-x-6 mt-3 text-sm text-gray-600">
-        <button (click)="likePost(post.id)" class="flex items-center space-x-1 hover:text-blue-600">
-            <span>❤️</span>
-            <span>{{ post.likes }}</span>
-        </button>
-
-        <button (click)="commentPost(post.id)" class="flex items-center space-x-1 hover:text-blue-600">
-            <span>💬</span>
-            <span>{{ post.comments }}</span>
-        </button>
-
-        <button (click)="sharePost(post.id)" class="flex items-center space-x-1 hover:text-blue-600">
-            <span>↗️</span>
-            <span>{{ post.shares }}</span>
-        </button>
+    <!-- Media -->
+    <div *ngIf="firstMediaUrl" class="bg-black">
+      <img
+        [src]="firstMediaUrl"
+        class="w-full max-h-[500px] object-cover"
+      />
     </div>
-    <!--❤️💬↗️🔗 -->
+
+    <!-- Caption -->
+    <div class="p-4">
+      <p class="text-gray-700">{{ post?.caption }}</p>
+
+      <!-- Actions -->
+      <div class="flex space-x-6 mt-3 text-sm text-gray-600">
+        <button (click)="onLike($event)" class="flex items-center space-x-1 hover:text-red-500">
+          <span>❤️</span>
+          <span>{{ post?.likesCount ?? 0 }}</span>
+        </button>
+
+        <button (click)="onComment($event)" class="flex items-center space-x-1 hover:text-blue-600">
+          <span>💬</span>
+          <span>{{ post?.commentsCount ?? 0 }}</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
 </div>
