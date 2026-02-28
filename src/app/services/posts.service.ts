@@ -13,13 +13,23 @@ export class PostsService {
   private dashboardStateSubject = new BehaviorSubject<{ count: number; fading: boolean }>({ count: 0, fading: false });
   dashboardState$ = this.dashboardStateSubject.asObservable();
 
+  private seenPostsKey = 'seenPosts';
   private seenPosts = new Set<string>();
 
   constructor(
     private firestore: Firestore,
     private auth: Auth,
     private storage: Storage
-  ) {}
+  ) {
+    // Load seen posts from localStorage
+    const saved = localStorage.getItem(this.seenPostsKey);
+    if (saved) {
+      try {
+        const ids = JSON.parse(saved) as string[];
+        this.seenPosts = new Set(ids);
+      } catch {}
+    }
+  }
 
   // Real-time posts stream
   getPosts(): Observable<Post[]> {
@@ -133,11 +143,16 @@ export class PostsService {
     if (this.seenPosts.has(postId)) return;
 
     this.seenPosts.add(postId);
+    localStorage.setItem(this.seenPostsKey, JSON.stringify([...this.seenPosts]));
     this.updateDashboardState();
   }
 
   private updateDashboardState() {
     const count = this.seenPosts.size;
     this.dashboardStateSubject.next({ count, fading: false });
+  }
+
+  hasSeen(postId: string): boolean {
+    return this.seenPosts.has(postId);
   }
 }

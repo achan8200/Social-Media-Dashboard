@@ -1,4 +1,4 @@
-<div (click)="onPostClick()" class="cursor-pointer">
+<div #postRef [attr.data-id]="post?.id" (click)="onPostClick()" class="cursor-pointer">
   <div class="border rounded mb-6 bg-white shadow-sm overflow-hidden">
 
     <!-- Header -->
@@ -12,7 +12,7 @@
         </div>
 
       <span *ngIf="post?.isNew"
-            class="ml-2 text-xs text-white bg-red-500 rounded-full px-2 py-0.5 transition-opacity duration-700 ease-in-out"
+            class="ml-2 text-xs text-white bg-red-500 rounded-full px-2 py-0.5 transition-opacity duration-1000 ease-in-out"
             [class.opacity-0]="post?.fadingOut">
         New
       </span>

@@ -16,6 +16,7 @@ export class PostCard {
   @Output() openPost = new EventEmitter<Post>();
   @Output() like = new EventEmitter<string>();
   @Output() comment = new EventEmitter<string>();
+  @Output() seen = new EventEmitter<string>();
 
   get firstMediaUrl(): string | undefined {
     return this.post?.media?.[0]?.url;
@@ -35,5 +36,14 @@ export class PostCard {
   onComment(event: Event): void {
     event.stopPropagation();
     if (this.post) this.comment.emit(this.post.id);
+  }
+
+  fadeOut() {
+    if (this.post && this.post.isNew) {
+      this.post.fadingOut = true; // triggers CSS fade
+      setTimeout(() => {
+        if (this.post) this.post.isNew = false; // removes badge from DOM after fade
+      }, 1000); // match CSS transition duration
+    }
   }
 }

@@ -1,7 +1,7 @@
 import { Component, OnInit, AfterViewInit, ElementRef, QueryList, ViewChildren, Inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
 import { AsyncPipe, CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { PostCard } from '../post-card/post-card';
 import { Post } from '../../models/post.model';
 import { PostsService } from '../../services/posts.service';
@@ -23,6 +23,8 @@ export class Feed implements OnInit, AfterViewInit {
   selectedPost: Post | null = null;
 
   @ViewChildren('postRef') postElements!: QueryList<ElementRef>;
+  @ViewChildren(PostCard) postCards!: QueryList<PostCard>;
+
   private observer!: IntersectionObserver;
   private isBrowser: boolean;
 
@@ -31,9 +33,17 @@ export class Feed implements OnInit, AfterViewInit {
     private cdr: ChangeDetectorRef,
     @Inject(PLATFORM_ID) platformId: Object
   ) {
-    this.posts$ = this.postsService.getPosts();
-    this.dashboardState$ = this.postsService.dashboardState$;
     this.isBrowser = isPlatformBrowser(platformId);
+    this.dashboardState$ = this.postsService.dashboardState$;
+    this.posts$ = this.postsService.getPosts().pipe(
+      map(posts =>
+        posts.map(post => ({
+          ...post,
+          isNew: !this.postsService.hasSeen(post.id),
+          fadingOut: false
+        }))
+      )
+    );
   }
 
   ngOnInit() {}
@@ -41,42 +51,43 @@ export class Feed implements OnInit, AfterViewInit {
   ngAfterViewInit(): void {
     if (!this.isBrowser) return;
 
-    this.observer = new IntersectionObserver(
-      (entries: IntersectionObserverEntry[]) => {
-        entries.forEach((entry: IntersectionObserverEntry) => {
-          if (entry.isIntersecting) {
-            const postEl = entry.target as HTMLElement;
-            const postId: string | undefined = postEl.dataset['id'];
+    // IntersectionObserver callback
+    const callback: IntersectionObserverCallback = entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
 
-            setTimeout(() => {
-              if (postId) {
-                this.postsService.markPostAsSeen(postId);
-                this.cdr.markForCheck();
-              }
-              this.observer.unobserve(postEl);
-            }, 2000);
-          }
-        });
-      },
-      { threshold: 0.5 }
-    );
+        const postEl = entry.target as HTMLElement;
+        const postId = postEl.dataset['id'];
+        if (!postId) return;
 
+        // Mark post as seen in service (updates localStorage)
+        this.postsService.markPostAsSeen(postId);
+
+        // Fade out "New" badge on the corresponding PostCard
+        setTimeout(() => {
+          const card = this.postCards.find(c => c.post?.id === postId);
+          if (card) card.fadeOut();
+          this.cdr.markForCheck();
+        }, 1000); // 1 second delay
+
+        this.cdr.markForCheck();
+        this.observer.unobserve(postEl);
+      });
+    };
+
+    // Initialize observer
+    this.observer = new IntersectionObserver(callback, { threshold: 0.5 });
+
+    // Observe all initial posts
     this.observePosts();
+
+    // Observe future posts added dynamically
+    this.postElements.changes.subscribe(() => this.observePosts());
   }
 
-  // Observe posts and future changes
-  private observePosts(): void {
-    // Initial posts
-    this.postElements.forEach((postEl: ElementRef<HTMLElement>) =>
-      this.observer.observe(postEl.nativeElement)
-    );
-
-    // Observe new posts added later
-    this.postElements.changes.subscribe((posts: QueryList<ElementRef<HTMLElement>>) => {
-      posts.forEach((postEl: ElementRef<HTMLElement>) =>
-        this.observer.observe(postEl.nativeElement)
-      );
-    });
+  private observePosts() {
+    if (!this.postElements || !this.observer) return;
+    this.postElements.forEach(postEl => this.observer.observe(postEl.nativeElement));
   }
 
   openCreateModal() {
@@ -88,7 +99,7 @@ export class Feed implements OnInit, AfterViewInit {
   }
 
   handleCreatePost(event: { caption: string; media: File[] }) {
-    this.postsService.createPost(event.caption, event.media); // Use PostsService.createPost
+    this.postsService.createPost(event.caption, event.media);
     this.closeCreateModal();
   }
 
@@ -106,5 +117,9 @@ export class Feed implements OnInit, AfterViewInit {
 
   commentPost(postId: string) {
     this.postsService.commentPost(postId);
+  }
+
+  handlePostSeen(postId: string) {
+    this.postsService.markPostAsSeen(postId);
   }
 }
