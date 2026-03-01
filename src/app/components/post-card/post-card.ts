@@ -1,6 +1,6 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Post } from '../../models/post.model';
+import { Post, PostMedia } from '../../models/post.model';
 import { Avatar } from '../avatar/avatar';
 import { UserService } from '../../services/user.service';
 import { map, Observable, of } from 'rxjs';
@@ -24,7 +24,17 @@ export class PostCard {
   displayName$: Observable<string> = of('Unknown');
   userAvatar$: Observable<string | null> = of(null);
 
+  @ViewChild('feedVideo') feedVideo?: ElementRef<HTMLVideoElement>;
+  @ViewChild('postRef') postRef?: ElementRef<HTMLElement>;
+  private observer?: IntersectionObserver;
+
   constructor(private userService: UserService) {}
+
+  ngAfterViewInit() {
+    if (this.feedVideo?.nativeElement) {
+      this.setupObserver();
+    }
+  }
 
   ngOnChanges() {
     if (this.post?.uid) {
@@ -33,6 +43,10 @@ export class PostCard {
       this.displayName$ = user$.pipe(map(u => u?.displayName || 'Unknown'));
       this.userAvatar$ = user$.pipe(map(u => u?.profilePicture || null));
     }
+  }
+
+  ngOnDestroy() {
+    this.observer?.disconnect();
   }
 
   get firstMediaUrl(): string | undefined {
@@ -62,5 +76,35 @@ export class PostCard {
         if (this.post) this.post.isNew = false; // removes badge from DOM after fade
       }, 1000); // match CSS transition duration
     }
+  }
+
+  get firstMedia(): PostMedia | null {
+    return this.post?.media?.[0] ?? null;
+  }
+
+  private setupObserver() {
+    if (!this.feedVideo?.nativeElement) return;
+    const video = this.feedVideo.nativeElement;
+
+    video.muted = true;
+    video.defaultMuted = true;
+    video.volume = 0;
+
+    this.observer?.disconnect();
+
+    this.observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+            video.play().catch(err => console.warn('Video autoplay prevented:', err));
+          } else {
+            video.pause();
+          }
+        });
+      },
+      { threshold: [0, 0.5, 1] }
+    );
+
+    this.observer.observe(video);
   }
 }

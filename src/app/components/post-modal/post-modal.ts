@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PostsService } from '../../services/posts.service';
-import { Post } from '../../models/post.model';
+import { Post, PostMedia } from '../../models/post.model';
 import { Avatar } from '../avatar/avatar';
 import { UserService } from '../../services/user.service';
 import { map, Observable, of } from 'rxjs';
@@ -39,5 +39,9 @@ export class PostModal {
   likePost(): void {
     if (!this.post) return;
     this.postsService.likePost(this.post.id);
+  }
+
+  get firstMedia(): PostMedia | null {
+      return this.post?.media?.[0] ?? null;
   }
 }

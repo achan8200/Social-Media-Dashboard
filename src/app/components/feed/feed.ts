@@ -98,11 +98,6 @@ export class Feed implements OnInit, AfterViewInit {
     this.showCreateModal = false;
   }
 
-  handleCreatePost(event: { caption: string; media: File[] }) {
-    this.postsService.createPost(event.caption, event.media);
-    this.closeCreateModal();
-  }
-
   openPostModal(post: Post) {
     this.selectedPost = post;
   }

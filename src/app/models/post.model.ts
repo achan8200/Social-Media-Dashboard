@@ -4,6 +4,7 @@ export interface PostMedia {
   width?: number;
   height?: number;
   duration?: number;
+  thumbnail?: string;
 }
 
 export interface Post {

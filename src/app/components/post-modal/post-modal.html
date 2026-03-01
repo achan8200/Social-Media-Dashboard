@@ -3,10 +3,17 @@
 
     <!-- Left: Media -->
     <div class="flex-1 bg-black flex items-center justify-center">
-      <img *ngIf="firstMediaUrl"
-           [src]="firstMediaUrl"
-           class="w-full h-full object-contain" />
-      <span *ngIf="!firstMediaUrl" class="text-white">No media</span>
+      <ng-container *ngIf="firstMedia as media">
+            <img *ngIf="media.type === 'image'" [src]="media.url" class="w-full h-full object-contain"/>
+            <video *ngIf="media.type === 'video'" 
+                [src]="media.url"
+                class="w-full h-full object-contain"
+                [poster]="media.thumbnail"
+                loop
+                controls
+                playsinline
+                preload="metadata"></video>
+        </ng-container>
     </div>
 
     <!-- Right: Details -->

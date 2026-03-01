@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Firestore, collection, collectionData, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, increment, getDoc } from '@angular/fire/firestore';
-import { Storage, ref, uploadBytes, getDownloadURL } from '@angular/fire/storage'
+import { Storage, ref, getDownloadURL, uploadBytesResumable } from '@angular/fire/storage'
 import { Observable, BehaviorSubject, from, combineLatest, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 import { Auth } from '@angular/fire/auth';
@@ -80,7 +80,11 @@ export class PostsService {
   }
 
   // Create post 
-  async createPost(caption?: string, files?: File[]) {
+  async createPost(
+    caption?: string,
+    files?: File[],
+    onProgress?: (fileIndex: number, progress: number) => void
+  ) {
     const user = this.auth.currentUser;
     if (!user) throw new Error('Not authenticated');
 
@@ -119,7 +123,8 @@ export class PostsService {
       if (files && files.length > 0) {
         media = [];
 
-        for (const file of files) {
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
 
           // Validate file type
           if (!file.type.startsWith('image') && !file.type.startsWith('video')) {
@@ -130,7 +135,23 @@ export class PostsService {
           const storageRef = ref(this.storage, filePath);
 
           // Upload
-          await uploadBytes(storageRef, file);
+          const uploadTask = uploadBytesResumable(storageRef, file);
+
+          await new Promise<void>((resolve, reject) => {
+            uploadTask.on(
+              'state_changed',
+              (snapshot) => {
+                const progress =
+                  (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+
+                if (onProgress) {
+                  onProgress(i, progress);
+                }
+              },
+              reject,
+              resolve
+            );
+          });
 
           // Get public URL
           const downloadUrl = await getDownloadURL(storageRef);
@@ -138,7 +159,8 @@ export class PostsService {
           // Build media object
           media.push({
             url: downloadUrl,
-            type: file.type.startsWith('video') ? 'video' : 'image'
+            type: file.type.startsWith('video') ? 'video' : 'image',
+            thumbnail: file.type.startsWith('video') ? 'assets/video-placeholder.png' : undefined
           });
         }
       }
@@ -171,7 +193,7 @@ export class PostsService {
             }
           : p
       );
-
+      this.postsSubject.next(updated);
     } catch (error) {
       // If anything fails, remove optimistic post
       this.removeTempPost(tempId);

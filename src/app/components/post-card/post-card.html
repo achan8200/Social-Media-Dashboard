@@ -3,13 +3,11 @@
 
     <!-- Header -->
     <div class="flex items-center justify-between p-4">
-        <div class="flex items-center space-x-3">
-            <!-- Avatar -->
-            <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async"></app-avatar>
-
-            <!-- Username -->
-            <h3 class="font-normal text-gray-800">{{ username$ | async }}</h3>
-        </div>
+      <div class="flex items-center space-x-3">
+        <!-- Avatar -->
+        <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async"></app-avatar>
+        <h3 class="font-normal text-gray-800">{{ username$ | async }}</h3>
+      </div>
 
       <span *ngIf="post?.isNew"
             class="ml-2 text-xs text-white bg-red-500 rounded-full px-2 py-0.5 transition-opacity duration-1000 ease-in-out"
@@ -18,12 +16,23 @@
       </span>
     </div>
 
-    <!-- Media -->
-    <div *ngIf="firstMediaUrl" class="bg-black">
-      <img
-        [src]="firstMediaUrl"
-        class="w-full max-h-[500px] object-cover"
-      />
+    <!-- Media Preview -->
+    <div *ngIf="post?.media?.length" class="bg-black relative flex justify-center items-center">
+        <ng-container *ngIf="firstMedia as media">
+            <img *ngIf="media.type === 'image'" [src]="media.url" class="w-full max-h-[500px] object-cover"/>
+            <video 
+                #feedVideo
+                *ngIf="media.type === 'video'" 
+                class="w-full max-h-[500px] object-cover"
+                [poster]="media.thumbnail"
+                muted
+                loop
+                playsinline
+                preload="metadata"
+                disablePictureInPicture>
+                <source [src]="media.url" type="video/mp4" />
+            </video>
+        </ng-container>
     </div>
 
     <!-- Caption -->
