@@ -9,6 +9,7 @@
   <div *ngFor="let post of posts$ | async" #postRef [attr.data-id]="post.id">
     <app-post-card
       [post]="post"
+      [feedPaused]="feedPaused"
       (openPost)="openPostModal($event)"
       (like)="likePost($event)"
       (comment)="commentPost($event)">

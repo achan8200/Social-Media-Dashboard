@@ -14,6 +14,7 @@ import { map, Observable, of } from 'rxjs';
 })
 export class PostCard {
   @Input() post: Post | null = null;
+  @Input() feedPaused = false;
 
   @Output() openPost = new EventEmitter<Post>();
   @Output() like = new EventEmitter<string>();
@@ -94,6 +95,10 @@ export class PostCard {
     this.observer = new IntersectionObserver(
       (entries) => {
         entries.forEach(entry => {
+          if (this.feedPaused) {
+            video.pause(); // pause if feed is paused
+            return;
+          }
           if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
             video.play().catch(err => console.warn('Video autoplay prevented:', err));
           } else {

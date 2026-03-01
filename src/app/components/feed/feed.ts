@@ -20,6 +20,7 @@ export class Feed implements OnInit, AfterViewInit {
   dashboardState$: Observable<{ count: number; fading: boolean }>;
 
   showCreateModal = false;
+  feedPaused = false;
   selectedPost: Post | null = null;
 
   @ViewChildren('postRef') postElements!: QueryList<ElementRef>;
@@ -100,18 +101,26 @@ export class Feed implements OnInit, AfterViewInit {
 
   openPostModal(post: Post) {
     this.selectedPost = post;
+    this.feedPaused = true;
+
+    // Pause all videos immediately
+    this.postCards.forEach(card => card.pauseAutoplay());
   }
 
   closePostModal() {
     // Store the post id before closing
     const closedPostId = this.selectedPost?.id;
     this.selectedPost = null;
+    this.feedPaused = false;
 
     if (!closedPostId) return;
 
-    // Find the PostCard for this post and resume autoplay
-    const card = this.postCards.find(c => c.post?.id === closedPostId);
-    card?.resumeAutoplay();
+    // Resume autoplay for all PostCards
+    this.postCards.forEach(card => card.resumeAutoplay());
+
+    // Optional: Find the PostCard for this post and resume autoplay
+    // const card = this.postCards.find(c => c.post?.id === closedPostId);
+    // card?.resumeAutoplay();
   }
 
   likePost(id: string) { 
