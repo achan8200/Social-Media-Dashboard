@@ -103,7 +103,15 @@ export class Feed implements OnInit, AfterViewInit {
   }
 
   closePostModal() {
+    // Store the post id before closing
+    const closedPostId = this.selectedPost?.id;
     this.selectedPost = null;
+
+    if (!closedPostId) return;
+
+    // Find the PostCard for this post and resume autoplay
+    const card = this.postCards.find(c => c.post?.id === closedPostId);
+    card?.resumeAutoplay();
   }
 
   likePost(id: string) { 

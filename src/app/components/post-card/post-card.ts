@@ -54,9 +54,8 @@ export class PostCard {
   }
 
   onPostClick(): void {
-    if (this.post) {
-      this.openPost.emit(this.post);
-    }
+    this.pauseAutoplay(); // pause video before opening modal
+    if (this.post) this.openPost.emit(this.post);
   }
 
   onLike(event: Event): void {
@@ -106,5 +105,19 @@ export class PostCard {
     );
 
     this.observer.observe(video);
+  }
+
+  public pauseAutoplay(): void {
+    if (!this.feedVideo?.nativeElement) return;
+
+    this.feedVideo.nativeElement.pause();
+    this.observer?.disconnect(); // stop observing while modal is open
+  }
+
+  public resumeAutoplay(): void {
+    // Only reconnect observer if video exists
+    if (!this.feedVideo?.nativeElement) return;
+    
+    this.setupObserver(); // Re-initialize the IntersectionObserver
   }
 }
