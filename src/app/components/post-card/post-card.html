@@ -3,38 +3,37 @@
 
     <!-- Header -->
     <div class="flex items-center justify-between p-4 relative">
+      <!-- Left: Avatar + Username -->
       <div class="flex items-center space-x-3">
-        <!-- Avatar -->
         <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async"></app-avatar>
         <h3 class="font-normal text-gray-800">{{ username$ | async }}</h3>
       </div>
 
-      <span *ngIf="post?.isNew"
-            class="ml-2 text-xs text-white bg-red-500 rounded-full px-2 py-0.5 transition-opacity duration-1000 ease-in-out"
-            [class.opacity-0]="post?.fadingOut">
-        New
-      </span>
+      <!-- Right: New Badge + Menu Button -->
+      <div class="flex items-center space-x-2">
+        <!-- New Badge -->
+        <span *ngIf="post?.isNew"
+              class="text-xs text-white bg-red-500 rounded-full px-2 py-0.5 transition-opacity duration-1000 ease-in-out"
+              [class.opacity-0]="post?.fadingOut">
+          New
+        </span>
 
-      <div *ngIf="isAuthor" class="relative">
-        <button 
-          (click)="toggleMenu($event)"
-          class="text-gray-600 hover:text-black text-xl">
-          ⋯
-        </button>
-
-        <div *ngIf="menuOpen"
-            class="absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg z-50">
-          <button
-            (click)="onEdit($event)"
-            class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-            Edit Post
+        <!-- Menu Button (only if author) -->
+        <div *ngIf="isAuthor" class="relative">
+          <button (click)="toggleMenu($event)"
+                  class="text-gray-600 hover:text-black text-xl">
+            ⋯
           </button>
 
-          <button
-            (click)="onDelete($event)"
-            class="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">
-            Delete Post
-          </button>
+          <div *ngIf="menuOpen"
+              class="absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg z-50">
+            <button (click)="onEdit($event)" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+              Edit Post
+            </button>
+            <button (click)="onDelete($event)" class="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">
+              Delete Post
+            </button>
+          </div>
         </div>
       </div>
     </div>
