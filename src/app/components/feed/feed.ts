@@ -7,11 +7,12 @@ import { Post } from '../../models/post.model';
 import { PostsService } from '../../services/posts.service';
 import { CreatePost } from '../create-post/create-post';
 import { PostModal } from '../post-modal/post-modal';
+import { ConfirmModal } from "../confirm-modal/confirm-modal";
 
 @Component({
   selector: 'app-feed',
   standalone: true,
-  imports: [AsyncPipe, CommonModule, FormsModule, PostCard, CreatePost, PostModal],
+  imports: [AsyncPipe, CommonModule, FormsModule, PostCard, CreatePost, PostModal, ConfirmModal],
   templateUrl: './feed.html',
   styleUrls: ['./feed.css']
 })
@@ -22,6 +23,7 @@ export class Feed implements OnInit, AfterViewInit {
   showCreateModal = false;
   feedPaused = false;
   selectedPost: Post | null = null;
+  selectedPostToDelete: Post | null = null;
 
   @ViewChildren('postRef') postElements!: QueryList<ElementRef>;
   @ViewChildren(PostCard) postCards!: QueryList<PostCard>;
@@ -133,5 +135,22 @@ export class Feed implements OnInit, AfterViewInit {
 
   handlePostSeen(postId: string) {
     this.postsService.markPostAsSeen(postId);
+  }
+
+  onDeletePost(post: Post) {
+    this.selectedPostToDelete = post;
+  }
+
+  confirmDelete() {
+    if (!this.selectedPostToDelete) return;
+
+    this.postsService.deletePost(this.selectedPostToDelete)
+      .catch(err => console.error(err));
+
+    this.selectedPostToDelete = null;
+  }
+
+  cancelDelete() {
+    this.selectedPostToDelete = null;
   }
 }

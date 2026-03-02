@@ -4,6 +4,7 @@ import { Post, PostMedia } from '../../models/post.model';
 import { Avatar } from '../avatar/avatar';
 import { UserService } from '../../services/user.service';
 import { map, Observable, of } from 'rxjs';
+import { Auth } from '@angular/fire/auth';
 
 @Component({
   selector: 'app-post-card',
@@ -20,16 +21,19 @@ export class PostCard {
   @Output() like = new EventEmitter<string>();
   @Output() comment = new EventEmitter<string>();
   @Output() seen = new EventEmitter<string>();
+  @Output() deletePost = new EventEmitter<Post>();
 
   username$: Observable<string> = of('Unknown');
   displayName$: Observable<string> = of('Unknown');
   userAvatar$: Observable<string | null> = of(null);
 
+  menuOpen = false;
+
   @ViewChild('feedVideo') feedVideo?: ElementRef<HTMLVideoElement>;
   @ViewChild('postRef') postRef?: ElementRef<HTMLElement>;
   private observer?: IntersectionObserver;
 
-  constructor(private userService: UserService) {}
+  constructor(private userService: UserService, private auth: Auth) {}
 
   ngAfterViewInit() {
     if (this.feedVideo?.nativeElement) {
@@ -124,5 +128,31 @@ export class PostCard {
     if (!this.feedVideo?.nativeElement) return;
     
     this.setupObserver(); // Re-initialize the IntersectionObserver
+  }
+
+  get isAuthor(): boolean {
+    return this.post?.uid === this.auth.currentUser?.uid;
+  }
+
+  toggleMenu(event: Event) {
+    event.stopPropagation();
+    this.menuOpen = !this.menuOpen;
+  }
+
+  onEdit(event: Event) {
+    event.stopPropagation();
+    this.menuOpen = false;
+    console.log('Edit post placeholder');
+  }
+
+  onDelete(event: Event) {
+    event.stopPropagation();
+    this.menuOpen = false;
+
+    if (!this.post) return;
+
+    if (this.post) {
+      this.deletePost.emit(this.post);
+    }
   }
 }

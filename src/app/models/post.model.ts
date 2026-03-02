@@ -1,5 +1,6 @@
 export interface PostMedia {
   url: string;
+  path: string;
   type: 'image' | 'video';
   width?: number;
   height?: number;

@@ -1,0 +1,29 @@
+<div class="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+
+  <!-- Modal Card -->
+  <div class="bg-white w-full max-w-sm rounded-xl shadow-xl p-6 transform transition-all duration-200 scale-100">
+
+    <h2 class="text-lg font-semibold text-gray-800 mb-2">
+      {{ title }}
+    </h2>
+
+    <p class="text-sm text-gray-600 mb-6">
+      {{ message }}
+    </p>
+
+    <div class="flex justify-end space-x-3">
+      <button
+        (click)="onCancel()"
+        class="px-4 py-2 rounded-lg border text-gray-700 hover:bg-gray-100">
+        {{ cancelText }}
+      </button>
+
+      <button
+        (click)="onConfirm()"
+        class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700">
+        {{ confirmText }}
+      </button>
+    </div>
+
+  </div>
+</div>

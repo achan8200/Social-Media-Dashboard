@@ -12,7 +12,8 @@
       [feedPaused]="feedPaused"
       (openPost)="openPostModal($event)"
       (like)="likePost($event)"
-      (comment)="commentPost($event)">
+      (comment)="commentPost($event)"
+      (deletePost)="onDeletePost($event)">
     </app-post-card>
   </div>
 
@@ -39,3 +40,13 @@
   </app-post-modal>
 
 </section>
+
+<app-confirm-modal
+  *ngIf="selectedPostToDelete"
+  title="Delete this post?"
+  message="This action cannot be undone."
+  confirmText="Delete"
+  cancelText="Cancel"
+  (confirmed)="confirmDelete()"
+  (cancelled)="cancelDelete()">
+</app-confirm-modal>

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Firestore, collection, collectionData, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, increment, getDoc } from '@angular/fire/firestore';
-import { Storage, ref, getDownloadURL, uploadBytesResumable } from '@angular/fire/storage'
+import { Firestore, collection, collectionData, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, increment, getDoc, deleteDoc } from '@angular/fire/firestore';
+import { Storage, ref, getDownloadURL, uploadBytesResumable, deleteObject } from '@angular/fire/storage'
 import { Observable, BehaviorSubject, from, combineLatest, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 import { Auth } from '@angular/fire/auth';
@@ -159,6 +159,7 @@ export class PostsService {
           // Build media object
           media.push({
             url: downloadUrl,
+            path: filePath,
             type: file.type.startsWith('video') ? 'video' : 'image',
             thumbnail: file.type.startsWith('video') ? 'assets/video-placeholder.png' : undefined
           });
@@ -229,6 +230,35 @@ export class PostsService {
       commentsCount: increment(1),
       updatedAt: serverTimestamp()
     });
+  }
+
+  async deletePost(post: Post) {
+    const user = this.auth.currentUser;
+    if (!user) throw new Error('Not authenticated');
+
+    if (user.uid !== post.uid) {
+      throw new Error('Unauthorized delete attempt');
+    }
+
+    // Delete media from Firebase Storage
+    if (post.media?.length) {
+      for (const media of post.media) {
+        try {
+          const storageRef = ref(this.storage, media.path);
+          await deleteObject(storageRef);
+        } catch (err) {
+          console.warn('Failed to delete media:', err);
+        }
+      }
+    }
+
+    // Delete Firestore document
+    const postRef = doc(this.firestore, `posts/${post.id}`);
+    await deleteDoc(postRef);
+
+    // Remove locally for instant UI update
+    const updated = this.postsSubject.value.filter(p => p.id !== post.id);
+    this.postsSubject.next(updated);
   }
 
   // Mark post as seen (UI only)
