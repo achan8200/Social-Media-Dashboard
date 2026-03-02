@@ -1,12 +1,11 @@
 <!-- Only render when there's a post -->
-<div *ngIf="post" class="fixed inset-0 flex items-center justify-center z-50 p-4">
+<div *ngIf="post && isVisible" @overlayFade class="fixed inset-0 flex items-center justify-center z-50 p-4">
 
-  <!-- Overlay with fade animation -->
-  <div class="absolute inset-0 bg-black opacity-0 animate-overlay-fade"></div>
+  <!-- Overlay -->
+  <div class="absolute inset-0 bg-black/60"></div>
 
-  <!-- Animate wrapper -->
-  <div class="relative bg-white transform transition duration-300 ease-out scale-95 opacity-0 animate-modal-scale
-              w-full max-w-5xl max-h-[90vh] rounded-lg overflow-hidden flex md:flex-row flex-col">
+  <!-- Modal Card -->
+  <div @modalScale class="relative bg-white transform w-full max-w-5xl max-h-[90vh] rounded-lg overflow-hidden flex md:flex-row flex-col">
 
     <!-- Left: Media -->
     <div class="flex-1 bg-black flex items-center justify-center max-h-[60vh] md:max-h-[90vh] w-full">
@@ -32,7 +31,7 @@
           <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async"></app-avatar>
           <span class="font-normal">{{ username$ | async }}</span>
         </div>
-        <button (click)="close.emit()">✕</button>
+        <button (click)="onClose()">✕</button>
       </div>
 
       <p class="text-sm mb-4">{{ post.caption }}</p>
