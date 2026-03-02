@@ -11,9 +11,14 @@
       <button (click)="onCancel()">✕</button>
     </div>
 
+    <!-- Caption Area -->
     <textarea [(ngModel)]="caption" placeholder="What's on your mind?" class="w-full border rounded p-2" rows="4"></textarea>
 
-    <input type="file" multiple (change)="onFileChange($event)" class="text-sm" />
+    <!-- File Input -->
+    <label class="w-full border rounded p-2 cursor-pointer bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center justify-center">
+        Browse Files
+        <input type="file" multiple (change)="onFileChange($event)" class="hidden" />
+    </label>
 
     <!-- Preview Grid -->
     <div *ngIf="selectedMedia.length > 0" class="grid grid-cols-3 gap-2 mt-2">
