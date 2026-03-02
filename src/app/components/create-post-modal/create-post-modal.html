@@ -15,7 +15,7 @@
     <textarea [(ngModel)]="caption" placeholder="What's on your mind?" class="w-full border rounded p-2" rows="4"></textarea>
 
     <!-- File Input -->
-    <label class="w-full border rounded p-2 cursor-pointer bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center justify-center">
+    <label class="w-full border rounded p-2 cursor-pointer bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors duration-150 flex items-center justify-center">
         Browse Files
         <input type="file" multiple (change)="onFileChange($event)" class="hidden" />
     </label>
@@ -36,8 +36,8 @@
     </div>
 
     <div class="flex justify-end space-x-2">
-      <button (click)="onCancel()" class="px-4 py-2 bg-gray-200 rounded">Cancel</button>
-      <button (click)="onCreate()" class="px-4 py-2 bg-blue-500 text-white rounded">Post</button>
+      <button (click)="onCancel()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors duration-150">Cancel</button>
+      <button (click)="onCreate()" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors duration-150">Post</button>
     </div>
 
   </div>
