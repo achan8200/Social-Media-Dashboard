@@ -1,7 +1,11 @@
-<div class="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+<div
+  @overlayFade
+  class="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
 
   <!-- Modal Card -->
-  <div class="bg-white w-full max-w-sm rounded-xl shadow-xl p-6 transform transition-all duration-200 scale-100">
+  <div
+    @modalScale
+    class="bg-white w-full max-w-sm rounded-xl shadow-xl p-6">
 
     <h2 class="text-lg font-semibold text-gray-800 mb-2">
       {{ title }}
