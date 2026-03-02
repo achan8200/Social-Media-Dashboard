@@ -8,11 +8,12 @@ import { PostsService } from '../../services/posts.service';
 import { CreatePost } from '../create-post/create-post';
 import { PostModal } from '../post-modal/post-modal';
 import { ConfirmModal } from "../confirm-modal/confirm-modal";
+import { EditPostModal } from "../edit-post-modal/edit-post-modal";
 
 @Component({
   selector: 'app-feed',
   standalone: true,
-  imports: [AsyncPipe, CommonModule, FormsModule, PostCard, CreatePost, PostModal, ConfirmModal],
+  imports: [AsyncPipe, CommonModule, FormsModule, PostCard, CreatePost, PostModal, ConfirmModal, EditPostModal],
   templateUrl: './feed.html',
   styleUrls: ['./feed.css']
 })
@@ -24,6 +25,8 @@ export class Feed implements OnInit, AfterViewInit {
   feedPaused = false;
   selectedPost: Post | null = null;
   selectedPostToDelete: Post | null = null;
+
+  editingPost: Post | null = null;
 
   @ViewChildren('postRef') postElements!: QueryList<ElementRef>;
   @ViewChildren(PostCard) postCards!: QueryList<PostCard>;
@@ -152,5 +155,36 @@ export class Feed implements OnInit, AfterViewInit {
 
   cancelDelete() {
     this.selectedPostToDelete = null;
+  }
+
+  // --- Edit Post Handlers ---
+  onEditPost(post: Post) {
+    this.editingPost = post;
+  }
+
+  cancelEdit() {
+    this.editingPost = null;
+  }
+
+  async updatePost(newCaption: string) {
+    if (!this.editingPost) return;
+
+    const postId = this.editingPost.id;
+
+    // --- Optimistic update ---
+    this.postsService.updatePostCaptionLocal(postId, newCaption);
+
+    // Close the modal immediately
+    this.editingPost = null;
+
+    // --- Firestore update ---
+    try {
+      await this.postsService.updatePostCaption(postId, newCaption);
+    } catch (err) {
+      console.error('Failed to update post:', err);
+
+      // Optionally reload posts from service or handle rollback
+      // this.posts$ = this.postsService.getPosts();
+    }
   }
 }

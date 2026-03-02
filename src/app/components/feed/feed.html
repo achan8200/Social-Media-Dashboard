@@ -13,6 +13,7 @@
       (openPost)="openPostModal($event)"
       (like)="likePost($event)"
       (comment)="commentPost($event)"
+      (edit)="onEditPost($event)"
       (deletePost)="onDeletePost($event)">
     </app-post-card>
   </div>
@@ -41,6 +42,7 @@
 
 </section>
 
+<!-- Confirm Modal for Post Deletion -->
 <app-confirm-modal
   *ngIf="selectedPostToDelete"
   title="Delete this post?"
@@ -50,3 +52,11 @@
   (confirmed)="confirmDelete()"
   (cancelled)="cancelDelete()">
 </app-confirm-modal>
+
+<!-- Edit Post Modal -->
+<app-edit-post-modal
+  *ngIf="editingPost"
+  [post]="editingPost"
+  (update)="updatePost($event)"
+  (cancel)="cancelEdit()">
+</app-edit-post-modal>

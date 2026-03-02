@@ -21,6 +21,7 @@ export class PostCard {
   @Output() like = new EventEmitter<string>();
   @Output() comment = new EventEmitter<string>();
   @Output() seen = new EventEmitter<string>();
+  @Output() edit = new EventEmitter<Post>();
   @Output() deletePost = new EventEmitter<Post>();
 
   username$: Observable<string> = of('Unknown');
@@ -142,7 +143,7 @@ export class PostCard {
   onEdit(event: Event) {
     event.stopPropagation();
     this.menuOpen = false;
-    console.log('Edit post placeholder');
+    if (this.post) this.edit.emit(this.post);
   }
 
   onDelete(event: Event) {

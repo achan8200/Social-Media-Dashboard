@@ -232,6 +232,44 @@ export class PostsService {
     });
   }
 
+  // Update only the caption of a post
+  async updatePostCaption(postId: string, newCaption: string) {
+    const user = this.auth.currentUser;
+    if (!user) throw new Error('Not authenticated');
+
+    // Get the current post
+    const currentPost = this.postsSubject.value.find(p => p.id === postId);
+    if (!currentPost) throw new Error('Post not found');
+
+    if (currentPost.uid !== user.uid) {
+      throw new Error('Unauthorized edit attempt');
+    }
+
+    const postRef = doc(this.firestore, `posts/${postId}`);
+
+    // Optimistically update local post
+    const updatedLocal = this.postsSubject.value.map(p =>
+      p.id === postId ? { ...p, caption: newCaption, updatedAt: new Date() } : p
+    );
+    this.postsSubject.next(updatedLocal);
+
+    // Update Firestore
+    await updateDoc(postRef, {
+      caption: newCaption,
+      updatedAt: serverTimestamp()
+    });
+  }
+
+  /** Optimistically update a post caption locally */
+  updatePostCaptionLocal(postId: string, newCaption: string) {
+    const currentPosts = this.postsSubject.value;
+    this.postsSubject.next(
+      currentPosts.map(p =>
+        p.id === postId ? { ...p, caption: newCaption } : p
+      )
+    );
+  }
+
   async deletePost(post: Post) {
     const user = this.auth.currentUser;
     if (!user) throw new Error('Not authenticated');
