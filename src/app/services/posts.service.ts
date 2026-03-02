@@ -232,6 +232,13 @@ export class PostsService {
     });
   }
 
+  updatePostLocal(postId: string, updateFn: (post: Post) => void) {
+    const posts = this.postsSubject.getValue(); // postsSubject exists here
+    const post = posts.find(p => p.id === postId);
+    if (post) updateFn(post);
+    this.postsSubject.next([...posts]);
+  }
+
   // Update only the caption of a post
   async updatePostCaption(postId: string, newCaption: string) {
     const user = this.auth.currentUser;

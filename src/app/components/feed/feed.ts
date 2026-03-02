@@ -41,14 +41,17 @@ export class Feed implements OnInit, AfterViewInit {
   ) {
     this.isBrowser = isPlatformBrowser(platformId);
     this.dashboardState$ = this.postsService.dashboardState$;
+
+    // Subscribe directly to posts and patch only dynamic properties
     this.posts$ = this.postsService.getPosts().pipe(
-      map(posts =>
-        posts.map(post => ({
-          ...post,
-          isNew: !this.postsService.hasSeen(post.id),
-          fadingOut: false
-        }))
-      )
+      map(posts => posts.map(post => {
+        // Only add dynamic properties if they don't exist yet
+        if (post.isNew === undefined) {
+          post.isNew = !this.postsService.hasSeen(post.id);
+          post.fadingOut = false;
+        }
+        return post;
+      }))
     );
   }
 
@@ -93,7 +96,16 @@ export class Feed implements OnInit, AfterViewInit {
 
   private observePosts() {
     if (!this.postElements || !this.observer) return;
-    this.postElements.forEach(postEl => this.observer.observe(postEl.nativeElement));
+
+    this.postElements.forEach(postEl => {
+      const nativeEl = postEl.nativeElement as HTMLElement;
+
+      // Only observe if not already observed
+      if (!(nativeEl as any).__observed) {
+        this.observer.observe(nativeEl);
+        (nativeEl as any).__observed = true;
+      }
+    });
   }
 
   openCreateModal() {
@@ -128,12 +140,20 @@ export class Feed implements OnInit, AfterViewInit {
     // card?.resumeAutoplay();
   }
 
-  likePost(id: string) { 
-    this.postsService.likePost(id); 
+  likePost(id: string) {
+    this.postsService.updatePostLocal(id, post => {
+      post.likesCount = (post.likesCount ?? 0) + 1;
+    });
+
+    this.postsService.likePost(id); // send to backend
   }
 
-  commentPost(postId: string) {
-    this.postsService.commentPost(postId);
+  commentPost(id: string) {
+    this.postsService.updatePostLocal(id, post => {
+      post.commentsCount = (post.commentsCount ?? 0) + 1;
+    });
+
+    this.postsService.commentPost(id); // send to backend
   }
 
   handlePostSeen(postId: string) {
@@ -171,20 +191,24 @@ export class Feed implements OnInit, AfterViewInit {
 
     const postId = this.editingPost.id;
 
-    // --- Optimistic update ---
+    // Optimistic local update
     this.postsService.updatePostCaptionLocal(postId, newCaption);
 
-    // Close the modal immediately
+    // Close modal
     this.editingPost = null;
 
-    // --- Firestore update ---
+    // Firestore update
     try {
       await this.postsService.updatePostCaption(postId, newCaption);
     } catch (err) {
       console.error('Failed to update post:', err);
 
-      // Optionally reload posts from service or handle rollback
+      // Optionally reload posts or rollback
       // this.posts$ = this.postsService.getPosts();
     }
+  }
+
+  trackByPostId(index: number, post: Post) {
+    return post.id;
   }
 }

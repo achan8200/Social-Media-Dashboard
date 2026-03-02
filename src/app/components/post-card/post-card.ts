@@ -29,6 +29,7 @@ export class PostCard {
   userAvatar$: Observable<string | null> = of(null);
 
   menuOpen = false;
+  private userFetched = false;
 
   @ViewChild('feedVideo') feedVideo?: ElementRef<HTMLVideoElement>;
   @ViewChild('postRef') postRef?: ElementRef<HTMLElement>;
@@ -43,11 +44,12 @@ export class PostCard {
   }
 
   ngOnChanges() {
-    if (this.post?.uid) {
-      const user$ = this.userService.getUserByUid(this.post.uid);
+    if (!this.userFetched && this.post?.uid) {
+      const user$ = this.userService.getUserByUid(this.post.uid); // returns an observable
       this.username$ = user$.pipe(map(u => u?.username || 'Unknown'));
       this.displayName$ = user$.pipe(map(u => u?.displayName || 'Unknown'));
       this.userAvatar$ = user$.pipe(map(u => u?.profilePicture || null));
+      this.userFetched = true; // only do this once
     }
   }
 
