@@ -43,11 +43,16 @@ export class ConfirmModal {
   @Output() confirmed = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<void>();
 
+  // Local state to control *ngIf
+  isOpen = true;
+
   onConfirm() {
-    this.confirmed.emit();
+    this.isOpen = false; // triggers fade/scale leave animation
+    setTimeout(() => this.confirmed.emit(), 160); // emit after animation (~150ms)
   }
 
   onCancel() {
-    this.cancelled.emit();
+    this.isOpen = false; // triggers fade/scale leave animation
+    setTimeout(() => this.cancelled.emit(), 160); // emit after animation
   }
 }

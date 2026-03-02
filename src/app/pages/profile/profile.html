@@ -30,7 +30,7 @@
             <button
             *ngIf="editMode && profileForm.value.profilePicture"
             type="button"
-            (click)="removeProfilePicture()"
+            (click)="confirmRemoveProfilePicture()"
             class="w-8 h-8 bg-red-600 text-white flex items-center justify-center rounded-full hover:bg-red-700 shadow -mb-1"
             title="Remove profile picture">
             ✕
@@ -169,6 +169,26 @@
       <div class="mt-4 flex gap-2">
         <button (click)="saveCroppedProfilePicture()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Save</button>
         <button (click)="cropImageSrc = null" class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Remove Profile Picture Confirmation -->
+  <div *ngIf="showRemoveConfirm && (isOwner$ | async)"
+      @fade
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white p-4 rounded-lg w-full max-w-sm flex flex-col items-center">
+      <h2 class="text-lg font-bold mb-4">Remove Profile Picture?</h2>
+      <p class="text-gray-700 mb-4">This will revert your profile picture to the default avatar.</p>
+      <div class="flex gap-2">
+        <button (click)="removeProfilePicture(); showRemoveConfirm = false"
+                class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+          Yes, Remove
+        </button>
+        <button (click)="showRemoveConfirm = false"
+                class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500">
+          Cancel
+        </button>
       </div>
     </div>
   </div>

@@ -7,6 +7,7 @@ import { Observable, map, from, combineLatest, switchMap, of, debounceTime, dist
 import { AuthService } from '../../services/auth.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { getInitial, getAvatarColor } from '../../utils/avatar';
+import { trigger, state, style, transition, animate } from '@angular/animations';
 
 type UsernameStatus =
   | 'available'
@@ -19,7 +20,20 @@ type UsernameStatus =
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './profile.html',
-  styleUrl: './profile.css'
+  styleUrl: './profile.css',
+  animations: [
+    trigger('fade', [
+      state('void', style({ opacity: 0 })),
+      state('*', style({ opacity: 1 })),
+      transition(':enter', [
+        style({ opacity: 0 }),
+        animate('150ms ease-in')
+      ]),
+      transition(':leave', [
+        animate('150ms ease-out', style({ opacity: 0 }))
+      ])
+    ])
+  ]
 })
 export class Profile {
   private firestore = inject(Firestore);
@@ -39,6 +53,7 @@ export class Profile {
   currentUsernameStatus: UsernameStatus = null;
   checkingUsername = false;
   isSaving = false;
+  showRemoveConfirm = false;
 
   profileForm = this.fb.group({
     displayName: ['', Validators.required],
@@ -384,6 +399,10 @@ export class Profile {
     this.cropImageSrc = null;
 
     console.log('Profile picture removed');
+  }
+
+  confirmRemoveProfilePicture() {
+    this.showRemoveConfirm = true;
   }
 
   // Shared avatar helpers
