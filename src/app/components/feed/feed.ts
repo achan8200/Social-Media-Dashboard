@@ -5,7 +5,7 @@ import { map, Observable } from 'rxjs';
 import { PostCard } from '../post-card/post-card';
 import { Post } from '../../models/post.model';
 import { PostsService } from '../../services/posts.service';
-import { CreatePost } from '../create-post/create-post';
+import { CreatePostModal } from '../create-post-modal/create-post-modal';
 import { PostModal } from '../post-modal/post-modal';
 import { ConfirmModal } from "../confirm-modal/confirm-modal";
 import { EditPostModal } from "../edit-post-modal/edit-post-modal";
@@ -13,7 +13,7 @@ import { EditPostModal } from "../edit-post-modal/edit-post-modal";
 @Component({
   selector: 'app-feed',
   standalone: true,
-  imports: [AsyncPipe, CommonModule, FormsModule, PostCard, CreatePost, PostModal, ConfirmModal, EditPostModal],
+  imports: [AsyncPipe, CommonModule, FormsModule, PostCard, CreatePostModal, PostModal, ConfirmModal, EditPostModal],
   templateUrl: './feed.html',
   styleUrls: ['./feed.css']
 })

@@ -10,12 +10,12 @@ interface SelectedMedia {
 }
 
 @Component({
-  selector: 'app-create-post',
+  selector: 'app-create-post-modal',
   imports: [CommonModule, FormsModule],
-  templateUrl: './create-post.html',
-  styleUrls: ['./create-post.css']
+  templateUrl: './create-post-modal.html',
+  styleUrls: ['./create-post-modal.css']
 })
-export class CreatePost {
+export class CreatePostModal {
   caption: string = '';
   selectedMedia: SelectedMedia[] = [];
 
