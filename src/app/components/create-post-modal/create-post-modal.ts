@@ -2,6 +2,7 @@ import { Component, EventEmitter, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PostsService } from '../../services/posts.service';
+import { trigger, transition, style, animate } from '@angular/animations';
 
 interface SelectedMedia {
   file: File;
@@ -13,11 +14,22 @@ interface SelectedMedia {
   selector: 'app-create-post-modal',
   imports: [CommonModule, FormsModule],
   templateUrl: './create-post-modal.html',
-  styleUrls: ['./create-post-modal.css']
+  styleUrls: ['./create-post-modal.css'],
+  animations: [
+    trigger('overlayFade', [
+      transition(':enter', [style({ opacity: 0 }), animate('200ms ease-out', style({ opacity: 1 }))]),
+      transition(':leave', [animate('150ms ease-in', style({ opacity: 0 }))])
+    ]),
+    trigger('modalScale', [
+      transition(':enter', [style({ opacity: 0, transform: 'scale(0.95)' }), animate('200ms ease-out', style({ opacity: 1, transform: 'scale(1)' }))]),
+      transition(':leave', [animate('150ms ease-in', style({ opacity: 0, transform: 'scale(0.95)' }))])
+    ])
+  ]
 })
 export class CreatePostModal {
   caption: string = '';
   selectedMedia: SelectedMedia[] = [];
+  isVisible = true; // controls fade out
 
   @Output() close = new EventEmitter<void>();
   @Output() create = new EventEmitter<{ caption: string; media: File[] }>();
@@ -65,5 +77,15 @@ export class CreatePostModal {
   removeMedia(index: number) {
     URL.revokeObjectURL(this.selectedMedia[index].previewUrl);
     this.selectedMedia.splice(index, 1);
+  }
+
+  // Called when Cancel button is pressed
+  onCancel() {
+    this.fadeOutClose();
+  }
+
+  private fadeOutClose() {
+    this.isVisible = false; // triggers leave animation
+    setTimeout(() => this.close.emit(), 150); // match animation duration
   }
 }
