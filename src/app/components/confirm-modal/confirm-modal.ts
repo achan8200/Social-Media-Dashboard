@@ -46,13 +46,25 @@ export class ConfirmModal {
   // Local state to control *ngIf
   isOpen = true;
 
+  private action: 'confirm' | 'cancel' | null = null;
+
   onConfirm() {
+    this.action = 'confirm';
     this.isOpen = false; // triggers fade/scale leave animation
-    setTimeout(() => this.confirmed.emit(), 160); // emit after animation (~150ms)
   }
 
   onCancel() {
+    this.action = 'cancel';
     this.isOpen = false; // triggers fade/scale leave animation
-    setTimeout(() => this.cancelled.emit(), 160); // emit after animation
+  }
+
+  onAnimationDone(event: any) {
+    if (event.toState === 'void') {
+      if (this.action === 'confirm') {
+        this.confirmed.emit();
+      } else if (this.action === 'cancel') {
+        this.cancelled.emit();
+      }
+    }
   }
 }
