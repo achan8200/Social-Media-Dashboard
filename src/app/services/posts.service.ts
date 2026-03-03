@@ -101,8 +101,8 @@ export class PostsService {
       username: user.displayName || 'You',
       displayName: user.displayName || 'You',
 
-      caption: caption ?? undefined,
-      media: undefined,
+      caption: caption ?? '',
+      media: [], // initialize as empty array
 
       likesCount: 0,
       commentsCount: 0,
@@ -117,12 +117,10 @@ export class PostsService {
     this.addPostToLocalFeed(tempPost);
 
     // Upload media files (if any)
-    let media: PostMedia[] | null = null;
+    const media: PostMedia[] = [];
 
     try {
-      if (files && files.length > 0) {
-        media = [];
-
+      if (files?.length) {
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
 
@@ -157,20 +155,22 @@ export class PostsService {
           const downloadUrl = await getDownloadURL(storageRef);
 
           // Build media object
-          media.push({
+          const mediaItem: PostMedia = {
             url: downloadUrl,
             path: filePath,
             type: file.type.startsWith('video') ? 'video' : 'image',
-            thumbnail: file.type.startsWith('video') ? 'assets/video-placeholder.png' : undefined
-          });
+            ...(file.type.startsWith('video') && { thumbnail: 'assets/video-placeholder.png' })
+          };
+
+          media.push(mediaItem);
         }
       }
 
       // Create Firestore document
       const docRef = await addDoc(collection(this.firestore, 'posts'), {
         uid,
-        caption: caption || null,
-        media: media || null,
+        caption: caption || '',
+        media: media,
         likesCount: 0,
         commentsCount: 0,
         createdAt: serverTimestamp(),
@@ -190,7 +190,7 @@ export class PostsService {
               displayName: userData?.['displayName'] || p.displayName,
               userAvatar: userData?.['profilePicture'] || p.userAvatar,
               pending: false,
-              media: media ?? undefined
+              media: media
             }
           : p
       );
