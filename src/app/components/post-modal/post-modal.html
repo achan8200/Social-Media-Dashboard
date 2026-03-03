@@ -52,21 +52,21 @@
       <button *ngIf="hasMultipleMedia()"
               (click)="prevMedia()"
               [disabled]="currentMediaIndex === 0"
-              class="absolute left-2 top-1/2 transform -translate-y-1/2 
+              class="absolute left-2 top-1/2 transform -translate-y-1/2 text-2xl
                     bg-black/40 text-white rounded-full w-8 h-8 flex 
                     items-center justify-center hover:bg-black/60
                     disabled:opacity-30 disabled:cursor-not-allowed">
-        <span class="relative -top-[1px]">‹</span>
+        <span class="relative -top-[3px]">‹</span>
       </button>
 
       <button *ngIf="hasMultipleMedia()"
               (click)="nextMedia()"
               [disabled]="currentMediaIndex === ((post.media?.length ?? 0) - 1)"
-              class="absolute right-2 top-1/2 transform -translate-y-1/2 
+              class="absolute right-2 top-1/2 transform -translate-y-1/2 text-2xl
                     bg-black/40 text-white rounded-full w-8 h-8 flex 
                     items-center justify-center hover:bg-black/60
                     disabled:opacity-30 disabled:cursor-not-allowed">
-        <span class="relative -top-[1px]">›</span>
+        <span class="relative -top-[3px]">›</span>
       </button>
 
       <!-- Pagination Dots -->
