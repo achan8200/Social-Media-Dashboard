@@ -5,99 +5,173 @@
   <div class="absolute inset-0 bg-black/60"></div>
 
   <!-- Modal Card -->
-  <div @modalScale class="relative bg-white transform w-full max-w-5xl max-h-[90vh] rounded-lg overflow-hidden flex md:flex-row flex-col">
+  <div
+    @modalScale
+    class="relative bg-white transform w-full max-h-[90vh] rounded-lg overflow-hidden"
+    [ngClass]="post.media?.length ? 'max-w-5xl' : 'max-w-2xl'"
+  >
 
-    <!-- Left: Media Carousel -->
-    <div class="flex-1 bg-black flex items-center justify-center relative max-h-[60vh] md:max-h-[90vh] w-full">
-      
-      <!-- Carousel Track -->
-      <div #carouselContainer
-          class="w-full h-full overflow-hidden relative select-none"
-          (mousedown)="dragStart($event)"
-          (mousemove)="dragMove($event)"
-          (mouseup)="dragEnd()"
-          (mouseleave)="dragEnd()"
-          (touchstart)="dragStart($event)"
-          (touchmove)="dragMove($event)"
-          (touchend)="dragEnd()">
-        <div class="flex h-full"
-            [style.transform]="'translateX(' + currentTranslate + 'px)'"
-            [style.transition]="isDragging ? 'none' : 'transform 300ms ease-in-out'">
-          <div *ngFor="let media of post.media"
-              class="w-full flex-shrink-0 flex items-center justify-center bg-black">
-            <img *ngIf="media.type === 'image'"
-                [src]="media.url"
-                class="max-w-full max-h-full object-contain"/>
-            <video *ngIf="media.type === 'video'"
-                  #videoPlayer
+    <!-- Media Post -->
+    <div *ngIf="post.media?.length; else captionOnlyLayout"
+       class="flex md:flex-row flex-col h-full">
+
+      <!-- Left: Media Carousel -->
+      <div class="flex-1 bg-black flex items-center justify-center relative max-h-[60vh] md:max-h-[90vh] w-full">
+        
+        <!-- Carousel Track -->
+        <div #carouselContainer
+            class="w-full h-full overflow-hidden relative select-none"
+            (mousedown)="dragStart($event)"
+            (mousemove)="dragMove($event)"
+            (mouseup)="dragEnd()"
+            (mouseleave)="dragEnd()"
+            (touchstart)="dragStart($event)"
+            (touchmove)="dragMove($event)"
+            (touchend)="dragEnd()">
+          <div class="flex h-full"
+              [style.transform]="'translateX(' + currentTranslate + 'px)'"
+              [style.transition]="isDragging ? 'none' : 'transform 300ms ease-in-out'">
+            <div *ngFor="let media of post.media"
+                class="w-full flex-shrink-0 flex items-center justify-center bg-black">
+              <img *ngIf="media.type === 'image'"
                   [src]="media.url"
-                  class="max-w-full max-h-full object-contain"
-                  [poster]="media.thumbnail"
-                  loop
-                  controls
-                  playsinline
-                  preload="metadata">
-            </video>
+                  class="max-w-full max-h-full object-contain"/>
+              <video *ngIf="media.type === 'video'"
+                    #videoPlayer
+                    [src]="media.url"
+                    class="max-w-full max-h-full object-contain"
+                    [poster]="media.thumbnail"
+                    loop
+                    controls
+                    playsinline
+                    preload="metadata">
+              </video>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Slide counter -->
-      <div *ngIf="hasMultipleMedia()"
-          class="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
-        {{ currentMediaIndex + 1 }} / {{ post.media?.length }}
-      </div>
-
-      <!-- Left/Right Arrows -->
-      <button *ngIf="hasMultipleMedia()"
-              (click)="prevMedia()"
-              [disabled]="currentMediaIndex === 0"
-              class="absolute left-2 top-1/2 transform -translate-y-1/2 text-2xl
-                    bg-black/40 text-white rounded-full w-8 h-8 flex 
-                    items-center justify-center hover:bg-black/60
-                    disabled:opacity-30 disabled:cursor-not-allowed">
-        <span class="relative -top-[3px]">‹</span>
-      </button>
-
-      <button *ngIf="hasMultipleMedia()"
-              (click)="nextMedia()"
-              [disabled]="currentMediaIndex === ((post.media?.length ?? 0) - 1)"
-              class="absolute right-2 top-1/2 transform -translate-y-1/2 text-2xl
-                    bg-black/40 text-white rounded-full w-8 h-8 flex 
-                    items-center justify-center hover:bg-black/60
-                    disabled:opacity-30 disabled:cursor-not-allowed">
-        <span class="relative -top-[3px]">›</span>
-      </button>
-
-      <!-- Pagination Dots -->
-      <div *ngIf="hasMultipleMedia()" class="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
-        <span *ngFor="let m of post.media; let i = index"
-              class="w-2 h-2 rounded-full"
-              [ngClass]="{'bg-white': i === currentMediaIndex, 'bg-white/50': i !== currentMediaIndex}">
-        </span>
-      </div>
-
-    </div>
-
-    <!-- Right: Details -->
-    <div class="w-full md:w-96 p-4 flex flex-col overflow-y-auto max-h-[40vh] md:max-h-[90vh]">
-      <div class="flex justify-between items-center mb-2">
-        <div class="flex items-center space-x-3">
-          <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async"></app-avatar>
-          <span class="font-normal">{{ username$ | async }}</span>
+        <!-- Slide counter -->
+        <div *ngIf="hasMultipleMedia()"
+            class="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
+          {{ currentMediaIndex + 1 }} / {{ post.media?.length }}
         </div>
-        <button (click)="onClose()">✕</button>
+
+        <!-- Left/Right Arrows -->
+        <button *ngIf="hasMultipleMedia()"
+                (click)="prevMedia()"
+                [disabled]="currentMediaIndex === 0"
+                class="absolute left-2 top-1/2 transform -translate-y-1/2 text-2xl
+                      bg-black/40 text-white rounded-full w-8 h-8 flex 
+                      items-center justify-center hover:bg-black/60
+                      disabled:opacity-30 disabled:cursor-not-allowed">
+          <span class="relative -top-[3px]">‹</span>
+        </button>
+
+        <button *ngIf="hasMultipleMedia()"
+                (click)="nextMedia()"
+                [disabled]="currentMediaIndex === ((post.media?.length ?? 0) - 1)"
+                class="absolute right-2 top-1/2 transform -translate-y-1/2 text-2xl
+                      bg-black/40 text-white rounded-full w-8 h-8 flex 
+                      items-center justify-center hover:bg-black/60
+                      disabled:opacity-30 disabled:cursor-not-allowed">
+          <span class="relative -top-[3px]">›</span>
+        </button>
+
+        <!-- Pagination Dots -->
+        <div *ngIf="hasMultipleMedia()" class="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
+          <span *ngFor="let m of post.media; let i = index"
+                class="w-2 h-2 rounded-full"
+                [ngClass]="{'bg-white': i === currentMediaIndex, 'bg-white/50': i !== currentMediaIndex}">
+          </span>
+        </div>
+
       </div>
 
-      <p class="text-sm mb-4">{{ post.caption }}</p>
+      <!-- Right: Details -->
+      <div class="w-full md:w-96 p-4 flex flex-col overflow-y-auto max-h-[40vh] md:max-h-[90vh]">
+        <div class="flex justify-between items-center mb-2">
+          <div class="flex items-center space-x-3">
+            <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async"></app-avatar>
+            <span class="font-normal">{{ username$ | async }}</span>
+          </div>
+          <button (click)="onClose()">✕</button>
+        </div>
 
-      <button
-        (click)="likePost()"
-        class="text-red-500 font-medium"
-      >
-        ❤️ {{ post.likesCount }}
-      </button>
+        <p class="text-sm mb-4">{{ post.caption }}</p>
+
+        <!-- Actions -->
+        <div class="flex items-center space-x-6 mb-4 text-sm">
+
+          <!-- Likes Count -->
+          <button
+            (click)="likePost()"
+            class="text-red-500 font-medium flex items-center space-x-1">
+            <span>❤️</span>
+            <span>{{ post.likesCount }}</span>
+          </button>
+
+          <!-- Comments Count -->
+          <div class="flex items-center space-x-1 text-gray-600">
+            <span>💬</span>
+            <span>{{ post.commentsCount }}</span>
+          </div>
+        </div>
+
+        <!-- Comments Placeholder -->
+        <div class="border-t pt-4 text-sm text-gray-500">
+          Comments coming soon...
+        </div>
+      </div>
     </div>
 
+    <!-- Caption-only Post -->
+    <ng-template #captionOnlyLayout>
+      <div class="flex flex-col justify-center p-8 w-full h-full text-left">
+
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+          <div class="flex items-center space-x-3">
+            <app-avatar
+              [username]="username$ | async"
+              [imageUrl]="userAvatar$ | async">
+            </app-avatar>
+
+            <span class="font-normal">
+              {{ username$ | async }}
+            </span>
+          </div>
+
+          <button (click)="onClose()">✕</button>
+        </div>
+
+        <!-- Caption -->
+        <p class="text-lg leading-relaxed mb-6 text-gray-800">
+          {{ post.caption }}
+        </p>
+
+        <!-- Actions -->
+        <div class="flex items-center space-x-6 mb-6 text-sm">
+
+          <!-- Likes Count -->
+          <button
+            (click)="likePost()"
+            class="text-red-500 font-medium flex items-center space-x-1">
+            <span>❤️</span>
+            <span>{{ post.likesCount }}</span>
+          </button>
+
+          <!-- Comments Count -->
+          <div class="flex items-center space-x-1 text-gray-600">
+            <span>💬</span>
+            <span>{{ post.commentsCount }}</span>
+          </div>
+        </div>
+
+        <!-- Comments placeholder -->
+        <div class="border-t pt-4 text-sm text-gray-500">
+          Comments coming soon...
+        </div>
+      </div>
+    </ng-template>
   </div>
 </div>

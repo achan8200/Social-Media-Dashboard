@@ -66,8 +66,14 @@
     </div>
 
     <!-- Caption -->
-    <div class="p-4">
-      <p class="text-gray-700">{{ post?.caption }}</p>
+    <div [ngClass]="post?.media?.length ? 'p-4' : 'pb-4 px-4'">
+      <p
+        [ngClass]="post?.media?.length
+          ? 'text-gray-700'
+          : 'text-gray-800 text-[15px] leading-7'"
+      >
+        {{ post?.caption }}
+      </p>
 
       <!-- Actions -->
       <div class="flex space-x-6 mt-3 text-sm text-gray-600">
@@ -76,10 +82,10 @@
           <span>{{ post?.likesCount ?? 0 }}</span>
         </button>
 
-        <button (click)="onComment($event)" class="flex items-center space-x-1 hover:text-blue-600">
-          <span>💬</span>
-          <span>{{ post?.commentsCount ?? 0 }}</span>
-        </button>
+        <div class="flex items-center space-x-1 text-gray-600">
+            <span>💬</span>
+            <span>{{ post?.commentsCount ?? 0 }}</span>
+        </div>
       </div>
     </div>
 
