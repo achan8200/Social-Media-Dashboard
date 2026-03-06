@@ -64,23 +64,21 @@
         </div>
 
         <!-- Left/Right Arrows -->
-        <button *ngIf="hasMultipleMedia()"
+        <button *ngIf="hasMultipleMedia() && currentMediaIndex !== 0"
                 (click)="prevMedia()"
                 [disabled]="currentMediaIndex === 0"
                 class="absolute left-2 top-1/2 transform -translate-y-1/2 text-2xl
                       bg-black/40 text-white rounded-full w-8 h-8 flex 
-                      items-center justify-center hover:bg-black/60
-                      disabled:opacity-30 disabled:cursor-not-allowed">
+                      items-center justify-center hover:bg-black/60">
           <span class="relative -top-[3px]">‹</span>
         </button>
 
-        <button *ngIf="hasMultipleMedia()"
+        <button *ngIf="hasMultipleMedia() && currentMediaIndex !== ((post.media?.length ?? 0) - 1)"
                 (click)="nextMedia()"
                 [disabled]="currentMediaIndex === ((post.media?.length ?? 0) - 1)"
                 class="absolute right-2 top-1/2 transform -translate-y-1/2 text-2xl
                       bg-black/40 text-white rounded-full w-8 h-8 flex 
-                      items-center justify-center hover:bg-black/60
-                      disabled:opacity-30 disabled:cursor-not-allowed">
+                      items-center justify-center hover:bg-black/60">
           <span class="relative -top-[3px]">›</span>
         </button>
 
@@ -218,3 +216,22 @@
     </ng-template>
   </div>
 </div>
+
+<!-- Confirm Modal for Post Deletion -->
+<app-confirm-modal
+  *ngIf="selectedPostToDelete"
+  title="Delete this post?"
+  message="This action cannot be undone."
+  confirmText="Delete"
+  cancelText="Cancel"
+  (confirmed)="confirmDelete()"
+  (cancelled)="cancelDelete()">
+</app-confirm-modal>
+
+<!-- Edit Post Modal -->
+<app-edit-post-modal
+  *ngIf="editingPost"
+  [post]="editingPost"
+  (update)="updatePost($event)"
+  (cancel)="cancelEdit()">
+</app-edit-post-modal>

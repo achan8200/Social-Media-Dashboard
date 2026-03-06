@@ -7,11 +7,13 @@ import { UserService } from '../../services/user.service';
 import { map, Observable, of } from 'rxjs';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { Auth } from '@angular/fire/auth';
+import { ConfirmModal } from "../confirm-modal/confirm-modal";
+import { EditPostModal } from "../edit-post-modal/edit-post-modal";
 
 @Component({
   selector: 'app-post-modal',
   standalone: true,
-  imports: [CommonModule, Avatar],
+  imports: [CommonModule, Avatar, ConfirmModal, EditPostModal],
   templateUrl: './post-modal.html',
   styleUrls: ['./post-modal.css'],
   animations: [
@@ -28,12 +30,13 @@ import { Auth } from '@angular/fire/auth';
 export class PostModal {
   @Input() post: Post | null = null;
   @Output() close = new EventEmitter<void>();
-  @Output() edit = new EventEmitter<Post>();
-  @Output() deletePost = new EventEmitter<Post>();
 
   username$: Observable<string> = of('Unknown');
   displayName$: Observable<string> = of('Unknown');
   userAvatar$: Observable<string | null> = of(null);
+
+  selectedPostToDelete: Post | null = null;
+  editingPost: Post | null = null;
 
   menuOpen = false;
   isVisible = true;
@@ -257,12 +260,7 @@ export class PostModal {
     }
   }
 
-  onEdit(event: Event) {
-    event.stopPropagation();
-    this.menuOpen = false;
-    if (this.post) this.edit.emit(this.post);
-  }
-
+  // --- Delete Post Handlers ---
   onDelete(event: Event) {
     event.stopPropagation();
     this.menuOpen = false;
@@ -270,7 +268,57 @@ export class PostModal {
     if (!this.post) return;
 
     if (this.post) {
-      this.deletePost.emit(this.post);
+      this.selectedPostToDelete = this.post;
+    }
+  }
+
+  confirmDelete() {
+    if (!this.selectedPostToDelete) return;
+
+    this.postsService.deletePost(this.selectedPostToDelete)
+      .catch(err => console.error(err));
+
+    this.selectedPostToDelete = null;
+    this.onClose();
+  }
+
+  cancelDelete() {
+    this.selectedPostToDelete = null;
+  }
+
+  // --- Edit Post Handlers ---
+  onEdit(event: Event) {
+    event.stopPropagation();
+    this.menuOpen = false;
+    this.editingPost = this.post;
+  }
+
+  cancelEdit() {
+    this.editingPost = null;
+  }
+
+  async updatePost(newCaption: string) {
+    if (!this.editingPost || !this.post) return;
+
+    const postId = this.editingPost.id;
+
+    // Update modal view immediately
+    this.post.caption = newCaption;
+
+    // Optimistic local update
+    this.postsService.updatePostCaptionLocal(postId, newCaption);
+
+    // Close modal
+    this.editingPost = null;
+
+    // Firestore update
+    try {
+      await this.postsService.updatePostCaption(postId, newCaption);
+    } catch (err) {
+      console.error('Failed to update post:', err);
+
+      // Optionally reload posts or rollback
+      // this.posts$ = this.postsService.getPosts();
     }
   }
 }
