@@ -145,9 +145,55 @@
           </div>
         </div>
 
-        <!-- Comments Placeholder -->
-        <div class="border-t pt-4 text-sm text-gray-500">
-          Comments coming soon...
+        <!-- Comments -->
+        <div class="border-t pt-4 flex flex-col space-y-3 text-sm">
+
+          <div *ngFor="let comment of comments$ | async" class="flex items-start justify-between">
+
+            <div class="flex items-start space-x-2">
+              <app-avatar
+                [username]="comment.username"
+                [imageUrl]="comment.userAvatar">
+              </app-avatar>
+
+              <div>
+                <span class="font-medium">{{ comment.username }}</span>
+
+                <!-- Edit Mode -->
+                <div *ngIf="editingCommentId === comment.id; else normalComment">
+                  <input
+                    [(ngModel)]="editingText"
+                    class="border px-2 py-1 text-sm rounded"/>
+                  <button (click)="saveEdit(comment)">Save</button>
+                </div>
+
+                <ng-template #normalComment>
+                  <span class="ml-2">{{ comment.text }}</span>
+                </ng-template>
+              </div>
+            </div>
+
+            <!-- Author Controls -->
+            <div *ngIf="comment.uid === auth.currentUser?.uid" class="flex space-x-2 text-xs">
+              <button (click)="startEdit(comment)" class="text-gray-500">Edit</button>
+              <button (click)="deleteComment(comment)" class="text-red-500">Delete</button>
+            </div>
+
+          </div>
+
+          <!-- Add Comment -->
+          <div class="flex mt-3 border-t pt-3">
+            <input
+              [(ngModel)]="newComment"
+              placeholder="Add a comment..."
+              class="flex-1 border px-3 py-2 rounded text-sm"/>
+
+            <button
+              (click)="submitComment()"
+              class="ml-2 text-blue-500 font-medium">
+              Post
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -218,9 +264,55 @@
           </div>
         </div>
 
-        <!-- Comments placeholder -->
-        <div class="border-t pt-4 text-sm text-gray-500">
-          Comments coming soon...
+        <!-- Comments -->
+        <div class="border-t pt-4 flex flex-col space-y-3 text-sm">
+
+          <div *ngFor="let comment of comments$ | async" class="flex items-start justify-between">
+
+            <div class="flex items-start space-x-2">
+              <app-avatar
+                [username]="comment.username"
+                [imageUrl]="comment.userAvatar">
+              </app-avatar>
+
+              <div>
+                <span class="font-medium">{{ comment.username }}</span>
+
+                <!-- Edit Mode -->
+                <div *ngIf="editingCommentId === comment.id; else normalComment">
+                  <input
+                    [(ngModel)]="editingText"
+                    class="border px-2 py-1 text-sm rounded"/>
+                  <button (click)="saveEdit(comment)">Save</button>
+                </div>
+
+                <ng-template #normalComment>
+                  <span class="ml-2">{{ comment.text }}</span>
+                </ng-template>
+              </div>
+            </div>
+
+            <!-- Author Controls -->
+            <div *ngIf="comment.uid === auth.currentUser?.uid" class="flex space-x-2 text-xs">
+              <button (click)="startEdit(comment)" class="text-gray-500">Edit</button>
+              <button (click)="deleteComment(comment)" class="text-red-500">Delete</button>
+            </div>
+
+          </div>
+
+          <!-- Add Comment -->
+          <div class="flex mt-3 border-t pt-3">
+            <input
+              [(ngModel)]="newComment"
+              placeholder="Add a comment..."
+              class="flex-1 border px-3 py-2 rounded text-sm"/>
+
+            <button
+              (click)="submitComment()"
+              class="ml-2 text-blue-500 font-medium">
+              Post
+            </button>
+          </div>
         </div>
       </div>
     </ng-template>

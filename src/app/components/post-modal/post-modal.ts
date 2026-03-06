@@ -1,5 +1,6 @@
 import { Component, Input, Output, EventEmitter, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { PostsService } from '../../services/posts.service';
 import { Post, PostMedia } from '../../models/post.model';
 import { Avatar } from '../avatar/avatar';
@@ -9,11 +10,12 @@ import { trigger, transition, style, animate } from '@angular/animations';
 import { Auth } from '@angular/fire/auth';
 import { ConfirmModal } from "../confirm-modal/confirm-modal";
 import { EditPostModal } from "../edit-post-modal/edit-post-modal";
+import { Comment } from '../../models/comment.model';
 
 @Component({
   selector: 'app-post-modal',
   standalone: true,
-  imports: [CommonModule, Avatar, ConfirmModal, EditPostModal],
+  imports: [CommonModule, Avatar, ConfirmModal, EditPostModal, FormsModule],
   templateUrl: './post-modal.html',
   styleUrls: ['./post-modal.css'],
   animations: [
@@ -41,6 +43,11 @@ export class PostModal {
   liked = false;
   animatingLike = false;
   liked$!: Observable<boolean>;
+
+  comments$!: Observable<Comment[]>;
+  newComment = '';
+  editingCommentId: string | null = null;
+  editingText = '';
 
   menuOpen = false;
   isVisible = true;
@@ -70,6 +77,7 @@ export class PostModal {
       this.username$ = user$.pipe(map(u => u?.username || 'Unknown'));
       this.displayName$ = user$.pipe(map(u => u?.displayName || 'Unknown'));
       this.userAvatar$ = user$.pipe(map(u => u?.profilePicture || null));
+      this.comments$ = this.postsService.getComments(this.post.id);
     }
 
     // Check if user liked post
@@ -149,6 +157,45 @@ export class PostModal {
       console.error('Failed to toggle like:', err);
       // optionally rollback UI flip
     }
+  }
+
+  async submitComment() {
+    if (!this.post || !this.newComment.trim()) return;
+
+    const text = this.newComment.trim();
+    this.newComment = '';
+
+    try {
+      await this.postsService.createComment(this.post.id, text);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  startEdit(comment: Comment) {
+    this.editingCommentId = comment.id!;
+    this.editingText = comment.text;
+  }
+
+  async saveEdit(comment: Comment) {
+    if (!this.post) return;
+
+    await this.postsService.updateComment(
+      this.post.id,
+      comment.id!,
+      this.editingText
+    );
+
+    this.editingCommentId = null;
+  }
+
+  async deleteComment(comment: Comment) {
+    if (!this.post) return;
+
+    await this.postsService.deleteComment(
+      this.post.id,
+      comment.id!
+    );
   }
 
   get firstMedia(): PostMedia | null {

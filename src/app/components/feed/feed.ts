@@ -148,14 +148,6 @@ export class Feed implements OnInit, AfterViewInit {
     });
   }
 
-  commentPost(id: string) {
-    this.postsService.updatePostLocal(id, post => {
-      post.commentsCount = (post.commentsCount ?? 0) + 1;
-    });
-
-    this.postsService.commentPost(id); // send to backend
-  }
-
   handlePostSeen(postId: string) {
     this.postsService.markPostAsSeen(postId);
   }

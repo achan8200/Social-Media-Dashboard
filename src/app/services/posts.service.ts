@@ -5,6 +5,7 @@ import { Observable, BehaviorSubject, from, combineLatest, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { Auth } from '@angular/fire/auth';
 import { Post, PostMedia } from '../models/post.model';
+import { Comment } from '../models/comment.model';
 
 @Injectable({ providedIn: 'root' })
 export class PostsService {
@@ -230,12 +231,84 @@ export class PostsService {
     );
   }
 
-  // Increment comment count
-  async commentPost(postId: string) {
-    const postRef = doc(this.firestore, `posts/${postId}`);
+  getComments(postId: string): Observable<Comment[]> {
+    const commentsRef = collection(this.firestore, `posts/${postId}/comments`);
+    const q = query(commentsRef, orderBy('createdAt', 'asc'));
 
-    await updateDoc(postRef, {
+    return collectionData(q, { idField: 'id' }).pipe(
+      switchMap((comments: any[]) => {
+        if (!comments.length) return of([]);
+
+        const uids = [...new Set(comments.map(c => c.uid))];
+        const userDocs$ = uids.map(uid =>
+          from(getDoc(doc(this.firestore, `users/${uid}`)))
+        );
+
+        return combineLatest(userDocs$).pipe(
+          map(userSnaps => {
+            const userMap = new Map(
+              userSnaps.map(snap => [
+                snap.id,
+                snap.exists() ? snap.data() : {}
+              ])
+            );
+
+            return comments.map(comment => {
+              const user = userMap.get(comment.uid) || {};
+
+              return {
+                ...comment,
+                username: user['username'] || 'Unknown',
+                displayName: user['displayName'] || 'Unknown',
+                userAvatar: user['profilePicture'] || null
+              } as Comment;
+            });
+          })
+        );
+      })
+    );
+  }
+
+  // Increment comment count
+  async createComment(postId: string, text: string) {
+    const user = this.auth.currentUser;
+    if (!user) throw new Error('Not authenticated');
+
+    const commentsRef = collection(this.firestore, `posts/${postId}/comments`);
+
+    await addDoc(commentsRef, {
+      uid: user.uid,
+      text: text,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+
+    // update comment counter
+    await updateDoc(doc(this.firestore, `posts/${postId}`), {
       commentsCount: increment(1),
+      updatedAt: serverTimestamp()
+    });
+  }
+
+  async updateComment(postId: string, commentId: string, text: string) {
+    const user = this.auth.currentUser;
+    if (!user) throw new Error('Not authenticated');
+
+    const ref = doc(this.firestore, `posts/${postId}/comments/${commentId}`);
+
+    await updateDoc(ref, {
+      text,
+      updatedAt: serverTimestamp()
+    });
+  }
+
+  async deleteComment(postId: string, commentId: string) {
+    const ref = doc(this.firestore, `posts/${postId}/comments/${commentId}`);
+
+    await deleteDoc(ref);
+
+    await updateDoc(doc(this.firestore, `posts/${postId}`), {
+      commentsCount: increment(-1),
       updatedAt: serverTimestamp()
     });
   }
