@@ -157,14 +157,17 @@
       <ng-container *ngIf="posts.length > 0; else noPosts">
         <ng-container *ngFor="let post of posts">
           <!-- media post -->
-          <div *ngIf="post.media!.length > 0; else captionOnlyPost" class="relative aspect-square bg-gray-100 overflow-hidden rounded cursor-pointer">
+          <div *ngIf="post.media!.length > 0; else captionOnlyPost" 
+              (click)="openPostModal(post)"
+              class="relative aspect-square bg-gray-100 overflow-hidden rounded cursor-pointer">
             <img *ngIf="post.media![0].type === 'image'" [src]="post.media![0].url" class="w-full h-full object-cover"/>
             <video *ngIf="post.media![0].type === 'video'" [src]="post.media![0].url" class="w-full h-full object-cover" muted loop playsinline></video>
           </div>
 
           <!-- Caption-only post -->
           <ng-template #captionOnlyPost>
-            <div class="flex items-center justify-center bg-white rounded p-2 cursor-pointer text-center text-sm text-gray-700">
+            <div (click)="openPostModal(post)"
+                class="flex items-center justify-center bg-white rounded p-2 cursor-pointer text-center text-sm text-gray-700">
               {{ post.caption }}
             </div>
           </ng-template>
@@ -176,6 +179,13 @@
       <p class="text-center col-span-3 text-gray-500">No posts yet.</p>
     </ng-template>
   </div>
+
+  <!-- Post View Modal -->
+  <app-post-modal
+    *ngIf="selectedPost"
+    [post]="selectedPost"
+    (close)="closePostModal()">
+  </app-post-modal>
 
   <!-- Crop Modal -->
   <div *ngIf="cropImageSrc && (isOwner$ | async)"
