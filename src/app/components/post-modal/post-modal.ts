@@ -52,6 +52,9 @@ export class PostModal {
   menuOpen = false;
   isVisible = true;
   currentMediaIndex = 0;
+  
+  // Keep track of which comment's menu is open
+  openCommentMenuId: string | null = null;
 
   private touchStartX = 0;
   private touchEndX = 0;
@@ -332,6 +335,7 @@ export class PostModal {
   toggleMenu(event: Event) {
     event.stopPropagation();
     this.menuOpen = !this.menuOpen;
+    this.openCommentMenuId = null;
   }
 
   @HostListener('document:click', ['$event'])
@@ -339,6 +343,27 @@ export class PostModal {
     if (this.menuOpen) {
       this.menuOpen = false;
     }
+
+    // If click is outside the menu, close any open comment menu
+    const target = event.target as HTMLElement;
+
+    // Don't close comment menu if click is inside a comment menu or its toggle button
+    if (target.closest('.comment-menu') || target.closest('.comment-menu-toggle')) return;
+
+    // Close any comment menu
+    this.openCommentMenuId = null;
+  }
+
+  toggleCommentMenu(commentId: string) {
+    if (this.openCommentMenuId === commentId) {
+      this.openCommentMenuId = null;
+    } else {
+      this.openCommentMenuId = commentId;
+    }
+  }
+
+  isCommentMenuOpen(commentId: string): boolean {
+    return this.openCommentMenuId === commentId;
   }
 
   // --- Delete Post Handlers ---
