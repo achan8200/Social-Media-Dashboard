@@ -1,6 +1,13 @@
 <!-- Only render when there's a post -->
 <div *ngIf="post && isVisible" @overlayFade class="fixed inset-0 flex items-center justify-center z-50 p-4">
 
+  <!-- Close Button -->
+  <button
+    (click)="onClose()"
+    class="absolute top-4 right-4 text-white text-xl font-bold z-50 hover:text-gray-300">
+    ✕
+  </button>
+
   <!-- Overlay -->
   <div class="absolute inset-0 bg-black/60"></div>
 
@@ -94,7 +101,25 @@
             <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async"></app-avatar>
             <span class="font-normal">{{ username$ | async }}</span>
           </div>
-          <button (click)="onClose()">✕</button>
+          <!-- Author Menu -->
+          <div *ngIf="post.uid === auth.currentUser?.uid" class="relative">
+            <button
+              (click)="toggleMenu($event)"
+              [class.bg-gray-300]="menuOpen"
+              class="text-gray-600 text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 hover:text-black transition">
+              <span class="relative -top-[1px]">⋯</span>
+            </button>
+
+            <div *ngIf="menuOpen"
+                class="absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg z-50">
+              <button (click)="onEdit($event)" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+                Edit Post
+              </button>
+              <button (click)="onDelete($event)" class="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">
+                Delete Post
+              </button>
+            </div>
+          </div>
         </div>
 
         <p class="text-sm mb-4">{{ post.caption }}</p>
@@ -141,7 +166,25 @@
             </span>
           </div>
 
-          <button (click)="onClose()">✕</button>
+          <!-- Author Menu -->
+          <div *ngIf="isAuthor" class="relative">
+            <button
+              (click)="toggleMenu($event)"
+              [class.bg-gray-300]="menuOpen"
+              class="text-gray-600 text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 hover:text-black transition">
+              <span class="relative -top-[1px]">⋯</span>
+            </button>
+
+            <div *ngIf="menuOpen"
+                class="absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg z-50">
+              <button (click)="onEdit($event)" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+                Edit Post
+              </button>
+              <button (click)="onDelete($event)" class="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">
+                Delete Post
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Caption -->

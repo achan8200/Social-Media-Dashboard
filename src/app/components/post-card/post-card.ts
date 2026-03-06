@@ -1,4 +1,4 @@
-import { Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { Component, ElementRef, EventEmitter, HostListener, Input, Output, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Post, PostMedia } from '../../models/post.model';
 import { Avatar } from '../avatar/avatar';
@@ -140,6 +140,13 @@ export class PostCard {
   toggleMenu(event: Event) {
     event.stopPropagation();
     this.menuOpen = !this.menuOpen;
+  }
+
+  @HostListener('document:click', ['$event'])
+  onOutsideClick(event: MouseEvent) {
+    if (this.menuOpen) {
+      this.menuOpen = false;
+    }
   }
 
   onEdit(event: Event) {

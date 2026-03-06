@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, ViewChild, ViewChildren, QueryList, ElementRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PostsService } from '../../services/posts.service';
 import { Post, PostMedia } from '../../models/post.model';
@@ -6,6 +6,7 @@ import { Avatar } from '../avatar/avatar';
 import { UserService } from '../../services/user.service';
 import { map, Observable, of } from 'rxjs';
 import { trigger, transition, style, animate } from '@angular/animations';
+import { Auth } from '@angular/fire/auth';
 
 @Component({
   selector: 'app-post-modal',
@@ -27,11 +28,14 @@ import { trigger, transition, style, animate } from '@angular/animations';
 export class PostModal {
   @Input() post: Post | null = null;
   @Output() close = new EventEmitter<void>();
+  @Output() edit = new EventEmitter<Post>();
+  @Output() deletePost = new EventEmitter<Post>();
 
   username$: Observable<string> = of('Unknown');
   displayName$: Observable<string> = of('Unknown');
   userAvatar$: Observable<string | null> = of(null);
 
+  menuOpen = false;
   isVisible = true;
   currentMediaIndex = 0;
 
@@ -50,7 +54,7 @@ export class PostModal {
   @ViewChild('carouselContainer') carouselContainer!: ElementRef<HTMLDivElement>;
   @ViewChildren('videoPlayer') videoPlayers!: QueryList<ElementRef<HTMLVideoElement>>;
 
-  constructor(private postsService: PostsService, private userService: UserService) {}
+  constructor(private postsService: PostsService, private userService: UserService, public auth: Auth) {}
 
   ngOnChanges() {
     if (this.post?.uid) {
@@ -234,6 +238,39 @@ export class PostModal {
       return event.pageX;
     } else {
       return event.touches[0]?.clientX ?? event.changedTouches[0]?.clientX;
+    }
+  }
+
+  get isAuthor(): boolean {
+    return this.post?.uid === this.auth.currentUser?.uid;
+  }
+
+  toggleMenu(event: Event) {
+    event.stopPropagation();
+    this.menuOpen = !this.menuOpen;
+  }
+
+  @HostListener('document:click', ['$event'])
+  onOutsideClick(event: MouseEvent) {
+    if (this.menuOpen) {
+      this.menuOpen = false;
+    }
+  }
+
+  onEdit(event: Event) {
+    event.stopPropagation();
+    this.menuOpen = false;
+    if (this.post) this.edit.emit(this.post);
+  }
+
+  onDelete(event: Event) {
+    event.stopPropagation();
+    this.menuOpen = false;
+
+    if (!this.post) return;
+
+    if (this.post) {
+      this.deletePost.emit(this.post);
     }
   }
 }
