@@ -11,6 +11,7 @@ import { trigger, state, style, transition, animate } from '@angular/animations'
 import { PostsService } from '../../services/posts.service';
 import { Post } from '../../models/post.model';
 import { PostModal } from "../../components/post-modal/post-modal";
+import { CreatePostModal } from "../../components/create-post-modal/create-post-modal";
 
 type UsernameStatus =
   | 'available'
@@ -21,7 +22,7 @@ type UsernameStatus =
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PostModal],
+  imports: [CommonModule, ReactiveFormsModule, PostModal, CreatePostModal],
   templateUrl: './profile.html',
   styleUrl: './profile.css',
   animations: [
@@ -54,6 +55,7 @@ export class Profile {
   originalProfile: any = null;
   hasChanges$!: Observable<boolean>;
 
+  showCreateModal = false;
   selectedPost: Post | null = null;
 
   usernameStatus$!: Observable<UsernameStatus>;
@@ -549,7 +551,15 @@ export class Profile {
       this.isSaving = false;
     }
   }
-  
+
+  openCreateModal() {
+    this.showCreateModal = true;
+  }
+
+  closeCreateModal() {
+    this.showCreateModal = false;
+  }
+
   openPostModal(post: Post) {
     this.selectedPost = post;
   }

@@ -180,6 +180,22 @@
     </ng-template>
   </div>
 
+  <!-- Floating Create Button -->
+  <button
+    *ngIf="isOwner$ | async"
+    (click)="openCreateModal()"
+    class="fixed bottom-8 right-8 w-14 h-14 bg-blue-600 text-white text-3xl rounded-full shadow-lg hover:scale-105 transition
+          flex items-center justify-center leading-none"
+  >
+    <span class="relative -top-0.5">+</span>
+  </button>
+
+  <!-- Create Post Modal -->
+  <app-create-post-modal
+    *ngIf="showCreateModal"
+    (close)="closeCreateModal()">
+  </app-create-post-modal>
+
   <!-- Post View Modal -->
   <app-post-modal
     *ngIf="selectedPost"
