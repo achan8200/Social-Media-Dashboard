@@ -9,6 +9,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { getInitial, getAvatarColor } from '../../utils/avatar';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { PostsService } from '../../services/posts.service';
+import { Post } from '../../models/post.model';
 
 type UsernameStatus =
   | 'available'
@@ -46,6 +47,7 @@ export class Profile {
   profile$!: Observable<any>;
   isOwner$!: Observable<boolean>;
   userPostCount$!: Observable<number>;
+  userPosts$!: Observable<Post[]>;
 
   editMode = false;
   originalProfile: any = null;
@@ -180,6 +182,15 @@ export class Profile {
 
         return this.postsService.posts$.pipe(
           map(posts => posts.filter(p => p.uid === profile.uid).length)
+        );
+      })
+    );
+
+    this.userPosts$ = this.profile$.pipe(
+      switchMap(profile => {
+        if (!profile) return of([]);
+        return this.postsService.posts$.pipe(
+          map(posts => posts.filter(p => p.uid === profile.uid))
         );
       })
     );
