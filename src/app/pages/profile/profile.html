@@ -138,7 +138,7 @@
   <!-- Stats (Posts, Friends, Groups) -->
   <div class="grid grid-cols-3 gap-4 text-center">
     <div class="bg-white rounded-lg shadow p-4">
-      <p class="text-xl font-bold">0</p>
+      <p class="text-xl font-bold">{{ userPostCount$ | async }}</p>
       <p class="text-gray-500 text-sm">Posts</p>
     </div>
     <div class="bg-white rounded-lg shadow p-4">

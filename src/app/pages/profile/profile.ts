@@ -8,6 +8,7 @@ import { AuthService } from '../../services/auth.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { getInitial, getAvatarColor } from '../../utils/avatar';
 import { trigger, state, style, transition, animate } from '@angular/animations';
+import { PostsService } from '../../services/posts.service';
 
 type UsernameStatus =
   | 'available'
@@ -44,6 +45,7 @@ export class Profile {
 
   profile$!: Observable<any>;
   isOwner$!: Observable<boolean>;
+  userPostCount$!: Observable<number>;
 
   editMode = false;
   originalProfile: any = null;
@@ -79,7 +81,7 @@ export class Profile {
   private initialPinchDistance = 0;
   private initialScale = 1;
 
-  constructor() {
+  constructor(private postsService: PostsService) {
     this.loadProfileFromRoute();
     this.usernameStatus$ = this.profileForm.get('username')!
     .valueChanges
@@ -171,6 +173,16 @@ export class Profile {
       this.currentUsernameStatus = status;
       this.cdr.detectChanges(); // optional to immediately update the button
     });
+
+    this.userPostCount$ = this.profile$.pipe(
+      switchMap(profile => {
+        if (!profile) return of(0);
+
+        return this.postsService.posts$.pipe(
+          map(posts => posts.filter(p => p.uid === profile.uid).length)
+        );
+      })
+    );
 
     // Optional but VERY useful while debugging
     this.isOwner$.subscribe(isOwner => {

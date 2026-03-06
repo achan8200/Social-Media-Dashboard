@@ -23,17 +23,13 @@ export class PostsService {
     private auth: Auth,
     private storage: Storage
   ) {
-    // Load seen posts from localStorage
-    const saved = localStorage.getItem(this.seenPostsKey);
-    if (saved) {
-      try {
-        const ids = JSON.parse(saved) as string[];
-        this.seenPosts = new Set(ids);
-      } catch {}
-    }
+    // Defer loading browser-only state until we're sure we're in the browser
+    this.safeLoadSeenPosts();
 
+    // Start listening to posts (Firestore queries are safe in both SSR and browser)
     this.listenToPosts();
   }
+
 
   // Real-time posts stream
   getPosts(): Observable<Post[]> {
@@ -295,12 +291,35 @@ export class PostsService {
     this.postsSubject.next(updated);
   }
 
+  private safeLoadSeenPosts() {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+
+    const saved = localStorage.getItem(this.seenPostsKey);
+    if (!saved) return;
+
+    try {
+      const ids = JSON.parse(saved) as string[];
+      this.seenPosts = new Set(ids);
+    } catch {
+      this.seenPosts = new Set();
+    }
+  }
+
   // Mark post as seen (UI only)
   markPostAsSeen(postId: string) {
     if (this.seenPosts.has(postId)) return;
 
     this.seenPosts.add(postId);
-    localStorage.setItem(this.seenPostsKey, JSON.stringify([...this.seenPosts]));
+
+    // Only write to localStorage if in browser
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        localStorage.setItem(this.seenPostsKey, JSON.stringify([...this.seenPosts]));
+      } catch {
+        // Silently fail if localStorage is unavailable or quota exceeded
+      }
+    }
+
     this.updateDashboardState();
   }
 
@@ -311,5 +330,15 @@ export class PostsService {
 
   hasSeen(postId: string): boolean {
     return this.seenPosts.has(postId);
+  }
+
+  private loadSeenPosts() {
+    if (typeof window === 'undefined') return;
+    const saved = localStorage.getItem(this.seenPostsKey);
+    if (!saved) return;
+    try {
+      const ids = JSON.parse(saved) as string[];
+      this.seenPosts = new Set(ids);
+    } catch {}
   }
 }
