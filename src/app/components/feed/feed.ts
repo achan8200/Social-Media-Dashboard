@@ -140,12 +140,12 @@ export class Feed implements OnInit, AfterViewInit {
     // card?.resumeAutoplay();
   }
 
-  likePost(id: string) {
-    this.postsService.updatePostLocal(id, post => {
-      post.likesCount = (post.likesCount ?? 0) + 1;
-    });
+  async likePost(id: string) {
+    const liked = await this.postsService.toggleLike(id);
 
-    this.postsService.likePost(id); // send to backend
+    this.postsService.updatePostLocal(id, post => {
+      post.likesCount = (post.likesCount ?? 0) + (liked ? 1 : -1);
+    });
   }
 
   commentPost(id: string) {

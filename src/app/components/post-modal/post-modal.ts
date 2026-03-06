@@ -38,6 +38,10 @@ export class PostModal {
   selectedPostToDelete: Post | null = null;
   editingPost: Post | null = null;
 
+  liked = false;
+  animatingLike = false;
+  liked$!: Observable<boolean>;
+
   menuOpen = false;
   isVisible = true;
   currentMediaIndex = 0;
@@ -60,12 +64,20 @@ export class PostModal {
   constructor(private postsService: PostsService, private userService: UserService, public auth: Auth) {}
 
   ngOnChanges() {
+    if (!this.post) return;
     if (this.post?.uid) {
       const user$ = this.userService.getUserByUid(this.post.uid);
       this.username$ = user$.pipe(map(u => u?.username || 'Unknown'));
       this.displayName$ = user$.pipe(map(u => u?.displayName || 'Unknown'));
       this.userAvatar$ = user$.pipe(map(u => u?.profilePicture || null));
     }
+
+    // Check if user liked post
+    this.liked$ = this.postsService.getUserLike(this.post.id);
+
+    this.liked$.subscribe(val => {
+      this.liked = val;
+    });
 
     setTimeout(() => {
       this.currentMediaIndex = 0;
@@ -112,9 +124,31 @@ export class PostModal {
     return this.post?.media?.[0]?.url;
   }
 
-  likePost(): void {
+  async likePost(): Promise<void> {
     if (!this.post) return;
-    this.postsService.likePost(this.post.id);
+
+    this.animatingLike = true;
+    setTimeout(() => { this.animatingLike = false; }, 400);
+
+    try {
+      // Call toggleLike and wait for the actual new state
+      const liked = await this.postsService.toggleLike(this.post.id);
+
+      // Update UI based on actual new liked state
+      if (this.post.likesCount == null) this.post.likesCount = 0;
+
+      if (liked) {
+        this.post.likesCount++; // now liked
+      } else {
+        this.post.likesCount--; // now unliked
+      }
+
+      this.liked = liked;
+
+    } catch (err) {
+      console.error('Failed to toggle like:', err);
+      // optionally rollback UI flip
+    }
   }
 
   get firstMedia(): PostMedia | null {

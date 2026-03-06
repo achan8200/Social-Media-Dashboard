@@ -77,8 +77,17 @@
 
       <!-- Actions -->
       <div class="flex space-x-6 mt-3 text-sm text-gray-600">
-        <button (click)="onLike($event)" class="flex items-center space-x-1 hover:text-red-500">
-          <span>❤️</span>
+        <button
+          (click)="onLike($event)"
+          class="flex items-center space-x-1 transition"
+          [class.text-red-500]="(liked$ | async)">
+
+          <span
+            class="like-heart"
+            [class.like-pop]="animatingLike">
+            {{ (liked$ | async) ? '❤️' : '🤍' }}
+          </span>
+
           <span>{{ post?.likesCount ?? 0 }}</span>
         </button>
 

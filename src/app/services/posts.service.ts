@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
-import { Firestore, collection, collectionData, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, increment, getDoc, deleteDoc } from '@angular/fire/firestore';
+import { Firestore, collection, collectionData, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, increment, getDoc, setDoc, deleteDoc, docData } from '@angular/fire/firestore';
 import { Storage, ref, getDownloadURL, uploadBytesResumable, deleteObject } from '@angular/fire/storage'
 import { Observable, BehaviorSubject, from, combineLatest, of } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { Auth } from '@angular/fire/auth';
 import { Post, PostMedia } from '../models/post.model';
 
@@ -199,12 +199,35 @@ export class PostsService {
     this.postsSubject.next(updated);
   }
 
-  // Like post (counter only, scalable)
-  async likePost(postId: string) {
-    const postRef = doc(this.firestore, `posts/${postId}`);
-    await updateDoc(postRef, {
-      likesCount: increment(1)
-    });
+  // Like post: only touch the likes subcollection
+  async toggleLike(postId: string) {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) return false;
+
+    const likeRef = doc(this.firestore, `posts/${postId}/likes/${uid}`);
+    const snap = await getDoc(likeRef);
+
+    if (snap.exists()) {
+      // Unlike: delete the like doc
+      await deleteDoc(likeRef);
+      return false;
+    } else {
+      // Like: create the like doc
+      await setDoc(likeRef, { createdAt: serverTimestamp() });
+      return true;
+    }
+  }
+
+  // Check if user liked the post
+  getUserLike(postId: string) {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) return of(false);
+
+    const likeRef = doc(this.firestore, `posts/${postId}/likes/${uid}`);
+    return docData(likeRef, { idField: 'id' }).pipe(
+      map(docSnap => !!docSnap?.id),
+      catchError(() => of(false))
+    );
   }
 
   // Increment comment count
@@ -330,15 +353,5 @@ export class PostsService {
 
   hasSeen(postId: string): boolean {
     return this.seenPosts.has(postId);
-  }
-
-  private loadSeenPosts() {
-    if (typeof window === 'undefined') return;
-    const saved = localStorage.getItem(this.seenPostsKey);
-    if (!saved) return;
-    try {
-      const ids = JSON.parse(saved) as string[];
-      this.seenPosts = new Set(ids);
-    } catch {}
   }
 }

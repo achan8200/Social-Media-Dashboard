@@ -24,6 +24,8 @@ export interface Post {
   likesCount: number;
   commentsCount: number;
 
+  likedByUser?: boolean;
+
   createdAt: any;
   updatedAt?: any;
 

@@ -128,8 +128,13 @@
           <!-- Likes Count -->
           <button
             (click)="likePost()"
-            class="text-red-500 font-medium flex items-center space-x-1">
-            <span>❤️</span>
+            class="text-red-500 font-medium flex items-center space-x-1"
+            [class.text-red-500]="liked">
+            <span
+              class="like-heart"
+              [class.like-pop]="animatingLike">
+              {{ (liked$ | async) ? '❤️' : '🤍' }}
+            </span>
             <span>{{ post.likesCount }}</span>
           </button>
 
@@ -196,8 +201,13 @@
           <!-- Likes Count -->
           <button
             (click)="likePost()"
-            class="text-red-500 font-medium flex items-center space-x-1">
-            <span>❤️</span>
+            class="text-red-500 font-medium flex items-center space-x-1"
+            [class.text-red-500]="liked">
+            <span
+              class="like-heart"
+              [class.like-pop]="animatingLike">
+              {{ (liked$ | async) ? '❤️' : '🤍' }}
+            </span>
             <span>{{ post.likesCount }}</span>
           </button>
 

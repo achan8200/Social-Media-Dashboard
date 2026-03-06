@@ -15,3 +15,26 @@
 .animate-modal-scale {
   animation: modalScale 0.3s forwards;
 }
+
+.like-heart {
+  display: inline-block;
+  transition: transform 0.2s;
+}
+
+.like-pop {
+  animation: likePop 0.4s ease;
+}
+
+@keyframes likePop {
+  0% {
+    transform: scale(1);
+  }
+
+  40% {
+    transform: scale(1.4);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}

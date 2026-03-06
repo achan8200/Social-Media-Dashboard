@@ -5,6 +5,7 @@ import { Avatar } from '../avatar/avatar';
 import { UserService } from '../../services/user.service';
 import { map, Observable, of } from 'rxjs';
 import { Auth } from '@angular/fire/auth';
+import { PostsService } from '../../services/posts.service';
 
 @Component({
   selector: 'app-post-card',
@@ -28,6 +29,10 @@ export class PostCard {
   displayName$: Observable<string> = of('Unknown');
   userAvatar$: Observable<string | null> = of(null);
 
+  liked = false;
+  animatingLike = false;
+  liked$!: Observable<boolean>;
+
   menuOpen = false;
   private userFetched = false;
 
@@ -35,7 +40,7 @@ export class PostCard {
   @ViewChild('postRef') postRef?: ElementRef<HTMLElement>;
   private observer?: IntersectionObserver;
 
-  constructor(private userService: UserService, private auth: Auth) {}
+  constructor(private userService: UserService, private auth: Auth, private postsService: PostsService) {}
 
   ngAfterViewInit() {
     if (this.feedVideo?.nativeElement) {
@@ -44,6 +49,7 @@ export class PostCard {
   }
 
   ngOnChanges() {
+    if (!this.post) return;
     if (!this.userFetched && this.post?.uid) {
       const user$ = this.userService.getUserByUid(this.post.uid); // returns an observable
       this.username$ = user$.pipe(map(u => u?.username || 'Unknown'));
@@ -51,6 +57,9 @@ export class PostCard {
       this.userAvatar$ = user$.pipe(map(u => u?.profilePicture || null));
       this.userFetched = true; // only do this once
     }
+
+    // Check if user liked post
+    this.liked$ = this.postsService.getUserLike(this.post.id);
   }
 
   ngOnDestroy() {
@@ -66,9 +75,24 @@ export class PostCard {
     if (this.post) this.openPost.emit(this.post);
   }
 
-  onLike(event: Event): void {
+  async onLike(event: Event) {
     event.stopPropagation();
-    if (this.post) this.like.emit(this.post.id);
+    if (!this.post) return;
+
+    // Trigger pop animation
+    this.animatingLike = true;
+    setTimeout(() => this.animatingLike = false, 400);
+
+    // Optimistically toggle like
+    try {
+      const liked = await this.postsService.toggleLike(this.post.id);
+      this.liked = liked;
+
+      // no need to update post.likesCount here
+      // let the observable push the updated count from Firestore
+    } catch (err) {
+      console.error('Failed to toggle like:', err);
+    }
   }
 
   onComment(event: Event): void {
