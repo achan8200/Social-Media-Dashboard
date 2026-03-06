@@ -195,7 +195,18 @@ export class Profile {
       switchMap(profile => {
         if (!profile) return of([]);
         return this.postsService.posts$.pipe(
-          map(posts => posts.filter(p => p.uid === profile.uid))
+          map(posts => {
+            return posts
+              .filter(p => p.uid === profile.uid)
+              .map(post => {
+                // Only add dynamic properties if they don't exist yet
+                if (post.isNew === undefined) {
+                  post.isNew = !this.postsService.hasSeen(post.id);
+                  post.fadingOut = false;
+                }
+                return post;
+              });
+          })
         );
       })
     );
@@ -566,5 +577,9 @@ export class Profile {
 
   closePostModal() {
     this.selectedPost = null;
+  }
+
+  trackByPostId(index: number, post: Post) {
+    return post.id;
   }
 }
