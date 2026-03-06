@@ -21,23 +21,50 @@
     </label>
 
     <!-- Preview Grid -->
-    <div *ngIf="selectedMedia.length > 0" class="grid grid-cols-3 gap-2 mt-2">
-      <div *ngFor="let media of selectedMedia; let i = index" class="relative border rounded overflow-hidden">
-        <button (click)="removeMedia(i)"
+    <div
+        *ngIf="selectedMedia.length > 0"
+        cdkDropList
+        (cdkDropListDropped)="drop($event)"
+        [cdkDropListDisabled]="isUploading"
+        class="grid grid-cols-3 gap-2 mt-2">
+      <div *ngFor="let media of selectedMedia; let i = index"
+            cdkDrag
+            [cdkDragDisabled]="isUploading"
+            class="relative border rounded overflow-hidden cursor-move">
+            
+        <button *ngIf="media.progress < 100"
+                (click)="removeMedia(i)"
                 class="absolute top-1 right-1 bg-black bg-opacity-60 text-white text-xs px-1 rounded">✕</button>
 
-        <img *ngIf="media.file.type.startsWith('image')" [src]="media.previewUrl" class="w-full h-24 object-cover" />
-        <video *ngIf="media.file.type.startsWith('video')" [src]="media.previewUrl" class="w-full h-24 object-cover" muted></video>
+        <img *ngIf="media.file.type.startsWith('image')" 
+            [src]="media.previewUrl"
+            class="w-full h-24 object-cover transition-all duration-300"
+            [class.blur-sm]="media.progress > 0 && media.progress < 100" />
+        <video *ngIf="media.file.type.startsWith('video')" 
+            [src]="media.previewUrl"
+            class="w-full h-24 object-cover transition-all duration-300"
+            [class.blur-sm]="media.progress > 0 && media.progress < 100"
+            muted></video>
+
+        <div *ngIf="media.progress > 0 && media.progress < 100"
+            class="absolute inset-0 flex items-center justify-center bg-black/30 text-white text-xs font-medium">
+            Uploading {{media.progress}}%
+        </div>
 
         <div *ngIf="media.progress > 0 && media.progress < 100" class="absolute bottom-0 left-0 w-full bg-gray-200 h-1">
-          <div class="bg-blue-500 h-1" [style.width.%]="media.progress"></div>
+          <div class="bg-blue-500 h-1 transition-all duration-150 ease-linear" [style.width.%]="media.progress"></div>
         </div>
       </div>
     </div>
 
     <div class="flex justify-end space-x-2">
-      <button (click)="onCancel()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors duration-150">Cancel</button>
-      <button (click)="onCreate()" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors duration-150">Post</button>
+      <button (click)="onCancel()" [disabled]="isUploading" 
+            class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors duration-150
+                disabled:bg-gray-400 disabled:cursor-not-allowed">Cancel</button>
+      <button (click)="onCreate()" [disabled]="isUploading" 
+            class="px-4 py-2 bg-blue-500 hover:bg-blue-600 
+                text-white rounded transition-colors duration-150
+                disabled:bg-gray-400 disabled:cursor-not-allowed">Post</button>
     </div>
 
   </div>

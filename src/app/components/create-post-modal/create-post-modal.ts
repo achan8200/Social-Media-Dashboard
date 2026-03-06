@@ -1,8 +1,9 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Output, NgZone, ChangeDetectorRef  } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PostsService } from '../../services/posts.service';
 import { trigger, transition, style, animate } from '@angular/animations';
+import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 
 interface SelectedMedia {
   file: File;
@@ -12,7 +13,7 @@ interface SelectedMedia {
 
 @Component({
   selector: 'app-create-post-modal',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DragDropModule],
   templateUrl: './create-post-modal.html',
   styleUrls: ['./create-post-modal.css'],
   animations: [
@@ -30,28 +31,37 @@ export class CreatePostModal {
   caption: string = '';
   selectedMedia: SelectedMedia[] = [];
   isVisible = true; // controls fade out
+  isUploading = false;
 
   @Output() close = new EventEmitter<void>();
   @Output() create = new EventEmitter<{ caption: string; media: File[] }>();
 
-  constructor(private postsService: PostsService) {}
+  constructor(private postsService: PostsService, private ngZone: NgZone, private cdr: ChangeDetectorRef) {}
 
   async onCreate() {
     if (!this.caption.trim() && this.selectedMedia.length === 0) return;
 
     const files = this.selectedMedia.map(m => m.file);
 
-    await this.postsService.createPost(
-      this.caption,
-      files,
-      (index, progress) => {
-        this.selectedMedia[index].progress = progress;
-      }
-    );
+    this.isUploading = true;
+    this.cdr.detectChanges();
+
+    try {
+      await this.postsService.createPost(this.caption, files, (index, progress) => {
+        // Update progress inside Angular zone
+        this.ngZone.run(() => {
+          this.selectedMedia[index].progress = progress;
+          this.cdr.detectChanges();
+        });
+      });
+    } catch (error) {
+      console.error('Upload failed:', error);
+    }
 
     this.caption = '';
     this.selectedMedia.forEach(m => URL.revokeObjectURL(m.previewUrl));
     this.selectedMedia = [];
+    this.isUploading = false;
     this.close.emit();
   }
 
@@ -87,5 +97,12 @@ export class CreatePostModal {
   private fadeOutClose() {
     this.isVisible = false; // triggers leave animation
     setTimeout(() => this.close.emit(), 150); // match animation duration
+  }
+
+  drop(event: CdkDragDrop<SelectedMedia[]>) {
+    moveItemInArray(this.selectedMedia, event.previousIndex, event.currentIndex);
+
+    // Force UI refresh
+    this.selectedMedia = [...this.selectedMedia];
   }
 }

@@ -121,49 +121,38 @@ export class PostsService {
 
     try {
       if (files?.length) {
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i];
+        await Promise.all(files.map((file, i) => {
+          return new Promise<void>((resolve, reject) => {
+            if (!file.type.startsWith('image') && !file.type.startsWith('video')) {
+              return reject(new Error('Only images and videos are allowed'));
+            }
 
-          // Validate file type
-          if (!file.type.startsWith('image') && !file.type.startsWith('video')) {
-            throw new Error('Only images and videos are allowed');
-          }
+            const filePath = `post-media/${uid}/${Date.now()}_${file.name}`;
+            const storageRef = ref(this.storage, filePath);
+            
+            // Upload
+            const uploadTask = uploadBytesResumable(storageRef, file);
 
-          const filePath = `post-media/${uid}/${Date.now()}_${file.name}`;
-          const storageRef = ref(this.storage, filePath);
-
-          // Upload
-          const uploadTask = uploadBytesResumable(storageRef, file);
-
-          await new Promise<void>((resolve, reject) => {
-            uploadTask.on(
-              'state_changed',
-              (snapshot) => {
-                const progress =
-                  (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-
-                if (onProgress) {
-                  onProgress(i, progress);
-                }
+            uploadTask.on('state_changed',
+              snapshot => {
+                const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+                if (onProgress) onProgress(i, progress);
               },
-              reject,
-              resolve
+              error => reject(error),
+              async () => {
+                const downloadUrl = await getDownloadURL(storageRef);
+                media.push({
+                  url: downloadUrl,
+                  path: filePath,
+                  type: file.type.startsWith('video') ? 'video' : 'image',
+                  ...(file.type.startsWith('video') && { thumbnail: 'assets/video-placeholder.png' })
+                });
+                if (onProgress) onProgress(i, 100);
+                resolve();
+              }
             );
           });
-
-          // Get public URL
-          const downloadUrl = await getDownloadURL(storageRef);
-
-          // Build media object
-          const mediaItem: PostMedia = {
-            url: downloadUrl,
-            path: filePath,
-            type: file.type.startsWith('video') ? 'video' : 'image',
-            ...(file.type.startsWith('video') && { thumbnail: 'assets/video-placeholder.png' })
-          };
-
-          media.push(mediaItem);
-        }
+        }));
       }
 
       // Create Firestore document
