@@ -1,3 +1,5 @@
+import { Comment } from './comment.model';
+
 export interface PostMedia {
   url: string;
   path: string;
@@ -34,4 +36,6 @@ export interface Post {
   fadingOut?: boolean;
 
   pending?: boolean;
+
+  comments?: Comment[];
 }

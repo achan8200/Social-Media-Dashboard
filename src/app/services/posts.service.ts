@@ -35,8 +35,39 @@ export class PostsService {
 
     // Clear cached likes whenever the user logs in or out
     this.auth.onAuthStateChanged(user => {
+      // Clear previous user cache
       this.likesSubjects.clear();
       this.commentLikesSubjects.clear();
+
+      if (!user) return;
+
+      const uid = user.uid;
+      const currentPosts = this.postsSubject.value;
+
+      if (!currentPosts.length) return;
+
+      // Update all post likes
+      currentPosts.forEach(post => {
+        const subj = new BehaviorSubject<boolean>(false);
+        this.likesSubjects.set(post.id, subj);
+
+        const likeRef = doc(this.firestore, `posts/${post.id}/likes/${uid}`);
+        docData(likeRef, { idField: 'id' }).pipe(
+          map(docSnap => !!docSnap?.id)
+        ).subscribe(val => subj.next(val));
+
+        // Update likes for all comments of this post
+        post.comments?.forEach((comment: Comment) => {
+          const key = `${uid}_${post.id}_${comment.id}`;
+          const commentSubj = new BehaviorSubject<boolean>(false);
+          this.commentLikesSubjects.set(key, commentSubj);
+
+          const commentLikeRef = doc(this.firestore, `posts/${post.id}/comments/${comment.id}/likes/${uid}`);
+          docData(commentLikeRef, { idField: 'id' }).pipe(
+            map(docSnap => !!docSnap?.id)
+          ).subscribe(val => commentSubj.next(val));
+        });
+      });
     });
   }
 
@@ -211,24 +242,21 @@ export class PostsService {
 
   // Returns an Observable of like state for a specific post
   getPostLike(postId: string): Observable<boolean> {
+    // Ensure a BehaviorSubject exists
     if (!this.likesSubjects.has(postId)) {
-      const uid = this.auth.currentUser?.uid;
-      if (!uid) return of(false);
-
-      const likeRef = doc(this.firestore, `posts/${postId}/likes/${uid}`);
       const subj = new BehaviorSubject<boolean>(false);
       this.likesSubjects.set(postId, subj);
 
-      docData(likeRef, { idField: 'id' }).pipe(
-        map(docSnap => !!docSnap?.id)
-      ).subscribe(val => {
-        subj.next(val);
-      });
-
-      return subj.asObservable().pipe(
-        map(val => val === null ? false : val) // fallback to false until loaded
-      );
+      // If a user is logged in, load initial state
+      const uid = this.auth.currentUser?.uid;
+      if (uid) {
+        const likeRef = doc(this.firestore, `posts/${postId}/likes/${uid}`);
+        docData(likeRef, { idField: 'id' }).pipe(
+          map(docSnap => !!docSnap?.id)
+        ).subscribe(val => subj.next(val));
+      }
     }
+
     return this.likesSubjects.get(postId)!.asObservable();
   }
 
@@ -393,16 +421,16 @@ export class PostsService {
   // Observable for comment like state
   getCommentLike(postId: string, commentId: string): Observable<boolean> {
     const uid = this.auth.currentUser?.uid;
-    if (!uid) return of(false); // ensure we always have a user
+    if (!uid) return of(false);
 
-    const key = `${uid}_${postId}_${commentId}`; // unique per user
+    const key = `${uid}_${postId}_${commentId}`;
     if (!this.commentLikesSubjects.has(key)) {
       const subj = new BehaviorSubject<boolean>(false);
       this.commentLikesSubjects.set(key, subj);
 
       const likeRef = doc(this.firestore, `posts/${postId}/comments/${commentId}/likes/${uid}`);
       docData(likeRef, { idField: 'id' }).pipe(
-        map(snap => !!snap?.id)
+        map(docSnap => !!docSnap?.id)
       ).subscribe(val => subj.next(val));
     }
 
