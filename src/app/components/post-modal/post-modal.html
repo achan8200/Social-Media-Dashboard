@@ -133,7 +133,7 @@
         <div class="relative flex-1 min-h-0">
           <!-- Scrollable comments -->
           <div #commentsContainer class="h-full overflow-y-auto flex flex-col space-y-3 border-t pt-4">
-            <div *ngFor="let comment of comments$ | async" class="flex items-start justify-between">
+            <div *ngFor="let comment of comments$ | async; trackBy: trackByCommentId" class="flex items-start justify-between">
               <div class="flex items-start space-x-2">
                 <app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username" [imageUrl]="comment.userAvatar"></app-avatar>
                 <div class="flex flex-col">
@@ -149,7 +149,22 @@
                   </div>
                   <ng-template #normalComment>
                     <span class="text-xs text-gray-700 break-words whitespace-pre-wrap">{{ comment.text }}</span>
-                    <span class="text-xs text-gray-400 mt-1">{{ getRelativeTime(comment.createdAt) }}</span>
+                    <div class="flex items-center space-x-2 mt-1 text-xs text-gray-400">
+                      <span>{{ getRelativeTime(comment.createdAt) }}</span>
+                      <div class="ml-2 flex items-center space-x-1">
+                        <button class="ml-2 flex items-center space-x-1"
+                                (click)="toggleCommentLike(comment)">
+                          <span class="like-heart" [class.like-pop]="animatingCommentLike[comment.id!]">
+                            {{ (comment.liked$ | async) ? '❤️' : '🤍' }}
+                          </span>
+                          <span *ngIf="comment.likesCount !== undefined && comment.likesCount > 0"
+                            class="transition-opacity duration-150"
+                            [style.opacity]="comment.likesCount > 0 ? 1 : 0">
+                            {{ comment.likesCount === 1 ? '1 like' : comment.likesCount + ' likes' }}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
                   </ng-template>
                 </div>
               </div>
@@ -252,7 +267,7 @@
         <div class="relative flex-1 min-h-0">
           <!-- Scrollable Comments -->
           <div #commentsContainer class="h-full min-h-[200px] overflow-y-auto flex flex-col space-y-3 border-t pt-4">
-            <div *ngFor="let comment of comments$ | async" class="flex items-start justify-between">
+            <div *ngFor="let comment of comments$ | async; trackBy: trackByCommentId" class="flex items-start justify-between">
               <div class="flex items-start space-x-2">
                 <app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username" [imageUrl]="comment.userAvatar"></app-avatar>
                 <div class="flex flex-col">
@@ -268,7 +283,20 @@
                   </div>
                   <ng-template #normalComment>
                     <span class="text-xs text-gray-700 break-words whitespace-pre-wrap">{{ comment.text }}</span>
-                    <span class="text-xs text-gray-400 mt-1">{{ getRelativeTime(comment.createdAt) }}</span>
+                    <div class="flex items-center space-x-2 mt-1 text-xs text-gray-400">
+                      <span>{{ getRelativeTime(comment.createdAt) }}</span>
+                      <button class="ml-2 flex items-center space-x-1"
+                              (click)="toggleCommentLike(comment)">
+                        <span class="like-heart" [class.like-pop]="animatingCommentLike[comment.id!]">
+                          {{ (comment.liked$ | async) ? '❤️' : '🤍' }}
+                        </span>
+                        <span *ngIf="comment.likesCount !== undefined && comment.likesCount > 0"
+                            class="transition-opacity duration-150"
+                            [style.opacity]="comment.likesCount > 0 ? 1 : 0">
+                            {{ comment.likesCount === 1 ? '1 like' : comment.likesCount + ' likes' }}
+                        </span>
+                      </button>
+                    </div>
                   </ng-template>
                 </div>
               </div>

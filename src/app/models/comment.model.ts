@@ -1,3 +1,9 @@
+import { Observable } from 'rxjs';
+
+export interface CommentWithLikes extends Comment {
+  liked$: Observable<boolean>;
+}
+
 export interface Comment {
   id?: string;
   uid: string;
@@ -8,4 +14,6 @@ export interface Comment {
   username?: string;
   displayName?: string;
   userAvatar?: string | null;
+
+  likesCount?: number;
 }

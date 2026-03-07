@@ -20,6 +20,7 @@ export class PostsService {
   posts$ = this.postsSubject.asObservable();
 
   private likesSubjects = new Map<string, BehaviorSubject<boolean>>();
+  private commentLikesSubjects = new Map<string, BehaviorSubject<boolean>>();
 
   constructor(
     private firestore: Firestore,
@@ -202,6 +203,7 @@ export class PostsService {
     this.postsSubject.next(updated);
   }
 
+  // Returns an Observable of like state for a specific post
   getPostLike(postId: string): Observable<boolean> {
     if (!this.likesSubjects.has(postId)) {
       const initial$ = this.getUserLike(postId); // existing Firestore observable
@@ -222,6 +224,7 @@ export class PostsService {
     );
   }
 
+  // Toggle like locally
   async toggleLikeOptimistic(postId: string): Promise<void> {
     const uid = this.auth.currentUser?.uid;
     if (!uid) return;
@@ -252,7 +255,7 @@ export class PostsService {
     });
   }
 
-  // Like post: only touch the likes subcollection
+  // Like post, only touch the likes subcollection
   async toggleLike(postId: string) {
     const uid = this.auth.currentUser?.uid;
     if (!uid) return false;
@@ -283,6 +286,7 @@ export class PostsService {
     );
   }
 
+  // Fetch comments
   getComments(postId: string): Observable<Comment[]> {
     const commentsRef = collection(this.firestore, `posts/${postId}/comments`);
     const q = query(commentsRef, orderBy('createdAt', 'asc'));
@@ -310,6 +314,7 @@ export class PostsService {
 
               return {
                 ...comment,
+                likesCount: comment.likesCount || 0,
                 username: user['username'] || 'Unknown',
                 displayName: user['displayName'] || 'Unknown',
                 userAvatar: user['profilePicture'] || null
@@ -321,7 +326,7 @@ export class PostsService {
     );
   }
 
-  // Increment comment count
+  // Create post comment
   async createComment(postId: string, text: string) {
     const user = this.auth.currentUser;
     if (!user) throw new Error('Not authenticated');
@@ -342,6 +347,7 @@ export class PostsService {
     });
   }
 
+  // Update post comment
   async updateComment(postId: string, commentId: string, text: string) {
     const user = this.auth.currentUser;
     if (!user) throw new Error('Not authenticated');
@@ -354,6 +360,7 @@ export class PostsService {
     });
   }
 
+  // Delete post comment
   async deleteComment(postId: string, commentId: string) {
     const ref = doc(this.firestore, `posts/${postId}/comments/${commentId}`);
 
@@ -365,6 +372,60 @@ export class PostsService {
     });
   }
 
+  // Observable for comment like state
+  getCommentLike(postId: string, commentId: string): Observable<boolean> {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) return of(false); // ensure we always have a user
+
+    const key = `${uid}_${postId}_${commentId}`; // unique per user
+    if (!this.commentLikesSubjects.has(key)) {
+      const subj = new BehaviorSubject<boolean>(false);
+      this.commentLikesSubjects.set(key, subj);
+
+      const likeRef = doc(this.firestore, `posts/${postId}/comments/${commentId}/likes/${uid}`);
+      docData(likeRef, { idField: 'id' }).pipe(
+        map(snap => !!snap?.id)
+      ).subscribe(val => subj.next(val));
+    }
+
+    return this.commentLikesSubjects.get(key)!.asObservable();
+  }
+
+  // Toggle like/unlike comment
+  async toggleCommentLike(postId: string, commentId: string) {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) return;
+
+    const likeRef = doc(this.firestore, `posts/${postId}/comments/${commentId}/likes/${uid}`);
+    const commentRef = doc(this.firestore, `posts/${postId}/comments/${commentId}`);
+
+    const snap = await getDoc(likeRef);
+    const key = `${postId}_${commentId}`;
+    const subj = this.commentLikesSubjects.get(key) ?? new BehaviorSubject<boolean>(false);
+    this.commentLikesSubjects.set(key, subj);
+
+    if (snap.exists()) {
+      // Unlike
+      await deleteDoc(likeRef);
+      await updateDoc(commentRef, { likesCount: increment(-1) });
+      subj.next(false);
+    } else {
+      // Like
+      await setDoc(likeRef, { createdAt: serverTimestamp() });
+      await updateDoc(commentRef, { likesCount: increment(1) });
+      subj.next(true);
+    }
+  }
+
+  // Observable for likes count of a comment
+  getCommentLikesCount(postId: string, commentId: string): Observable<number> {
+    const commentsRef = doc(this.firestore, `posts/${postId}/comments/${commentId}`);
+    return docData(commentsRef).pipe(
+      map((comment: any) => comment?.likesCount || 0)
+    );
+  }
+
+  // Load post on feed locally
   updatePostLocal(postId: string, updateFn: (post: Post) => void) {
     const posts = this.postsSubject.getValue(); // postsSubject exists here
     const post = posts.find(p => p.id === postId);
@@ -400,7 +461,7 @@ export class PostsService {
     });
   }
 
-  /** Optimistically update a post caption locally */
+  // Optimistically update a post caption locally
   updatePostCaptionLocal(postId: string, newCaption: string) {
     const currentPosts = this.postsSubject.value;
     this.postsSubject.next(
@@ -410,6 +471,7 @@ export class PostsService {
     );
   }
 
+  // Delete post
   async deletePost(post: Post) {
     const user = this.auth.currentUser;
     if (!user) throw new Error('Not authenticated');
@@ -439,6 +501,7 @@ export class PostsService {
     this.postsSubject.next(updated);
   }
 
+  // Load already seen posts
   private safeLoadSeenPosts() {
     if (typeof window === 'undefined' || !window.localStorage) return;
 
@@ -453,7 +516,7 @@ export class PostsService {
     }
   }
 
-  // Mark post as seen (UI only)
+  // Mark post as seen
   markPostAsSeen(postId: string) {
     if (this.seenPosts.has(postId)) return;
 

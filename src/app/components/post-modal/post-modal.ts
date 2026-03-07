@@ -1,16 +1,16 @@
-import { Component, Input, Output, EventEmitter, ViewChild, ViewChildren, QueryList, ElementRef, HostListener, AfterViewInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ViewChild, ViewChildren, QueryList, ElementRef, HostListener, AfterViewInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PostsService } from '../../services/posts.service';
 import { Post, PostMedia } from '../../models/post.model';
 import { Avatar } from '../avatar/avatar';
 import { UserService } from '../../services/user.service';
-import { map, Observable, of } from 'rxjs';
+import { combineLatest, map, Observable, of, switchMap } from 'rxjs';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { Auth } from '@angular/fire/auth';
 import { ConfirmModal } from "../confirm-modal/confirm-modal";
 import { EditPostModal } from "../edit-post-modal/edit-post-modal";
-import { Comment } from '../../models/comment.model';
+import { Comment, CommentWithLikes } from '../../models/comment.model';
 import { differenceInSeconds, differenceInMinutes, differenceInHours, differenceInDays, differenceInWeeks } from 'date-fns';
 
 @Component({
@@ -28,7 +28,8 @@ import { differenceInSeconds, differenceInMinutes, differenceInHours, difference
       transition(':enter', [style({ opacity: 0, transform: 'scale(0.95)' }), animate('200ms ease-out', style({ opacity: 1, transform: 'scale(1)' }))]),
       transition(':leave', [animate('150ms ease-in', style({ opacity: 0, transform: 'scale(0.95)' }))])
     ])
-  ]
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PostModal implements AfterViewInit {
   @Input() post: Post | null = null;
@@ -46,10 +47,12 @@ export class PostModal implements AfterViewInit {
   liked$!: Observable<boolean>;
   likesCount$!: Observable<number>;
 
-  comments$!: Observable<Comment[]>;
+  comments$!: Observable<CommentWithLikes[]>;
   newComment = '';
   editingCommentId: string | null = null;
   editingText = '';
+
+  animatingCommentLike: Record<string, boolean> = {};
 
   isVisible = true;
   currentMediaIndex = 0;
@@ -85,7 +88,20 @@ export class PostModal implements AfterViewInit {
       this.username$ = user$.pipe(map(u => u?.username || 'Unknown'));
       this.displayName$ = user$.pipe(map(u => u?.displayName || 'Unknown'));
       this.userAvatar$ = user$.pipe(map(u => u?.profilePicture || null));
-      this.comments$ = this.postsService.getComments(this.post.id);
+      this.comments$ = this.postsService.getComments(this.post.id).pipe(
+        switchMap(comments => {
+          const uid = this.auth.currentUser?.uid;
+          if (!uid) return of(comments.map(c => ({ ...c, liked$: of(false) })));
+
+          const commentsWithLikes$ = comments.map(comment => 
+            this.postsService.getCommentLike(this.post!.id, comment.id!).pipe(
+              map(liked => ({ ...comment, liked$ : of(liked) }))
+            )
+          );
+
+          return combineLatest(commentsWithLikes$);
+        })
+      );
     }
 
     // Subscribe to liked state
@@ -139,6 +155,10 @@ export class PostModal implements AfterViewInit {
     this.videoPlayers?.forEach(videoRef => {
       videoRef.nativeElement.pause();
     });
+  }
+
+  get firstMedia(): PostMedia | null {
+      return this.post?.media?.[0] ?? null;
   }
 
   get firstMediaUrl(): string | undefined {
@@ -217,8 +237,19 @@ export class PostModal implements AfterViewInit {
     );
   }
 
-  get firstMedia(): PostMedia | null {
-      return this.post?.media?.[0] ?? null;
+  async toggleCommentLike(comment: CommentWithLikes) {
+    if (!this.post) return;
+
+    if (!this.animatingCommentLike[comment.id!]) {
+      this.animatingCommentLike[comment.id!] = true;
+      setTimeout(() => this.animatingCommentLike[comment.id!] = false, 400);
+    }
+
+    await this.postsService.toggleCommentLike(this.post.id, comment.id!);
+  }
+
+  trackByCommentId(index: number, comment: Comment) {
+    return comment.id;
   }
 
   onClose() {
