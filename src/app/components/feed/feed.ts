@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ElementRef, QueryList, ViewChildren, Inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ElementRef, QueryList, ViewChildren, Inject, PLATFORM_ID, ChangeDetectorRef, HostListener } from '@angular/core';
 import { AsyncPipe, CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { map, Observable } from 'rxjs';
@@ -106,6 +106,20 @@ export class Feed implements OnInit, AfterViewInit {
         (nativeEl as any).__observed = true;
       }
     });
+  }
+
+  @HostListener('window:scroll', [])
+  onScroll() {
+
+    const threshold = 300;
+
+    const position = window.innerHeight + window.scrollY;
+    const height = document.body.offsetHeight;
+
+    if (height - position < threshold) {
+      this.postsService.loadMorePosts();
+    }
+
   }
 
   openCreateModal() {

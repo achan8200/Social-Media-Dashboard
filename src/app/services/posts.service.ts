@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core';
-import { Firestore, collection, collectionData, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, increment, getDoc, setDoc, deleteDoc, docData } from '@angular/fire/firestore';
+import { Firestore, collection, collectionData, query, orderBy, addDoc, 
+  serverTimestamp, doc, updateDoc, increment, getDoc, setDoc, deleteDoc, docData,
+  limit, startAfter, getDocs, QueryDocumentSnapshot } from '@angular/fire/firestore';
 import { Storage, ref, getDownloadURL, uploadBytesResumable, deleteObject } from '@angular/fire/storage'
 import { Observable, BehaviorSubject, from, combineLatest, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
@@ -24,6 +26,11 @@ export class PostsService {
   private likesSubjects = new Map<string, BehaviorSubject<boolean>>();
   private commentLikesSubjects = new Map<string, BehaviorSubject<boolean>>();
 
+  private lastVisiblePost: QueryDocumentSnapshot | null = null;
+  private loadingMore = false;
+  private pageSize = 10;
+  private noMorePosts = false;
+
   constructor(
     private firestore: Firestore,
     private auth: Auth,
@@ -35,7 +42,7 @@ export class PostsService {
     this.loadCachedPosts();
 
     // Start listening to posts (Firestore queries are safe in both SSR and browser)
-    this.listenToPosts();
+    this.loadInitialPosts();
 
     // Clear cached likes whenever the user logs in or out
     this.auth.onAuthStateChanged(user => {
@@ -81,46 +88,63 @@ export class PostsService {
     return this.posts$;
   }
 
-  private listenToPosts() {
+  async loadInitialPosts() {
     const postsRef = collection(this.firestore, 'posts');
-    const q = query(postsRef, orderBy('createdAt', 'desc'));
 
-    collectionData(q, { idField: 'id' }).pipe(
-      switchMap((posts: any[]) => {
-        if (!posts.length) return of([] as Post[]);
+    const q = query(
+      postsRef,
+      orderBy('createdAt', 'desc'),
+      limit(this.pageSize)
+    );
 
-        const uids = [...new Set(posts.map(p => p.uid))];
-        const userDocs$ = uids.map(uid => from(getDoc(doc(this.firestore, `users/${uid}`))));
+    const snapshot = await getDocs(q);
 
-        return combineLatest(userDocs$).pipe(
-          map(userSnaps => {
-            const userMap = new Map(
-              userSnaps.map(snap => [snap.id, snap.exists() ? snap.data() : {}])
-            );
+    if (snapshot.empty) return;
 
-            return posts.map(post => {
-              const user = userMap.get(post.uid) || {};
-              return {
-                ...post,
-                username: user['username'] || 'Unknown',
-                displayName: user['displayName'] || 'Unknown',
-                userAvatar: user['profilePicture'] || null,
-                isNew: !this.seenPosts.has(post.id),
-                fadingOut: false,
-                pending: false
-              } as Post;
-            });
-          })
-        );
-      })
-    ).subscribe(posts => {
-      // Preserve optimistic posts
-      const pendingPosts = this.postsSubject.value.filter(p => p.pending);
-      const updatedPosts = [...pendingPosts, ...posts];
-      this.postsSubject.next(updatedPosts);
+    this.lastVisiblePost = snapshot.docs[snapshot.docs.length - 1];
 
-      this.savePostsCache(updatedPosts);
-    });
+    const posts = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Post[];
+
+    this.postsSubject.next(posts);
+    this.savePostsCache(posts);
+  }
+
+  async loadMorePosts() {
+    if (this.loadingMore || this.noMorePosts || !this.lastVisiblePost) return;
+
+    this.loadingMore = true;
+
+    const postsRef = collection(this.firestore, 'posts');
+
+    const q = query(
+      postsRef,
+      orderBy('createdAt', 'desc'),
+      startAfter(this.lastVisiblePost),
+      limit(this.pageSize)
+    );
+
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      this.noMorePosts = true;
+      this.loadingMore = false;
+      return;
+    }
+
+    this.lastVisiblePost = snapshot.docs[snapshot.docs.length - 1];
+
+    const newPosts = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Post[];
+
+    const current = this.postsSubject.value;
+    this.postsSubject.next([...current, ...newPosts]);
+    this.savePostsCache(this.postsSubject.value);
+    this.loadingMore = false;
   }
 
   private loadCachedPosts() {
@@ -131,7 +155,12 @@ export class PostsService {
 
     try {
       const posts = JSON.parse(cached);
-      this.postsSubject.next(posts);
+
+      // Prevent extremely large cache loads
+      const limited = posts.slice(0, 30);
+
+      this.postsSubject.next(limited);
+
     } catch {
       console.warn('Failed to load cached posts');
     }
@@ -141,7 +170,7 @@ export class PostsService {
     if (typeof window === 'undefined') return;
 
     try {
-      localStorage.setItem(this.postsCacheKey, JSON.stringify(posts.slice(0, 50)));
+      localStorage.setItem(this.postsCacheKey, JSON.stringify(posts));
     } catch {
       console.warn('Failed to cache posts');
     }
