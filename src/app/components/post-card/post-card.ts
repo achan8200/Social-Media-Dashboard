@@ -59,7 +59,9 @@ export class PostCard {
     }
 
     // Check if user liked post
-    this.liked$ = this.postsService.getUserLike(this.post.id);
+    if (this.post) {
+      this.liked$ = this.postsService.getPostLike(this.post.id); // only this one
+    }
   }
 
   ngOnDestroy() {
@@ -83,16 +85,8 @@ export class PostCard {
     this.animatingLike = true;
     setTimeout(() => this.animatingLike = false, 400);
 
-    // Optimistically toggle like
-    try {
-      const liked = await this.postsService.toggleLike(this.post.id);
-      this.liked = liked;
-
-      // no need to update post.likesCount here
-      // let the observable push the updated count from Firestore
-    } catch (err) {
-      console.error('Failed to toggle like:', err);
-    }
+    // Optimistic toggle like via service
+    this.postsService.toggleLikeOptimistic(this.post.id);
   }
 
   onComment(event: Event): void {

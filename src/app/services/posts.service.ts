@@ -19,6 +19,8 @@ export class PostsService {
   private postsSubject = new BehaviorSubject<Post[]>([]);
   posts$ = this.postsSubject.asObservable();
 
+  private likesSubjects = new Map<string, BehaviorSubject<boolean>>();
+
   constructor(
     private firestore: Firestore,
     private auth: Auth,
@@ -198,6 +200,56 @@ export class PostsService {
   private removeTempPost(tempId: string) {
     const updated = this.postsSubject.value.filter(post => post.id !== tempId);
     this.postsSubject.next(updated);
+  }
+
+  getPostLike(postId: string): Observable<boolean> {
+    if (!this.likesSubjects.has(postId)) {
+      const initial$ = this.getUserLike(postId); // existing Firestore observable
+      const subj = new BehaviorSubject<boolean>(false);
+      initial$.subscribe(val => subj.next(val)); // initialize
+      this.likesSubjects.set(postId, subj);
+    }
+    return this.likesSubjects.get(postId)!.asObservable();
+  }
+
+  // Returns an Observable of the likes count for a specific post
+  getPostLikesCount(postId: string): Observable<number> {
+    return this.posts$.pipe(
+      map(posts => {
+        const post = posts.find(p => p.id === postId);
+        return post?.likesCount ?? 0;
+      })
+    );
+  }
+
+  async toggleLikeOptimistic(postId: string): Promise<void> {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) return;
+
+    // ensure BehaviorSubject exists
+    if (!this.likesSubjects.has(postId)) {
+      this.getPostLike(postId).subscribe(); 
+    }
+    const subj = this.likesSubjects.get(postId)!;
+
+    // Optimistic toggle
+    const newValue = !subj.value;
+    subj.next(newValue);
+
+    try {
+      // Persist to Firestore
+      await this.toggleLike(postId);
+    } catch (err) {
+      console.error('Failed to toggle like in Firestore:', err);
+      // rollback if failed
+      subj.next(!newValue);
+    }
+
+    // Update likesCount in posts$ locally
+    this.updatePostLocal(postId, post => {
+      if (!post.likesCount) post.likesCount = 0;
+      post.likesCount += newValue ? 1 : -1;
+    });
   }
 
   // Like post: only touch the likes subcollection

@@ -120,9 +120,9 @@
         <div class="flex items-center space-x-6 mb-4 text-sm">
           <button (click)="likePost()" 
             class="text-red-500 font-medium flex items-center space-x-1"
-            [class.text-red-500]="liked">
+            [class.text-red-500]="(liked$ | async)">
             <span class="like-heart" [class.like-pop]="animatingLike">{{ (liked$ | async) ? '❤️' : '🤍' }}</span>
-            <span>{{ post.likesCount }}</span>
+            <span>{{ likesCount$ | async }}</span>
           </button>
           <div class="flex items-center space-x-1 text-gray-600">
             <span>💬</span>
@@ -239,9 +239,9 @@
         <div class="flex items-center space-x-6 mb-6 text-sm">
           <button (click)="likePost()"
             class="text-red-500 font-medium flex items-center space-x-1"
-            [class.text-red-500]="liked">
+            [class.text-red-500]="(liked$ | async)">
             <span class="like-heart" [class.like-pop]="animatingLike">{{ (liked$ | async) ? '❤️' : '🤍' }}</span>
-            <span>{{ post.likesCount }}</span>
+            <span>{{ likesCount$ | async }}</span>
           </button>
           <div class="flex items-center space-x-1 text-gray-600">
             <span>💬</span>

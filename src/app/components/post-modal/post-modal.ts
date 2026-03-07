@@ -44,6 +44,7 @@ export class PostModal implements AfterViewInit {
   liked = false;
   animatingLike = false;
   liked$!: Observable<boolean>;
+  likesCount$!: Observable<number>;
 
   comments$!: Observable<Comment[]>;
   newComment = '';
@@ -87,12 +88,11 @@ export class PostModal implements AfterViewInit {
       this.comments$ = this.postsService.getComments(this.post.id);
     }
 
-    // Check if user liked post
-    this.liked$ = this.postsService.getUserLike(this.post.id);
+    // Subscribe to liked state
+    this.liked$ = this.postsService.getPostLike(this.post.id);
 
-    this.liked$.subscribe(val => {
-      this.liked = val;
-    });
+    // Subscribe to likes count
+    this.likesCount$ = this.postsService.getPostLikesCount(this.post.id);
 
     setTimeout(() => {
       this.currentMediaIndex = 0;
@@ -151,25 +151,8 @@ export class PostModal implements AfterViewInit {
     this.animatingLike = true;
     setTimeout(() => { this.animatingLike = false; }, 400);
 
-    try {
-      // Call toggleLike and wait for the actual new state
-      const liked = await this.postsService.toggleLike(this.post.id);
-
-      // Update UI based on actual new liked state
-      if (this.post.likesCount == null) this.post.likesCount = 0;
-
-      if (liked) {
-        this.post.likesCount++; // now liked
-      } else {
-        this.post.likesCount--; // now unliked
-      }
-
-      this.liked = liked;
-
-    } catch (err) {
-      console.error('Failed to toggle like:', err);
-      // optionally rollback UI flip
-    }
+    // Optimistic toggle via service
+    this.postsService.toggleLikeOptimistic(this.post.id);
   }
 
   async submitComment() {
