@@ -291,19 +291,33 @@ export class PostsService {
       const userData = userSnap.exists() ? userSnap.data() : {};
 
       // Update temp post with latest user info and mark as complete
-      const updated = this.postsSubject.value.map(p =>
+      const updatedPosts = this.postsSubject.value.map(p =>
         p.id === tempId
           ? {
               ...p,
+              id: docRef.id, // Replace tempId
               username: userData?.['username'] || p.username,
               displayName: userData?.['displayName'] || p.displayName,
               userAvatar: userData?.['profilePicture'] || p.userAvatar,
-              pending: false,
-              media: media
+              media,
+              pending: false
             }
           : p
       );
-      this.postsSubject.next(updated);
+
+      this.postsSubject.next(updatedPosts);
+      this.savePostsCache(updatedPosts);
+
+      // Update seenPosts
+      if (this.seenPosts.has(tempId)) {
+        this.seenPosts.delete(tempId);
+        this.seenPosts.add(docRef.id);
+
+        // Save updated seenPosts to localStorage
+        if (typeof window !== 'undefined' && window.localStorage) {
+          localStorage.setItem(this.seenPostsKey, JSON.stringify([...this.seenPosts]));
+        }
+      }
     } catch (error) {
       // If anything fails, remove optimistic post
       this.removeTempPost(tempId);
@@ -604,30 +618,41 @@ export class PostsService {
   async deletePost(post: Post) {
     const user = this.auth.currentUser;
     if (!user) throw new Error('Not authenticated');
+    if (user.uid !== post.uid) throw new Error('Unauthorized delete attempt');
 
-    if (user.uid !== post.uid) {
-      throw new Error('Unauthorized delete attempt');
-    }
-
-    // Delete media from Firebase Storage
+    // Delete media
     if (post.media?.length) {
       for (const media of post.media) {
         try {
-          const storageRef = ref(this.storage, media.path);
-          await deleteObject(storageRef);
+          await deleteObject(ref(this.storage, media.path));
         } catch (err) {
           console.warn('Failed to delete media:', err);
         }
       }
     }
 
-    // Delete Firestore document
-    const postRef = doc(this.firestore, `posts/${post.id}`);
-    await deleteDoc(postRef);
+    console.log('currentUser.uid:', this.auth.currentUser?.uid);
+    console.log('post.uid:', post.uid);
 
-    // Remove locally for instant UI update
+    // Delete Firestore doc
+    await deleteDoc(doc(this.firestore, `posts/${post.id}`));
+
+    // Update local feed & cache
     const updated = this.postsSubject.value.filter(p => p.id !== post.id);
     this.postsSubject.next(updated);
+    this.savePostsCache(updated);
+
+    // Remove from seenPosts localStorage if present
+    if (this.seenPosts.has(post.id)) {
+      this.seenPosts.delete(post.id);
+
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem(this.seenPostsKey, JSON.stringify([...this.seenPosts]));
+      }
+
+      // Update dashboard state immediately
+      this.updateDashboardState();
+    }
   }
 
   // Load already seen posts
