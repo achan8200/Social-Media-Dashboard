@@ -73,12 +73,8 @@
 
     <!-- Caption -->
     <div [ngClass]="post?.media?.length ? 'p-4' : 'pb-4 px-4'">
-      <p
-        [ngClass]="post?.media?.length
-          ? 'text-gray-700'
-          : 'text-gray-800 text-[15px] leading-7'"
-      >
-        {{ post?.caption }}
+      <p [ngClass]="post?.media?.length ? 'text-gray-700' : 'text-gray-800 text-[15px] leading-7'"
+        [innerHTML]="formattedCaption">
       </p>
 
       <!-- Actions -->

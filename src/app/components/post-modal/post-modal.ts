@@ -556,4 +556,16 @@ export class PostModal implements AfterViewInit {
     const weeks = differenceInWeeks(now, commentDate);
     return `${weeks}w ago`;
   }
+
+  get formattedCaption(): string {
+    if (!this.post?.caption) return '';
+    
+    // Normalize Windows \r\n to \n
+    const normalized = this.post.caption.replace(/\r\n/g, '\n');
+
+    // Remove leading whitespace and convert newlines to <br>
+    return normalized
+      .replace(/^[\s\u00A0]+/, '') // remove leading spaces
+      .replace(/\n/g, '<br>');
+  }
 }

@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { Post } from '../../models/post.model';
 import { Avatar } from '../avatar/avatar';
+import { UserService } from '../../services/user.service';
+import { map, Observable } from 'rxjs';
 
 @Component({
   selector: 'app-edit-post-modal',
@@ -38,12 +40,21 @@ export class EditPostModal {
   @Output() cancel = new EventEmitter<void>();
 
   editedCaption: string = '';
+  username$!: Observable<string>;
+  userAvatar$!: Observable<string | null>;
 
   /** Control visibility for animations */
   visible = true;
 
+  constructor(private userService: UserService) {}
+
   ngOnInit() {
     this.editedCaption = this.post.caption || '';
+    if (this.post.uid) {
+      const user$ = this.userService.getUserByUid(this.post.uid);
+      this.username$ = user$.pipe(map(u => u?.username || 'Unknown'));
+      this.userAvatar$ = user$.pipe(map(u => u?.profilePicture || null));
+    }
   }
 
   onUpdate() {

@@ -582,4 +582,16 @@ export class Profile {
   trackByPostId(index: number, post: Post) {
     return post.id;
   }
+
+  getFormattedCaption(post: { caption?: string }): string {
+    if (!post?.caption) return '';
+
+    // Normalize Windows newlines
+    const normalized = post.caption.replace(/\r\n/g, '\n');
+
+    // Remove leading whitespace and convert newlines to <br>
+    return normalized
+      .replace(/^[\s\u00A0]+/, '') // remove leading spaces
+      .replace(/\n/g, '<br>');
+  }
 }

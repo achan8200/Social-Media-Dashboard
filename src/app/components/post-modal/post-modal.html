@@ -114,7 +114,7 @@
         </div>
 
         <!-- Caption -->
-        <p class="text-sm mb-4">{{ post.caption }}</p>
+        <p class="text-sm mb-4" [innerHTML]="formattedCaption"></p>
 
         <!-- Actions -->
         <div class="flex items-center space-x-6 mb-4 text-sm">
@@ -219,14 +219,8 @@
         <!-- Header -->
         <div class="flex justify-between items-center mb-6">
           <div class="flex items-center space-x-3">
-            <app-avatar
-              [username]="username$ | async"
-              [imageUrl]="userAvatar$ | async">
-            </app-avatar>
-
-            <span class="font-normal">
-              {{ username$ | async }}
-            </span>
+            <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async"></app-avatar>
+            <span class="font-normal">{{ username$ | async }}</span>
           </div>
 
           <!-- Author Menu -->
@@ -246,9 +240,7 @@
         </div>
 
         <!-- Caption -->
-        <p class="text-lg leading-relaxed mb-6 text-gray-800">
-          {{ post.caption }}
-        </p>
+        <p class="text-lg leading-relaxed mb-6 text-gray-800" [innerHTML]="formattedCaption"></p>
 
         <!-- Actions -->
         <div class="flex items-center space-x-6 mb-6 text-sm">

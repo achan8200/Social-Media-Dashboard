@@ -1,12 +1,12 @@
 <div *ngIf="visible" @overlayFade class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
 
   <!-- Modal Card -->
-  <div @modalScale class="bg-white w-full max-w-sm rounded-xl shadow-xl p-6">
+  <div @modalScale class="bg-white w-full max-w-lg rounded-xl shadow-xl p-6">
 
     <!-- Author info -->
     <div class="flex items-center space-x-3 mb-4">
-      <app-avatar [username]="post.username" [imageUrl]="post.userAvatar"></app-avatar>
-      <h3 class="font-semibold text-gray-800">{{ post.username }}</h3>
+      <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async"></app-avatar>
+      <h3 class="font-semibold text-gray-800">{{ username$ | async }}</h3>
     </div>
 
     <!-- Editable caption -->

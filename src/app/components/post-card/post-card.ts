@@ -94,6 +94,18 @@ export class PostCard {
     if (this.post) this.comment.emit(this.post.id);
   }
 
+  get formattedCaption(): string {
+    if (!this.post?.caption) return '';
+    
+    // Normalize Windows \r\n to \n
+    const normalized = this.post.caption.replace(/\r\n/g, '\n');
+
+    // Remove leading whitespace and convert newlines to <br>
+    return normalized
+      .replace(/^[\s\u00A0]+/, '') // remove leading spaces
+      .replace(/\n/g, '<br>');
+  }
+
   fadeOut() {
     if (this.post && this.post.isNew) {
       this.post.fadingOut = true; // triggers CSS fade

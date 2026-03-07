@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, NgZone, ChangeDetectorRef  } from '@angular/core';
+import { Component, EventEmitter, Output, NgZone, ChangeDetectorRef, ViewChild, ElementRef  } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PostsService } from '../../services/posts.service';
@@ -36,6 +36,8 @@ export class CreatePostModal {
   @Output() close = new EventEmitter<void>();
   @Output() create = new EventEmitter<{ caption: string; media: File[] }>();
 
+  @ViewChild('captionTextarea') captionTextarea!: ElementRef<HTMLTextAreaElement>;
+
   constructor(private postsService: PostsService, private ngZone: NgZone, private cdr: ChangeDetectorRef) {}
 
   async onCreate() {
@@ -63,6 +65,20 @@ export class CreatePostModal {
     this.selectedMedia = [];
     this.isUploading = false;
     this.close.emit();
+  }
+
+  handlePostKeydown(event: KeyboardEvent) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      // Prevent default newline
+      event.preventDefault();
+    }
+    // Shift + Enter will insert a newline naturally
+  }
+
+  adjustCaptionHeight() {
+    const textarea = this.captionTextarea.nativeElement;
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
   }
 
   onFileChange(event: Event) {
