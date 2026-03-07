@@ -32,6 +32,12 @@ export class PostsService {
 
     // Start listening to posts (Firestore queries are safe in both SSR and browser)
     this.listenToPosts();
+
+    // Clear cached likes whenever the user logs in or out
+    this.auth.onAuthStateChanged(user => {
+      this.likesSubjects.clear();
+      this.commentLikesSubjects.clear();
+    });
   }
 
 
@@ -206,10 +212,22 @@ export class PostsService {
   // Returns an Observable of like state for a specific post
   getPostLike(postId: string): Observable<boolean> {
     if (!this.likesSubjects.has(postId)) {
-      const initial$ = this.getUserLike(postId); // existing Firestore observable
+      const uid = this.auth.currentUser?.uid;
+      if (!uid) return of(false);
+
+      const likeRef = doc(this.firestore, `posts/${postId}/likes/${uid}`);
       const subj = new BehaviorSubject<boolean>(false);
-      initial$.subscribe(val => subj.next(val)); // initialize
       this.likesSubjects.set(postId, subj);
+
+      docData(likeRef, { idField: 'id' }).pipe(
+        map(docSnap => !!docSnap?.id)
+      ).subscribe(val => {
+        subj.next(val);
+      });
+
+      return subj.asObservable().pipe(
+        map(val => val === null ? false : val) // fallback to false until loaded
+      );
     }
     return this.likesSubjects.get(postId)!.asObservable();
   }
