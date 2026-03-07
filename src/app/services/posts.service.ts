@@ -15,6 +15,7 @@ export class PostsService {
 
   private seenPostsKey = 'seenPosts';
   private seenPosts = new Set<string>();
+  private postsCacheKey = 'cachedPosts';
 
   private postsSubject = new BehaviorSubject<Post[]>([]);
   posts$ = this.postsSubject.asObservable();
@@ -29,6 +30,8 @@ export class PostsService {
   ) {
     // Defer loading browser-only state until we're sure we're in the browser
     this.safeLoadSeenPosts();
+
+    this.loadCachedPosts();
 
     // Start listening to posts (Firestore queries are safe in both SSR and browser)
     this.listenToPosts();
@@ -112,8 +115,35 @@ export class PostsService {
     ).subscribe(posts => {
       // Preserve optimistic posts
       const pendingPosts = this.postsSubject.value.filter(p => p.pending);
-      this.postsSubject.next([...pendingPosts, ...posts]);
+      const updatedPosts = [...pendingPosts, ...posts];
+      this.postsSubject.next(updatedPosts);
+
+      this.savePostsCache(updatedPosts);
     });
+  }
+
+  private loadCachedPosts() {
+    if (typeof window === 'undefined') return;
+
+    const cached = localStorage.getItem(this.postsCacheKey);
+    if (!cached) return;
+
+    try {
+      const posts = JSON.parse(cached);
+      this.postsSubject.next(posts);
+    } catch {
+      console.warn('Failed to load cached posts');
+    }
+  }
+
+  private savePostsCache(posts: Post[]) {
+    if (typeof window === 'undefined') return;
+
+    try {
+      localStorage.setItem(this.postsCacheKey, JSON.stringify(posts.slice(0, 50)));
+    } catch {
+      console.warn('Failed to cache posts');
+    }
   }
 
   // Create post 
