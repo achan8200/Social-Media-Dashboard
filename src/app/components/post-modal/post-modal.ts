@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, ViewChild, ViewChildren, QueryList, ElementRef, HostListener } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ViewChild, ViewChildren, QueryList, ElementRef, HostListener, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PostsService } from '../../services/posts.service';
@@ -11,6 +11,7 @@ import { Auth } from '@angular/fire/auth';
 import { ConfirmModal } from "../confirm-modal/confirm-modal";
 import { EditPostModal } from "../edit-post-modal/edit-post-modal";
 import { Comment } from '../../models/comment.model';
+import { differenceInSeconds, differenceInMinutes, differenceInHours, differenceInDays, differenceInWeeks } from 'date-fns';
 
 @Component({
   selector: 'app-post-modal',
@@ -29,7 +30,7 @@ import { Comment } from '../../models/comment.model';
     ])
   ]
 })
-export class PostModal {
+export class PostModal implements AfterViewInit {
   @Input() post: Post | null = null;
   @Output() close = new EventEmitter<void>();
 
@@ -49,12 +50,13 @@ export class PostModal {
   editingCommentId: string | null = null;
   editingText = '';
 
-  menuOpen = false;
   isVisible = true;
   currentMediaIndex = 0;
   
-  // Keep track of which comment's menu is open
+  menuOpen = false;
   openCommentMenuId: string | null = null;
+  commentMenuAbove: Record<string, boolean> = {}; // Track if a comment menu should open upwards
+  showNewCommentsButton = false;
 
   private touchStartX = 0;
   private touchEndX = 0;
@@ -69,6 +71,8 @@ export class PostModal {
   velocity = 0;
 
   @ViewChild('carouselContainer') carouselContainer!: ElementRef<HTMLDivElement>;
+  @ViewChild('commentsContainer') commentsContainer!: ElementRef<HTMLDivElement>;
+  @ViewChild('commentInput') commentInput!: ElementRef<HTMLTextAreaElement>;
   @ViewChildren('videoPlayer') videoPlayers!: QueryList<ElementRef<HTMLVideoElement>>;
 
   constructor(private postsService: PostsService, private userService: UserService, public auth: Auth) {}
@@ -93,6 +97,12 @@ export class PostModal {
     setTimeout(() => {
       this.currentMediaIndex = 0;
       this.setPositionByIndex();
+    });
+  }
+
+  ngAfterViewInit() {
+    this.comments$?.subscribe(() => {
+      this.scrollCommentsToBottom();
     });
   }
 
@@ -169,13 +179,26 @@ export class PostModal {
     this.newComment = '';
 
     try {
+      // Local UI update
+      if (this.post.commentsCount == null) this.post.commentsCount = 0;
+      this.post.commentsCount++;
+
       await this.postsService.createComment(this.post.id, text);
+      this.scrollCommentsToBottom();
+
     } catch (err) {
       console.error(err);
     }
   }
 
+  adjustTextareaHeight() {
+    const el = this.commentInput.nativeElement;
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }
+
   startEdit(comment: Comment) {
+    this.openCommentMenuId = null;
     this.editingCommentId = comment.id!;
     this.editingText = comment.text;
   }
@@ -192,8 +215,18 @@ export class PostModal {
     this.editingCommentId = null;
   }
 
+  cancelEditComment() {
+    this.editingCommentId = null;
+    this.editingText = '';
+  }
+
   async deleteComment(comment: Comment) {
     if (!this.post) return;
+
+    // Local UI update
+    if (this.post.commentsCount && this.post.commentsCount > 0) {
+      this.post.commentsCount--;
+    }
 
     await this.postsService.deleteComment(
       this.post.id,
@@ -359,6 +392,27 @@ export class PostModal {
       this.openCommentMenuId = null;
     } else {
       this.openCommentMenuId = commentId;
+
+      // Determine if the menu should open upward
+      setTimeout(() => {
+        const menuButton = document.querySelector(
+          `.comment-menu-toggle[data-id='${commentId}']`
+        ) as HTMLElement;
+
+        if (!menuButton) return;
+
+        const rect = menuButton.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+
+        // Approximate menu height: 70px (Edit + Delete)
+        const menuHeight = 70;
+
+        if (rect.bottom + menuHeight > viewportHeight) {
+          this.commentMenuAbove[commentId] = true;
+        } else {
+          this.commentMenuAbove[commentId] = false;
+        }
+      });
     }
   }
 
@@ -399,6 +453,13 @@ export class PostModal {
     this.editingPost = this.post;
   }
 
+  handleCommentKeydown(event: KeyboardEvent) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault(); // Prevent newline
+      this.submitComment();
+    }
+  }
+
   cancelEdit() {
     this.editingPost = null;
   }
@@ -426,5 +487,59 @@ export class PostModal {
       // Optionally reload posts or rollback
       // this.posts$ = this.postsService.getPosts();
     }
+  }
+
+  scrollCommentsToBottom() {
+    if (!this.commentsContainer) return;
+
+    const el = this.commentsContainer.nativeElement;
+
+    const distanceFromBottom =
+      el.scrollHeight - el.scrollTop - el.clientHeight;
+
+    const nearBottomThreshold = 120; // px
+
+    const shouldAutoScroll = distanceFromBottom < nearBottomThreshold;
+
+    if (shouldAutoScroll) {
+      setTimeout(() => {
+        el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+        this.showNewCommentsButton = false;
+      }, 50);
+    } else {
+      this.showNewCommentsButton = true;
+    }
+  }
+
+  jumpToBottom() {
+    if (!this.commentsContainer) return;
+
+    const el = this.commentsContainer.nativeElement;
+
+    el.scrollTo({
+      top: el.scrollHeight,
+      behavior: 'smooth'
+    });
+
+    this.showNewCommentsButton = false;
+  }
+
+  getRelativeTime(date: Date | any): string {
+    if (!date) return '';
+
+    const now = new Date();
+    const commentDate = date instanceof Date ? date : date.toDate?.() ?? new Date(date);
+
+    const seconds = differenceInSeconds(now, commentDate);
+
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = differenceInMinutes(now, commentDate);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = differenceInHours(now, commentDate);
+    if (hours < 24) return `${hours}h ago`;
+    const days = differenceInDays(now, commentDate);
+    if (days < 7) return `${days}d ago`;
+    const weeks = differenceInWeeks(now, commentDate);
+    return `${weeks}w ago`;
   }
 }

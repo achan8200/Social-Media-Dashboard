@@ -118,7 +118,9 @@
 
         <!-- Actions -->
         <div class="flex items-center space-x-6 mb-4 text-sm">
-          <button (click)="likePost()" class="text-red-500 font-medium flex items-center space-x-1">
+          <button (click)="likePost()" 
+            class="text-red-500 font-medium flex items-center space-x-1"
+            [class.text-red-500]="liked">
             <span class="like-heart" [class.like-pop]="animatingLike">{{ (liked$ | async) ? '❤️' : '🤍' }}</span>
             <span>{{ post.likesCount }}</span>
           </button>
@@ -128,53 +130,76 @@
           </div>
         </div>
 
-        <!-- Comments container (scrollable) -->
-        <div class="flex-1 overflow-y-auto flex flex-col space-y-3 border-t pt-4">
-          <div *ngFor="let comment of comments$ | async" class="flex items-start justify-between">
-            <div class="flex items-start space-x-2">
-              <app-avatar [username]="comment.username" [imageUrl]="comment.userAvatar"></app-avatar>
-              <div>
-                <span class="font-medium">{{ comment.username }}</span>
-                <div *ngIf="editingCommentId === comment.id; else normalComment">
-                  <input [(ngModel)]="editingText" class="border px-2 py-1 text-sm rounded"/>
-                  <button (click)="saveEdit(comment)">Save</button>
+        <div class="relative flex-1 min-h-0">
+          <!-- Scrollable comments -->
+          <div #commentsContainer class="h-full overflow-y-auto flex flex-col space-y-3 border-t pt-4">
+            <div *ngFor="let comment of comments$ | async" class="flex items-start justify-between">
+              <div class="flex items-start space-x-2">
+                <app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username" [imageUrl]="comment.userAvatar"></app-avatar>
+                <div class="flex flex-col">
+                  <span class="font-medium text-sm">{{ comment.username }}</span>
+                  <div *ngIf="editingCommentId === comment.id; else normalComment" class="flex items-center space-x-3">
+                    <textarea [(ngModel)]="editingText" 
+                      class="border px-2 py-1 text-sm rounded flex-1 resize-none whitespace-pre-wrap" 
+                      rows="3"
+                      (input)="adjustTextareaHeight()">
+                    </textarea>
+                    <button (click)="saveEdit(comment)" class="text-blue-500 text-sm hover:underline" [disabled]="!editingText.trim()">Save</button>
+                    <button (click)="cancelEditComment()" class="text-gray-500 text-sm hover:underline">Cancel</button>
+                  </div>
+                  <ng-template #normalComment>
+                    <span class="text-xs text-gray-700 break-words whitespace-pre-wrap">{{ comment.text }}</span>
+                    <span class="text-xs text-gray-400 mt-1">{{ getRelativeTime(comment.createdAt) }}</span>
+                  </ng-template>
                 </div>
-                <ng-template #normalComment>
-                  <span class="ml-2">{{ comment.text }}</span>
-                </ng-template>
               </div>
-            </div>
-            <!-- Author Controls Dropdown for Comment -->
-            <div *ngIf="comment.uid === auth.currentUser?.uid" class="relative">
-              <!-- Trigger button -->
-              <button (click)="toggleCommentMenu(comment.id!)"
-                      [class.bg-gray-300]="isCommentMenuOpen(comment.id!)"
-                      class="comment-menu-toggle text-gray-500 text-sm w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 hover:text-black transition">
-                <span class="relative -top-[1px]">⋯</span>
-              </button>
+              <!-- Author Controls Dropdown for Comment -->
+              <div *ngIf="comment.uid === auth.currentUser?.uid" class="relative">
+                <!-- Trigger button -->
+                <button (click)="toggleCommentMenu(comment.id!)"
+                        [class.bg-gray-300]="isCommentMenuOpen(comment.id!)"
+                        class="comment-menu-toggle text-gray-500 text-sm w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 hover:text-black transition">
+                  <span class="relative -top-[1px]">⋯</span>
+                </button>
 
-              <!-- Dropdown menu -->
-              <div *ngIf="isCommentMenuOpen(comment.id!)"
-                  [class.bg-gray-300]="isCommentMenuOpen(comment.id!)"
-                  class="comment-menu absolute right-0 mt-1 w-28 bg-white border rounded shadow-lg z-50 text-sm">
-                <button (click)="startEdit(comment)" class="block w-full text-left px-3 py-1 hover:bg-gray-100">Edit</button>
-                <button (click)="deleteComment(comment)" class="block w-full text-left px-3 py-1 text-red-600 hover:bg-gray-100">Delete</button>
+                <!-- Dropdown menu -->
+                <div *ngIf="isCommentMenuOpen(comment.id!)"
+                    class="comment-menu absolute right-0 mt-1 w-28 bg-white border rounded shadow-lg z-50 text-sm">
+                  <button (click)="startEdit(comment)" class="block w-full text-left px-3 py-1 hover:bg-gray-100">Edit</button>
+                  <button (click)="deleteComment(comment)" class="block w-full text-left px-3 py-1 text-red-600 hover:bg-gray-100">Delete</button>
+                </div>
               </div>
             </div>
           </div>
+
+          <!-- New comments button -->
+          <button
+            *ngIf="showNewCommentsButton"
+            (click)="jumpToBottom()"
+            class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-xs px-3 py-1 rounded-full shadow hover:bg-blue-600 transition">
+            ↓ New comments
+          </button>
         </div>
 
         <!-- Comment Input (outside scrollable container) -->
         <div class="flex-shrink-0 mt-3 flex border-t pt-3">
-          <input [(ngModel)]="newComment" placeholder="Add a comment..." class="flex-1 border px-3 py-2 rounded text-sm"/>
-          <button (click)="submitComment()" class="ml-2 text-blue-500 font-medium">Post</button>
+          <textarea [(ngModel)]="newComment" 
+            placeholder="Add a comment..."
+            rows="1"
+            class="flex-1 border px-3 py-2 rounded text-sm resize-none" 
+            (input)="adjustTextareaHeight()"
+            (keydown)="handleCommentKeydown($event)"></textarea>
+          <button (click)="submitComment()" 
+            class="ml-2 font-medium"
+            [ngClass]="{'text-blue-500 hover:underline': newComment.trim(), 'text-gray-400 cursor-not-allowed': !newComment.trim()}"
+            [disabled]="!newComment.trim()">Post</button>
         </div>
       </div>
     </div>
 
     <!-- Caption-only Post -->
     <ng-template #captionOnlyLayout>
-      <div class="flex flex-col justify-center p-8 w-full h-full text-left">
+      <div class="flex flex-col justify-center p-8 w-full h-full max-h-[80vh] text-left">
 
         <!-- Header -->
         <div class="flex justify-between items-center mb-6">
@@ -224,45 +249,69 @@
           </div>
         </div>
 
-        <!-- Scrollable Comments -->
-        <div #commentsContainer class="flex-1 overflow-y-auto flex flex-col space-y-3 border-t pt-4">
-          <div *ngFor="let comment of comments$ | async" class="flex items-start justify-between">
-            <div class="flex items-start space-x-2">
-              <app-avatar [username]="comment.username" [imageUrl]="comment.userAvatar"></app-avatar>
-              <div>
-                <span class="font-medium">{{ comment.username }}</span>
-                <div *ngIf="editingCommentId === comment.id; else normalComment">
-                  <input [(ngModel)]="editingText" class="border px-2 py-1 text-sm rounded"/>
-                  <button (click)="saveEdit(comment)">Save</button>
+        <div class="relative flex-1 min-h-0">
+          <!-- Scrollable Comments -->
+          <div #commentsContainer class="h-full min-h-[200px] overflow-y-auto flex flex-col space-y-3 border-t pt-4">
+            <div *ngFor="let comment of comments$ | async" class="flex items-start justify-between">
+              <div class="flex items-start space-x-2">
+                <app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username" [imageUrl]="comment.userAvatar"></app-avatar>
+                <div class="flex flex-col">
+                  <span class="font-medium text-sm">{{ comment.username }}</span>
+                  <div *ngIf="editingCommentId === comment.id; else normalComment" class="flex items-center space-x-3">
+                    <textarea [(ngModel)]="editingText"
+                      class="border px-2 py-1 text-sm rounded flex-1 resize-none whitespace-pre-wrap" 
+                      rows="3"
+                      (input)="adjustTextareaHeight()">
+                    </textarea>
+                    <button (click)="saveEdit(comment)" class="text-blue-500 text-sm hover:underline" [disabled]="!editingText.trim()">Save</button>
+                    <button (click)="cancelEditComment()" class="text-gray-500 text-sm hover:underline">Cancel</button>
+                  </div>
+                  <ng-template #normalComment>
+                    <span class="text-xs text-gray-700 break-words whitespace-pre-wrap">{{ comment.text }}</span>
+                    <span class="text-xs text-gray-400 mt-1">{{ getRelativeTime(comment.createdAt) }}</span>
+                  </ng-template>
                 </div>
-                <ng-template #normalComment>
-                  <span class="ml-2">{{ comment.text }}</span>
-                </ng-template>
               </div>
-            </div>
-            <!-- Author Controls Dropdown for Comment -->
-            <div *ngIf="comment.uid === auth.currentUser?.uid" class="relative">
-              <!-- Trigger button -->
-              <button (click)="toggleCommentMenu(comment.id!)"
-                      [class.bg-gray-300]="isCommentMenuOpen(comment.id!)"
-                      class="comment-menu-toggle text-gray-500 text-sm w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 hover:text-black transition">
-                <span class="relative -top-[1px]">⋯</span>
-              </button>
+              <!-- Author Controls Dropdown for Comment -->
+              <div *ngIf="comment.uid === auth.currentUser?.uid" class="relative">
+                <!-- Trigger button -->
+                <button (click)="toggleCommentMenu(comment.id!)"
+                        [class.bg-gray-300]="isCommentMenuOpen(comment.id!)"
+                        class="comment-menu-toggle text-gray-500 text-sm w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 hover:text-black transition">
+                  <span class="relative -top-[1px]">⋯</span>
+                </button>
 
-              <!-- Dropdown menu -->
-              <div *ngIf="isCommentMenuOpen(comment.id!)"
-                  class="comment-menu absolute right-0 mt-1 w-28 bg-white border rounded shadow-lg z-50 text-sm">
-                <button (click)="startEdit(comment)" class="block w-full text-left px-3 py-1 hover:bg-gray-100">Edit</button>
-                <button (click)="deleteComment(comment)" class="block w-full text-left px-3 py-1 text-red-600 hover:bg-gray-100">Delete</button>
+                <!-- Dropdown menu -->
+                <div *ngIf="isCommentMenuOpen(comment.id!)"
+                    class="comment-menu absolute right-0 mt-1 w-28 bg-white border rounded shadow-lg z-50 text-sm">
+                  <button (click)="startEdit(comment)" class="block w-full text-left px-3 py-1 hover:bg-gray-100">Edit</button>
+                  <button (click)="deleteComment(comment)" class="block w-full text-left px-3 py-1 text-red-600 hover:bg-gray-100">Delete</button>
+                </div>
               </div>
             </div>
           </div>
+
+          <!-- New comments button -->
+          <button
+            *ngIf="showNewCommentsButton"
+            (click)="jumpToBottom()"
+            class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-xs px-3 py-1 rounded-full shadow hover:bg-blue-600 transition">
+            ↓ New comments
+          </button>
         </div>
 
         <!-- Comment Input -->
         <div class="mt-3 flex border-t pt-3 flex-shrink-0">
-          <input [(ngModel)]="newComment" placeholder="Add a comment..." class="flex-1 border px-3 py-2 rounded text-sm"/>
-          <button (click)="submitComment()" class="ml-2 text-blue-500 font-medium">Post</button>
+          <textarea [(ngModel)]="newComment" 
+            placeholder="Add a comment..." 
+            rows="1"
+            class="flex-1 border px-3 py-2 rounded text-sm resize-none" 
+            (input)="adjustTextareaHeight()"
+            (keydown)="handleCommentKeydown($event)"></textarea>
+          <button (click)="submitComment()" 
+            class="ml-2 font-medium"
+            [ngClass]="{'text-blue-500 hover:underline': newComment.trim(), 'text-gray-400 cursor-not-allowed': !newComment.trim()}"
+            [disabled]="!newComment.trim()">Post</button>
         </div>
       </div>
     </ng-template>
