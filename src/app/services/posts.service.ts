@@ -6,6 +6,7 @@ import { catchError, map, switchMap } from 'rxjs/operators';
 import { Auth } from '@angular/fire/auth';
 import { Post, PostMedia } from '../models/post.model';
 import { Comment } from '../models/comment.model';
+import imageCompression from 'browser-image-compression';
 
 @Injectable({ providedIn: 'root' })
 export class PostsService {
@@ -146,6 +147,22 @@ export class PostsService {
     }
   }
 
+  private async compressImage(file: File): Promise<File> {
+    const options = {
+      maxSizeMB: 0.5,        // target ~500kb
+      maxWidthOrHeight: 1920,
+      useWebWorker: true
+    };
+
+    try {
+      const compressed = await imageCompression(file, options);
+      return compressed;
+    } catch (error) {
+      console.warn('Image compression failed, using original', error);
+      return file;
+    }
+  }
+
   // Create post 
   async createPost(
     caption?: string,
@@ -188,17 +205,24 @@ export class PostsService {
 
     try {
       if (files?.length) {
-        await Promise.all(files.map((file, i) => {
-          return new Promise<void>((resolve, reject) => {
+        await Promise.all(files.map(async (file, i) => {
+          return new Promise<void>(async (resolve, reject) => {
             if (!file.type.startsWith('image') && !file.type.startsWith('video')) {
               return reject(new Error('Only images and videos are allowed'));
             }
 
-            const filePath = `post-media/${uid}/${Date.now()}_${file.name}`;
+            let uploadFile = file;
+
+            // Compress images only
+            if (file.type.startsWith('image')) {
+              uploadFile = await this.compressImage(file);
+            }
+
+            const filePath = `post-media/${uid}/${Date.now()}_${uploadFile.name}`;
             const storageRef = ref(this.storage, filePath);
-            
+
             // Upload
-            const uploadTask = uploadBytesResumable(storageRef, file);
+            const uploadTask = uploadBytesResumable(storageRef, uploadFile);
 
             uploadTask.on('state_changed',
               snapshot => {
