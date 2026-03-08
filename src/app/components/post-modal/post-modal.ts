@@ -75,6 +75,8 @@ export class PostModal implements AfterViewInit {
   lastDragX = 0;
   velocity = 0;
 
+  currentMediaAspect = 1;
+
   @ViewChild('carouselContainer') carouselContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('commentsContainer') commentsContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('newCommentInput') newCommentInput!: ElementRef<HTMLTextAreaElement>;
@@ -116,6 +118,7 @@ export class PostModal implements AfterViewInit {
     setTimeout(() => {
       this.currentMediaIndex = 0;
       this.setPositionByIndex();
+      this.updateMediaAspect();
     });
   }
 
@@ -141,6 +144,7 @@ export class PostModal implements AfterViewInit {
       this.pauseAllVideos();
       this.currentMediaIndex++;
       this.setPositionByIndex();
+      this.updateMediaAspect();
     }
   }
 
@@ -151,6 +155,7 @@ export class PostModal implements AfterViewInit {
       this.pauseAllVideos();
       this.currentMediaIndex--;
       this.setPositionByIndex();
+      this.updateMediaAspect();
     }
   }
 
@@ -605,5 +610,40 @@ export class PostModal implements AfterViewInit {
 
   onAvatarClick() {
     this.onClose();
+  }
+
+  // Call this whenever currentMedia changes
+  updateMediaAspect() {
+    const media = this.currentMedia;
+    if (!media) return;
+
+    if (media.type === 'image') {
+      const img = new Image();
+      img.src = media.url;
+      img.onload = () => {
+        this.currentMediaAspect = img.width / img.height;
+      };
+    } else if (media.type === 'video') {
+      const videoEl = this.videoPlayers?.toArray()[this.currentMediaIndex]?.nativeElement;
+      if (videoEl && videoEl.videoWidth && videoEl.videoHeight) {
+        this.currentMediaAspect = videoEl.videoWidth / videoEl.videoHeight;
+      } else {
+        // Fallback if video metadata not loaded yet
+        this.currentMediaAspect = 16 / 9;
+      }
+    }
+  }
+
+  calculateMediaHeight(): number {
+    if (!this.carouselContainer) return 300; // fallback height
+
+    const containerWidth = this.carouselContainer.nativeElement.offsetWidth;
+    let height = containerWidth / this.currentMediaAspect;
+
+    // Constrain to max height (so modal doesn’t exceed viewport)
+    const maxHeight = window.innerHeight * 0.9;
+    if (height > maxHeight) height = maxHeight;
+
+    return height;
   }
 }
