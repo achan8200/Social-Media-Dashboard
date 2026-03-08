@@ -12,7 +12,6 @@ import { ConfirmModal } from "../confirm-modal/confirm-modal";
 import { EditPostModal } from "../edit-post-modal/edit-post-modal";
 import { Comment, CommentWithLikes } from '../../models/comment.model';
 import { differenceInSeconds, differenceInMinutes, differenceInHours, differenceInDays, differenceInWeeks } from 'date-fns';
-import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-post-modal',
@@ -82,7 +81,7 @@ export class PostModal implements AfterViewInit {
   @ViewChild('commentInput') commentInput!: ElementRef<HTMLTextAreaElement>;
   @ViewChildren('videoPlayer') videoPlayers!: QueryList<ElementRef<HTMLVideoElement>>;
 
-  constructor(private postsService: PostsService, private userService: UserService, public auth: Auth, private router: Router) {}
+  constructor(private postsService: PostsService, private userService: UserService, public auth: Auth) {}
 
   ngOnChanges() {
     if (!this.post) return;
