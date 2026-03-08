@@ -28,6 +28,7 @@ export class PostCard {
   username$: Observable<string> = of('Unknown');
   displayName$: Observable<string> = of('Unknown');
   userAvatar$: Observable<string | null> = of(null);
+  userId$: Observable<string> = of('');
 
   liked = false;
   animatingLike = false;
@@ -55,6 +56,7 @@ export class PostCard {
       this.username$ = user$.pipe(map(u => u?.username || 'Unknown'));
       this.displayName$ = user$.pipe(map(u => u?.displayName || 'Unknown'));
       this.userAvatar$ = user$.pipe(map(u => u?.profilePicture || null));
+      this.userId$ = user$.pipe(map(u => u?.userId || ''));
       this.userFetched = true; // only do this once
     }
 

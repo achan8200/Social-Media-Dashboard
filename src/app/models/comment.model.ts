@@ -12,6 +12,7 @@ export interface Comment {
   updatedAt?: any;
 
   username?: string;
+  userId?: string;
   displayName?: string;
   userAvatar?: string | null;
 

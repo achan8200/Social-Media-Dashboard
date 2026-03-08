@@ -435,37 +435,26 @@ export class PostsService {
     const q = query(commentsRef, orderBy('createdAt', 'asc'));
 
     return collectionData(q, { idField: 'id' }).pipe(
-      switchMap((comments: any[]) => {
-        if (!comments.length) return of([]);
-
-        const uids = [...new Set(comments.map(c => c.uid))];
-        const userDocs$ = uids.map(uid =>
-          from(getDoc(doc(this.firestore, `users/${uid}`)))
-        );
-
-        return combineLatest(userDocs$).pipe(
-          map(userSnaps => {
-            const userMap = new Map(
-              userSnaps.map(snap => [
-                snap.id,
-                snap.exists() ? snap.data() : {}
-              ])
-            );
-
-            return comments.map(comment => {
-              const user = userMap.get(comment.uid) || {};
-
-              return {
-                ...comment,
-                likesCount: comment.likesCount || 0,
-                username: user['username'] || 'Unknown',
-                displayName: user['displayName'] || 'Unknown',
-                userAvatar: user['profilePicture'] || null
-              } as Comment;
-            });
-          })
-        );
-      })
+      switchMap(comments => !comments.length ? of([]) : 
+        combineLatest([...new Set(comments.map(c => c['uid']))]
+          .map(uid => from(getDoc(doc(this.firestore, `users/${uid}`)))))
+          .pipe(
+            map(userSnaps => {
+              const userMap = new Map(userSnaps.map(snap => [snap.id, snap.exists() ? snap.data() : {}]));
+              return comments.map(c => {
+                const u = userMap.get(c['uid']) || {};
+                return {
+                  ...c,
+                  likesCount: c['likesCount'] || 0,
+                  username: u['username'] || 'Unknown',
+                  displayName: u['displayName'] || 'Unknown',
+                  userAvatar: u['profilePicture'] || null,
+                  userId: u['userId'] || null
+                } as Comment;
+              });
+            })
+          )
+      )
     );
   }
 

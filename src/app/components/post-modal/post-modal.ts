@@ -12,6 +12,7 @@ import { ConfirmModal } from "../confirm-modal/confirm-modal";
 import { EditPostModal } from "../edit-post-modal/edit-post-modal";
 import { Comment, CommentWithLikes } from '../../models/comment.model';
 import { differenceInSeconds, differenceInMinutes, differenceInHours, differenceInDays, differenceInWeeks } from 'date-fns';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-post-modal',
@@ -38,6 +39,7 @@ export class PostModal implements AfterViewInit {
   username$: Observable<string> = of('Unknown');
   displayName$: Observable<string> = of('Unknown');
   userAvatar$: Observable<string | null> = of(null);
+  userId$: Observable<string> = of('');
 
   selectedPostToDelete: Post | null = null;
   editingPost: Post | null = null;
@@ -80,7 +82,7 @@ export class PostModal implements AfterViewInit {
   @ViewChild('commentInput') commentInput!: ElementRef<HTMLTextAreaElement>;
   @ViewChildren('videoPlayer') videoPlayers!: QueryList<ElementRef<HTMLVideoElement>>;
 
-  constructor(private postsService: PostsService, private userService: UserService, public auth: Auth) {}
+  constructor(private postsService: PostsService, private userService: UserService, public auth: Auth, private router: Router) {}
 
   ngOnChanges() {
     if (!this.post) return;
@@ -89,6 +91,7 @@ export class PostModal implements AfterViewInit {
       this.username$ = user$.pipe(map(u => u?.username || 'Unknown'));
       this.displayName$ = user$.pipe(map(u => u?.displayName || 'Unknown'));
       this.userAvatar$ = user$.pipe(map(u => u?.profilePicture || null));
+      this.userId$ = user$.pipe(map(u => u?.userId || ''));
       this.comments$ = this.postsService.getComments(this.post.id).pipe(
         switchMap(comments => {
           const uid = this.auth.currentUser?.uid;
@@ -599,5 +602,9 @@ export class PostModal implements AfterViewInit {
     return normalized
       .replace(/^[\s\u00A0]+/, '') // remove leading spaces
       .replace(/\n/g, '<br>');
+  }
+
+  onAvatarClick() {
+    this.onClose();
   }
 }

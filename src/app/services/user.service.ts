@@ -3,7 +3,9 @@ import { Firestore, doc, docData } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 
 export interface User {
+  uid?: string;
   username: string;
+  userId: string;
   displayName: string;
   profilePicture?: string;
 }

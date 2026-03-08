@@ -96,7 +96,7 @@
         <!-- Header -->
         <div class="flex justify-between items-center mb-2 flex-shrink-0">
           <div class="flex items-center space-x-3">
-            <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async"></app-avatar>
+            <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async" [userId]="userId$ | async" (clicked)="onAvatarClick()"></app-avatar>
             <span class="font-normal">{{ username$ | async }}</span>
           </div>
           <!-- Author Menu -->
@@ -135,7 +135,7 @@
           <div #commentsContainer class="h-full overflow-y-auto flex flex-col space-y-3 border-t pt-4">
             <div *ngFor="let comment of comments$ | async; trackBy: trackByCommentId" class="flex items-start justify-between">
               <div class="flex items-start space-x-2">
-                <app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username" [imageUrl]="comment.userAvatar"></app-avatar>
+                <app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username" [imageUrl]="comment.userAvatar" [userId]="comment.userId" (clicked)="onAvatarClick()"></app-avatar>
                 <div class="flex flex-col">
                   <span class="font-medium text-sm">{{ comment.username }}</span>
                   <div *ngIf="editingCommentId === comment.id; else normalComment" class="flex items-center space-x-3">
@@ -221,7 +221,7 @@
         <!-- Header -->
         <div class="flex justify-between items-center mb-6">
           <div class="flex items-center space-x-3">
-            <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async"></app-avatar>
+            <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async" [userId]="userId$ | async" (clicked)="onAvatarClick()"></app-avatar>
             <span class="font-normal">{{ username$ | async }}</span>
           </div>
 
@@ -264,7 +264,7 @@
         <div #commentsContainer class="flex-1 h-full min-h-[150px] overflow-y-auto flex flex-col space-y-3 border-t pt-4">
           <div *ngFor="let comment of comments$ | async; trackBy: trackByCommentId" class="flex items-start justify-between">
             <div class="flex items-start space-x-2">
-              <app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username" [imageUrl]="comment.userAvatar"></app-avatar>
+              <app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username" [imageUrl]="comment.userAvatar" [userId]="comment.userId" (clicked)="onAvatarClick()"></app-avatar>
               <div class="flex flex-col">
                 <span class="font-medium text-sm">{{ comment.username }}</span>
                 <div *ngIf="editingCommentId === comment.id; else normalComment" class="flex items-center space-x-3">

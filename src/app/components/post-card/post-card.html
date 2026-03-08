@@ -5,7 +5,7 @@
     <div class="flex items-center justify-between p-4 relative">
       <!-- Left: Avatar + Username -->
       <div class="flex items-center space-x-3">
-        <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async"></app-avatar>
+        <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async" [userId]="userId$ | async"></app-avatar>
         <h3 class="font-normal text-gray-800">{{ username$ | async }}</h3>
       </div>
 
