@@ -16,7 +16,7 @@
       [(ngModel)]="caption"
       (input)="adjustCaptionHeight()"
       placeholder="What's on your mind?" 
-      class="w-full border rounded p-2" 
+      class="w-full border rounded p-2 overflow-y-hidden" 
       rows="4"
       (keydown)="handlePostKeydown($event)">
     </textarea>

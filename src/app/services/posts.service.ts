@@ -261,12 +261,12 @@ export class PostsService {
               error => reject(error),
               async () => {
                 const downloadUrl = await getDownloadURL(storageRef);
-                media.push({
+                media[i] = {
                   url: downloadUrl,
                   path: filePath,
                   type: file.type.startsWith('video') ? 'video' : 'image',
                   ...(file.type.startsWith('video') && { thumbnail: 'assets/video-placeholder.png' })
-                });
+                };
                 if (onProgress) onProgress(i, 100);
                 resolve();
               }
