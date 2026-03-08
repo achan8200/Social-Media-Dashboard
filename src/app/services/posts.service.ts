@@ -614,13 +614,13 @@ export class PostsService {
     );
   }
 
-  // Delete post
+  // Fully delete a post and all its subcollections
   async deletePost(post: Post) {
     const user = this.auth.currentUser;
     if (!user) throw new Error('Not authenticated');
     if (user.uid !== post.uid) throw new Error('Unauthorized delete attempt');
 
-    // Delete media
+    // Delete all media in Storage
     if (post.media?.length) {
       for (const media of post.media) {
         try {
@@ -631,28 +631,49 @@ export class PostsService {
       }
     }
 
-    console.log('currentUser.uid:', this.auth.currentUser?.uid);
-    console.log('post.uid:', post.uid);
+    // Recursively delete likes, comments, and comment likes
+    await this.deletePostRecursive(post.id);
 
-    // Delete Firestore doc
-    await deleteDoc(doc(this.firestore, `posts/${post.id}`));
-
-    // Update local feed & cache
+    // Remove post from local feed & cache
     const updated = this.postsSubject.value.filter(p => p.id !== post.id);
     this.postsSubject.next(updated);
     this.savePostsCache(updated);
 
-    // Remove from seenPosts localStorage if present
+    // Remove from seenPosts if present
     if (this.seenPosts.has(post.id)) {
       this.seenPosts.delete(post.id);
-
       if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.setItem(this.seenPostsKey, JSON.stringify([...this.seenPosts]));
+        localStorage.setItem('seenPosts', JSON.stringify([...this.seenPosts]));
       }
-
-      // Update dashboard state immediately
       this.updateDashboardState();
     }
+  }
+
+  // Helper: Recursively delete all subcollections
+  private async deletePostRecursive(postId: string) {
+    const postDocRef = doc(this.firestore, `posts/${postId}`);
+
+    // Delete likes
+    const likesSnap = await getDocs(collection(this.firestore, `posts/${postId}/likes`));
+    for (const likeDoc of likesSnap.docs) {
+      await deleteDoc(likeDoc.ref);
+    }
+
+    // Delete comments and comment likes
+    const commentsSnap = await getDocs(collection(this.firestore, `posts/${postId}/comments`));
+    for (const commentDoc of commentsSnap.docs) {
+      // Delete comment likes
+      const commentLikesSnap = await getDocs(collection(this.firestore, `posts/${postId}/comments/${commentDoc.id}/likes`));
+      for (const likeDoc of commentLikesSnap.docs) {
+        await deleteDoc(likeDoc.ref);
+      }
+
+      // Delete comment itself
+      await deleteDoc(commentDoc.ref);
+    }
+
+    // Delete the post document itself
+    await deleteDoc(postDocRef);
   }
 
   // Load already seen posts
