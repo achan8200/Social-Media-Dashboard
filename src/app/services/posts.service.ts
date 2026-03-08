@@ -503,16 +503,34 @@ export class PostsService {
     });
   }
 
-  // Delete post comment
+  // Delete a comment and all its subcollections (likes)
   async deleteComment(postId: string, commentId: string) {
-    const ref = doc(this.firestore, `posts/${postId}/comments/${commentId}`);
+    const user = this.auth.currentUser;
+    if (!user) throw new Error('Not authenticated');
 
-    await deleteDoc(ref);
+    const commentRef = doc(this.firestore, `posts/${postId}/comments/${commentId}`);
 
-    await updateDoc(doc(this.firestore, `posts/${postId}`), {
+    // Delete comment likes
+    const likesSnap = await getDocs(collection(this.firestore, `posts/${postId}/comments/${commentId}/likes`));
+    for (const likeDoc of likesSnap.docs) {
+      await deleteDoc(likeDoc.ref);
+    }
+
+    // Delete the comment itself
+    await deleteDoc(commentRef);
+
+    // Update post comment counter
+    const postRef = doc(this.firestore, `posts/${postId}`);
+    await updateDoc(postRef, {
       commentsCount: increment(-1),
       updatedAt: serverTimestamp()
     });
+
+    // Clean up any local state / subjects
+    const key = `${user.uid}_${postId}_${commentId}`;
+    if (this.commentLikesSubjects.has(key)) {
+      this.commentLikesSubjects.delete(key);
+    }
   }
 
   // Observable for comment like state
