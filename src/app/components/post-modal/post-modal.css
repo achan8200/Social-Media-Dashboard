@@ -38,11 +38,3 @@
     transform: scale(1);
   }
 }
-
-textarea {
-  overflow: hidden;
-}
-
-textarea:focus {
-  outline: none;
-}

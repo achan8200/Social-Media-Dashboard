@@ -76,6 +76,7 @@ export class PostModal implements AfterViewInit {
 
   @ViewChild('carouselContainer') carouselContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('commentsContainer') commentsContainer!: ElementRef<HTMLDivElement>;
+  @ViewChild('newCommentInput') newCommentInput!: ElementRef<HTMLTextAreaElement>;
   @ViewChild('commentInput') commentInput!: ElementRef<HTMLTextAreaElement>;
   @ViewChildren('videoPlayer') videoPlayers!: QueryList<ElementRef<HTMLVideoElement>>;
 
@@ -181,6 +182,11 @@ export class PostModal implements AfterViewInit {
     const text = this.newComment.trim();
     this.newComment = '';
 
+    // Reset textarea height
+    requestAnimationFrame(() => {
+      this.adjustNewCommentTextareaHeight();
+    });
+
     try {
       // Local UI update
       if (this.post.commentsCount == null) this.post.commentsCount = 0;
@@ -196,6 +202,12 @@ export class PostModal implements AfterViewInit {
 
   adjustTextareaHeight() {
     const el = this.commentInput.nativeElement;
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }
+
+  adjustNewCommentTextareaHeight() {
+    const el = this.newCommentInput.nativeElement;
     el.style.height = 'auto';
     el.style.height = el.scrollHeight + 'px';
   }

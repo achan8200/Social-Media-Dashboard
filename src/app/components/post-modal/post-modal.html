@@ -199,12 +199,12 @@
 
         <!-- Comment Input (outside scrollable container) -->
         <div class="flex-shrink-0 mt-3 flex border-t pt-3">
-          <textarea #commentInput
+          <textarea #newCommentInput
             [(ngModel)]="newComment" 
             placeholder="Add a comment..."
             rows="1"
-            class="flex-1 border px-3 py-2 rounded text-sm resize-none" 
-            (input)="adjustTextareaHeight()"
+            class="min-h-10 flex-1 border px-3 py-2 rounded text-sm resize-none overflow-y-hidden" 
+            (input)="adjustNewCommentTextareaHeight()"
             (keydown)="handleCommentKeydown($event)"></textarea>
           <button (click)="submitComment()" 
             class="ml-2 font-medium"
@@ -325,12 +325,12 @@
 
         <!-- Comment Input -->
         <div class="mt-3 flex border-t pt-3 flex-shrink-0">
-          <textarea #commentInput
+          <textarea #newCommentInput
             [(ngModel)]="newComment" 
             placeholder="Add a comment..." 
             rows="1"
-            class="flex-1 border px-3 py-2 rounded text-sm resize-none" 
-            (input)="adjustTextareaHeight()"
+            class="min-h-10 flex-1 border px-3 py-2 rounded text-sm resize-none overflow-y-hidden" 
+            (input)="adjustNewCommentTextareaHeight()"
             (keydown)="handleCommentKeydown($event)"></textarea>
           <button (click)="submitComment()" 
             class="ml-2 font-medium"
