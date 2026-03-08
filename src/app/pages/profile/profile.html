@@ -164,9 +164,22 @@
 
           <!-- Caption-only post -->
           <ng-template #captionOnlyPost>
-            <div (click)="openPostModal(post)"
-              class="flex items-center justify-center bg-white rounded p-2 cursor-pointer text-center text-sm text-gray-700  whitespace-pre-wrap break-words">
-              {{ post.caption }}
+            <div
+              (click)="openPostModal(post)"
+              class="relative aspect-square bg-white rounded overflow-hidden cursor-pointer">
+              <div class="absolute inset-3 flex items-center justify-center p-2">
+                <p class="text-center text-sm text-gray-700 whitespace-pre-wrap break-words">
+                  {{ post.caption }}
+                </p>
+              </div>
+              <!-- Top fade overlay -->
+              <div class="pointer-events-none absolute top-0 left-0 right-0 h-16
+                          bg-gradient-to-b from-white to-transparent">
+              </div>
+              <!-- Bottom fade overlay -->
+              <div class="pointer-events-none absolute bottom-0 left-0 right-0 h-16
+                          bg-gradient-to-t from-white to-transparent">
+              </div>
             </div>
           </ng-template>
         </ng-container>
