@@ -94,7 +94,7 @@
       <div class="w-full md:w-96 p-4 flex flex-col max-h-[40vh] md:max-h-[90vh]">
 
         <!-- Header -->
-        <div class="flex justify-between items-center mb-2">
+        <div class="flex justify-between items-center mb-2 flex-shrink-0">
           <div class="flex items-center space-x-3">
             <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async"></app-avatar>
             <span class="font-normal">{{ username$ | async }}</span>
@@ -114,17 +114,17 @@
         </div>
 
         <!-- Caption -->
-        <p class="text-sm mb-4" [innerHTML]="formattedCaption"></p>
+        <p class="text-sm mb-4 overflow-y-auto max-h-[20vh]" [innerHTML]="formattedCaption"></p>
 
         <!-- Actions -->
         <div class="flex items-center space-x-6 mb-4 text-sm">
           <button (click)="likePost()" 
-            class="text-red-500 font-medium flex items-center space-x-1"
+            class="flex-shrink-0 text-red-500 font-medium flex items-center space-x-1"
             [class.text-red-500]="(liked$ | async)">
             <span class="like-heart" [class.like-pop]="animatingLike">{{ (liked$ | async) ? '❤️' : '🤍' }}</span>
             <span>{{ likesCount$ | async }}</span>
           </button>
-          <div class="flex items-center space-x-1 text-gray-600">
+          <div class="flex-shrink-0 flex items-center space-x-1 text-gray-600">
             <span>💬</span>
             <span>{{ post.commentsCount }}</span>
           </div>
@@ -240,10 +240,12 @@
         </div>
 
         <!-- Caption -->
-        <p class="text-lg leading-relaxed mb-6 text-gray-800" [innerHTML]="formattedCaption"></p>
+        <div class="flex-1 overflow-y-auto mb-4">
+          <p class="text-lg leading-relaxed text-gray-800" [innerHTML]="formattedCaption"></p>
+        </div>
 
         <!-- Actions -->
-        <div class="flex items-center space-x-6 mb-6 text-sm">
+        <div class="flex items-center space-x-6 mb-6 text-sm flex-shrink-0">
           <button (click)="likePost()"
             class="text-red-500 font-medium flex items-center space-x-1"
             [class.text-red-500]="(liked$ | async)">
@@ -256,69 +258,67 @@
           </div>
         </div>
 
-        <div class="relative flex-1 min-h-0">
-          <!-- Scrollable Comments -->
-          <div #commentsContainer class="h-full min-h-[200px] overflow-y-auto flex flex-col space-y-3 border-t pt-4">
-            <div *ngFor="let comment of comments$ | async; trackBy: trackByCommentId" class="flex items-start justify-between">
-              <div class="flex items-start space-x-2">
-                <app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username" [imageUrl]="comment.userAvatar"></app-avatar>
-                <div class="flex flex-col">
-                  <span class="font-medium text-sm">{{ comment.username }}</span>
-                  <div *ngIf="editingCommentId === comment.id; else normalComment" class="flex items-center space-x-3">
-                    <textarea [(ngModel)]="editingText"
-                      class="border px-2 py-1 text-sm rounded flex-1 resize-none whitespace-pre-wrap" 
-                      rows="3"
-                      (input)="adjustTextareaHeight()">
-                    </textarea>
-                    <button (click)="saveEdit(comment)" class="text-blue-500 text-sm hover:underline" [disabled]="!editingText.trim()">Save</button>
-                    <button (click)="cancelEditComment()" class="text-gray-500 text-sm hover:underline">Cancel</button>
+        <!-- Scrollable Comments -->
+        <div #commentsContainer class="flex-1 h-full min-h-[150px] overflow-y-auto flex flex-col space-y-3 border-t pt-4">
+          <div *ngFor="let comment of comments$ | async; trackBy: trackByCommentId" class="flex items-start justify-between">
+            <div class="flex items-start space-x-2">
+              <app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username" [imageUrl]="comment.userAvatar"></app-avatar>
+              <div class="flex flex-col">
+                <span class="font-medium text-sm">{{ comment.username }}</span>
+                <div *ngIf="editingCommentId === comment.id; else normalComment" class="flex items-center space-x-3">
+                  <textarea [(ngModel)]="editingText"
+                    class="border px-2 py-1 text-sm rounded flex-1 resize-none whitespace-pre-wrap" 
+                    rows="3"
+                    (input)="adjustTextareaHeight()">
+                  </textarea>
+                  <button (click)="saveEdit(comment)" class="text-blue-500 text-sm hover:underline" [disabled]="!editingText.trim()">Save</button>
+                  <button (click)="cancelEditComment()" class="text-gray-500 text-sm hover:underline">Cancel</button>
+                </div>
+                <ng-template #normalComment>
+                  <span class="text-xs text-gray-700 break-words whitespace-pre-wrap">{{ comment.text }}</span>
+                  <div class="flex items-center space-x-2 mt-1 text-xs text-gray-400">
+                    <span>{{ getRelativeTime(comment.createdAt) }}</span>
+                    <button class="ml-2 flex items-center space-x-1"
+                      (click)="toggleCommentLike(comment)">
+                      <span class="like-heart" [class.like-pop]="animatingCommentLike[comment.id!]">
+                        {{ (comment.liked$ | async) ? '❤️' : '🤍' }}
+                      </span>
+                      <span *ngIf="comment.likesCount !== undefined && comment.likesCount > 0"
+                        class="transition-opacity duration-150"
+                        [style.opacity]="comment.likesCount > 0 ? 1 : 0">
+                        {{ comment.likesCount === 1 ? '1 like' : comment.likesCount + ' likes' }}
+                      </span>
+                    </button>
                   </div>
-                  <ng-template #normalComment>
-                    <span class="text-xs text-gray-700 break-words whitespace-pre-wrap">{{ comment.text }}</span>
-                    <div class="flex items-center space-x-2 mt-1 text-xs text-gray-400">
-                      <span>{{ getRelativeTime(comment.createdAt) }}</span>
-                      <button class="ml-2 flex items-center space-x-1"
-                              (click)="toggleCommentLike(comment)">
-                        <span class="like-heart" [class.like-pop]="animatingCommentLike[comment.id!]">
-                          {{ (comment.liked$ | async) ? '❤️' : '🤍' }}
-                        </span>
-                        <span *ngIf="comment.likesCount !== undefined && comment.likesCount > 0"
-                            class="transition-opacity duration-150"
-                            [style.opacity]="comment.likesCount > 0 ? 1 : 0">
-                            {{ comment.likesCount === 1 ? '1 like' : comment.likesCount + ' likes' }}
-                        </span>
-                      </button>
-                    </div>
-                  </ng-template>
-                </div>
+                </ng-template>
               </div>
-              <!-- Author Controls Dropdown for Comment -->
-              <div *ngIf="comment.uid === auth.currentUser?.uid" class="relative">
-                <!-- Trigger button -->
-                <button (click)="toggleCommentMenu(comment.id!)"
-                        [class.bg-gray-300]="isCommentMenuOpen(comment.id!)"
-                        class="comment-menu-toggle text-gray-500 text-sm w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 hover:text-black transition">
-                  <span class="relative -top-[1px]">⋯</span>
-                </button>
+            </div>
 
-                <!-- Dropdown menu -->
-                <div *ngIf="isCommentMenuOpen(comment.id!)"
-                    class="comment-menu absolute right-0 mt-1 w-28 bg-white border rounded shadow-lg z-50 text-sm">
-                  <button (click)="startEdit(comment)" class="block w-full text-left px-3 py-1 hover:bg-gray-100">Edit</button>
-                  <button (click)="deleteComment(comment)" class="block w-full text-left px-3 py-1 text-red-600 hover:bg-gray-100">Delete</button>
-                </div>
+            <!-- Author Controls Dropdown for Comment -->
+            <div *ngIf="comment.uid === auth.currentUser?.uid" class="relative">
+              <!-- Trigger button -->
+              <button (click)="toggleCommentMenu(comment.id!)"
+                [class.bg-gray-300]="isCommentMenuOpen(comment.id!)"
+                class="comment-menu-toggle text-gray-500 text-sm w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 hover:text-black transition">
+                <span class="relative -top-[1px]">⋯</span>
+              </button>
+
+              <!-- Dropdown menu -->
+              <div *ngIf="isCommentMenuOpen(comment.id!)"
+                class="comment-menu absolute right-0 mt-1 w-28 bg-white border rounded shadow-lg z-50 text-sm">
+                <button (click)="startEdit(comment)" class="block w-full text-left px-3 py-1 hover:bg-gray-100">Edit</button>
+                <button (click)="deleteComment(comment)" class="block w-full text-left px-3 py-1 text-red-600 hover:bg-gray-100">Delete</button>
               </div>
             </div>
           </div>
-
-          <!-- New comments button -->
-          <button
-            *ngIf="showNewCommentsButton"
-            (click)="jumpToBottom()"
-            class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-xs px-3 py-1 rounded-full shadow hover:bg-blue-600 transition">
-            ↓ New comments
-          </button>
         </div>
+
+        <!-- New comments button -->
+        <button *ngIf="showNewCommentsButton"
+          (click)="jumpToBottom()"
+          class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-xs px-3 py-1 rounded-full shadow hover:bg-blue-600 transition">
+          ↓ New comments
+        </button>
 
         <!-- Comment Input -->
         <div class="mt-3 flex border-t pt-3 flex-shrink-0">

@@ -97,8 +97,13 @@ export class PostCard {
   get formattedCaption(): string {
     if (!this.post?.caption) return '';
     
+    const escaped = this.post.caption
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+      
     // Normalize Windows \r\n to \n
-    const normalized = this.post.caption.replace(/\r\n/g, '\n');
+    const normalized = escaped.replace(/\r\n/g, '\n');
 
     // Remove leading whitespace and convert newlines to <br>
     return normalized

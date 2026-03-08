@@ -223,18 +223,38 @@ export class PostModal implements AfterViewInit {
     this.editingText = '';
   }
 
-  async deleteComment(comment: Comment) {
+  async deleteComment(comment: CommentWithLikes) {
     if (!this.post) return;
 
-    // Local UI update
+    // Optimistic UI update
+    this.comments$ = this.comments$.pipe(
+      map(comments =>
+        comments.filter(c => c.id !== comment.id) as CommentWithLikes[]
+      )
+    );
+
     if (this.post.commentsCount && this.post.commentsCount > 0) {
       this.post.commentsCount--;
     }
 
-    await this.postsService.deleteComment(
-      this.post.id,
-      comment.id!
-    );
+    try {
+      await this.postsService.deleteComment(this.post.id, comment.id!);
+    } catch (err) {
+      console.error(err);
+      // Optional rollback: refetch comments
+      this.comments$ = this.postsService.getComments(this.post.id).pipe(
+        switchMap(comments => {
+          const uid = this.auth.currentUser?.uid;
+          if (!uid) return of(comments.map(c => ({ ...c, liked$: of(false) })));
+          const commentsWithLikes$ = comments.map(c =>
+            this.postsService.getCommentLike(this.post!.id, c.id!).pipe(
+              map(liked => ({ ...c, liked$: of(liked) }))
+            )
+          );
+          return combineLatest(commentsWithLikes$);
+        })
+      );
+    }
   }
 
   async toggleCommentLike(comment: CommentWithLikes) {
