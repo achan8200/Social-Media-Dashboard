@@ -129,6 +129,14 @@ export class PostModal implements AfterViewInit {
     });
   }
 
+  ngOnInit() {
+    document.body.style.overflow = 'hidden';
+  }
+
+  ngOnDestroy() {
+    document.body.style.overflow = '';
+  }
+
   get currentMedia(): PostMedia | null {
     if (!this.post?.media || this.post.media.length === 0) return null;
     return this.post.media[this.currentMediaIndex];
