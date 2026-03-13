@@ -1,6 +1,6 @@
 import { Component, Input, Output, EventEmitter, ViewChild, ViewChildren, QueryList, ElementRef, HostListener, AfterViewInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { PostsService } from '../../services/posts.service';
 import { Post, PostMedia } from '../../models/post.model';
@@ -84,7 +84,7 @@ export class PostModal implements AfterViewInit {
   @ViewChild('commentInput') commentInput!: ElementRef<HTMLTextAreaElement>;
   @ViewChildren('videoPlayer') videoPlayers!: QueryList<ElementRef<HTMLVideoElement>>;
 
-  constructor(private postsService: PostsService, private userService: UserService, public auth: Auth) {}
+  constructor(private postsService: PostsService, private userService: UserService, public auth: Auth, private router: Router) {}
 
   ngOnChanges() {
     if (!this.post) return;
@@ -611,6 +611,10 @@ export class PostModal implements AfterViewInit {
 
   onAvatarClick() {
     this.onClose();
+
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100);
   }
 
   // Call this whenever currentMedia changes

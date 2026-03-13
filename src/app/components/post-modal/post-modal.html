@@ -91,7 +91,7 @@
         <div class="flex justify-between items-center mb-2 flex-shrink-0">
           <div class="flex items-center space-x-3">
             <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async" [userId]="userId$ | async" (clicked)="onAvatarClick()"></app-avatar>
-            <a [routerLink]="['/profile', userId$ | async]" class="font-normal hover:text-gray-600 transition-colors" (click)="onClose(); $event.stopPropagation()">
+            <a [routerLink]="['/profile', userId$ | async]" class="font-normal hover:text-gray-600 transition-colors" (click)="onAvatarClick()">
               {{ username$ | async }}
             </a>
           </div>
@@ -133,7 +133,7 @@
               <div class="flex items-start space-x-2">
                 <app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username" [imageUrl]="comment.userAvatar" [userId]="comment.userId" (clicked)="onAvatarClick()"></app-avatar>
                 <div class="flex flex-col">
-                  <a [routerLink]="['/profile', comment.userId]" class="font-medium text-sm hover:text-gray-600 transition-colors" (click)="onClose(); $event.stopPropagation()">
+                  <a [routerLink]="['/profile', comment.userId]" class="font-medium text-sm hover:text-gray-600 transition-colors" (click)="onAvatarClick()">
                     {{ comment.username }}
                   </a>
                   <div *ngIf="editingCommentId === comment.id; else normalComment" class="flex items-center space-x-3">
@@ -220,7 +220,7 @@
         <div class="flex justify-between items-center mb-6">
           <div class="flex items-center space-x-3">
             <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async" [userId]="userId$ | async" (clicked)="onAvatarClick()"></app-avatar>
-            <a [routerLink]="['/profile', userId$ | async]" class="font-normal hover:text-gray-600 transition-colors" (click)="onClose(); $event.stopPropagation()">
+            <a [routerLink]="['/profile', userId$ | async]" class="font-normal hover:text-gray-600 transition-colors" (click)="onAvatarClick()">
               {{ username$ | async }}
             </a>
           </div>
@@ -266,7 +266,7 @@
             <div class="flex items-start space-x-2">
               <app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username" [imageUrl]="comment.userAvatar" [userId]="comment.userId" (clicked)="onAvatarClick()"></app-avatar>
               <div class="flex flex-col">
-                <a [routerLink]="['/profile', comment.userId]" class="font-medium text-sm hover:text-gray-600 transition-colors" (click)="onClose(); $event.stopPropagation()">
+                <a [routerLink]="['/profile', comment.userId]" class="font-medium text-sm hover:text-gray-600 transition-colors" (click)="onAvatarClick()">
                   {{ comment.username }}
                 </a>
                 <div *ngIf="editingCommentId === comment.id; else normalComment" class="flex items-center space-x-3">
