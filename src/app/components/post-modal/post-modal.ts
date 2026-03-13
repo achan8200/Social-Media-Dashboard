@@ -110,6 +110,16 @@ export class PostModal implements AfterViewInit {
       );
     }
 
+    const media = this.post?.media;
+
+    if (media && media.length > 0) {
+      this.preloadMedia(media[0]);
+    }
+
+    if (media && media.length > 1) {
+      this.preloadMedia(media[1]);
+    }
+
     // Subscribe to liked state
     this.liked$ = this.postsService.getPostLike(this.post.id);
 
@@ -144,6 +154,21 @@ export class PostModal implements AfterViewInit {
 
   hasMultipleMedia(): boolean {
     return !!this.post?.media && this.post.media.length > 1;
+  }
+
+  preloadMedia(media?: PostMedia) {
+    if (!media) return;
+
+    if (media.type === 'image') {
+      const img = new Image();
+      img.src = media.url;
+    }
+
+    if (media.type === 'video') {
+      const video = document.createElement('video');
+      video.src = media.url;
+      video.preload = 'metadata';
+    }
   }
 
   nextMedia() {
