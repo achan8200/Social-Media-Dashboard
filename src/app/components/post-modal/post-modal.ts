@@ -1,5 +1,6 @@
 import { Component, Input, Output, EventEmitter, ViewChild, ViewChildren, QueryList, ElementRef, HostListener, AfterViewInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { PostsService } from '../../services/posts.service';
 import { Post, PostMedia } from '../../models/post.model';
@@ -16,7 +17,7 @@ import { differenceInSeconds, differenceInMinutes, differenceInHours, difference
 @Component({
   selector: 'app-post-modal',
   standalone: true,
-  imports: [CommonModule, Avatar, ConfirmModal, EditPostModal, FormsModule],
+  imports: [CommonModule, Avatar, ConfirmModal, EditPostModal, FormsModule, RouterModule],
   templateUrl: './post-modal.html',
   styleUrls: ['./post-modal.css'],
   animations: [

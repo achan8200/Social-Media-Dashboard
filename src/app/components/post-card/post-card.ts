@@ -1,5 +1,6 @@
 import { Component, ElementRef, EventEmitter, HostListener, Input, Output, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { Post, PostMedia } from '../../models/post.model';
 import { Avatar } from '../avatar/avatar';
 import { UserService } from '../../services/user.service';
@@ -10,7 +11,7 @@ import { PostsService } from '../../services/posts.service';
 @Component({
   selector: 'app-post-card',
   standalone: true,
-  imports: [CommonModule, Avatar],
+  imports: [CommonModule, Avatar, RouterModule],
   templateUrl: './post-card.html',
   styleUrls: ['./post-card.css']
 })
