@@ -182,6 +182,21 @@ export class PostModal implements AfterViewInit {
     return this.post?.media?.[0]?.url;
   }
 
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboard(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      this.onClose();
+    }
+
+    if (event.key === 'ArrowRight') {
+      this.nextMedia();
+    }
+
+    if (event.key === 'ArrowLeft') {
+      this.prevMedia();
+    }
+  }
+
   async likePost(): Promise<void> {
     if (!this.post) return;
 
