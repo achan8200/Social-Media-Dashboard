@@ -1,27 +1,39 @@
-<div class="flex items-center justify-center min-h-screen">
-  <div class="w-80 space-y-4">
-    <h1 class="text-xl font-bold">Sign Up</h1>
+<div class="h-screen flex items-center justify-center px-4 overflow-hidden">
 
+  <div class="w-full max-w-md bg-white shadow-xl rounded-2xl p-10 space-y-6 -translate-y-10 overflow-y-auto max-h-[90vh]">
+
+    <!-- Title -->
+    <div class="text-center">
+      <h1 class="text-3xl font-bold text-gray-900">Create Account</h1>
+      <p class="text-gray-500 text-sm mt-1">Join the community</p>
+    </div>
+
+    <!-- Signup Form -->
     <form (ngSubmit)="signup()" class="space-y-4">
+
+      <!-- Email -->
       <div class="relative">
         <input
           type="email"
-          class="w-full border p-2 rounded"
+          class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
           placeholder="Email"
           [(ngModel)]="email"
           (input)="validateEmail()"
           name="email"
           required
         />
+
         <span *ngIf="email && !emailError"
-          class="absolute right-2 top-1/2 -translate-y-1/2 text-green-500">
+          class="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">
           ✔
         </span>
       </div>
+
       <p *ngIf="emailError" class="text-red-500 text-sm">
         {{ emailError }}
       </p>
 
+      <!-- Password -->
       <div class="relative">
         <input
           [type]="showPassword ? 'text' : 'password'"
@@ -30,19 +42,19 @@
           name="password"
           placeholder="Password"
           required
-          class="w-full border p-2 rounded pr-10"
+          class="w-full border border-gray-300 p-3 rounded-lg pr-10 focus:ring-2 focus:ring-blue-500 focus:outline-none"
         />
 
         <button
           type="button"
           (click)="togglePasswordVisibility()"
-          class="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-500 hover:text-gray-700"
-          aria-label="Toggle password visibility"
+          class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
         >
           {{ showPassword ? '👁️‍🗨️' : '👁️' }}
         </button>
       </div>
 
+      <!-- Password Requirements -->
       <ul class="text-sm space-y-1">
         <li [class.text-green-600]="passwordStrength.length"
             [class.text-gray-400]="!passwordStrength.length">
@@ -65,10 +77,12 @@
           • One special character
         </li>
       </ul>
+
       <p *ngIf="passwordError" class="text-red-500 text-sm">
         {{ passwordError }}
       </p>
 
+      <!-- Confirm Password -->
       <div class="relative">
         <input
           [type]="showPassword ? 'text' : 'password'"
@@ -76,10 +90,11 @@
           (input)="validateConfirmPassword()"
           name="confirmPassword"
           placeholder="Confirm password"
-          class="w-full border p-2 rounded pr-10"
+          class="w-full border border-gray-300 p-3 rounded-lg pr-10 focus:ring-2 focus:ring-blue-500 focus:outline-none"
         />
+
         <span *ngIf="confirmPassword && !confirmPasswordError"
-          class="absolute right-2 top-1/2 -translate-y-1/2 text-green-500">
+          class="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">
           ✔
         </span>
       </div>
@@ -88,10 +103,11 @@
         {{ confirmPasswordError }}
       </p>
 
+      <!-- Username -->
       <div class="relative">
         <input
           type="text"
-          class="w-full border p-2 rounded pr-10"
+          class="w-full border border-gray-300 p-3 rounded-lg pr-10 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           placeholder="Username"
           [(ngModel)]="username"
           (input)="validateUsername()"
@@ -101,58 +117,68 @@
 
         <!-- Spinner -->
         <div *ngIf="usernameChecking"
-            class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center w-4 h-4">
+            class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-4 h-4">
           <div class="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
         </div>
 
-        <!-- Success checkmark -->
+        <!-- Check -->
         <span *ngIf="usernameValid && !usernameChecking"
-              class="absolute right-2 top-1/2 -translate-y-1/2 text-green-500">
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">
           ✔
         </span>
       </div>
+
       <p *ngIf="usernameError" class="text-red-500 text-sm">
         {{ usernameError }}
       </p>
 
+      <!-- Display Name -->
       <div class="relative">
         <input
           type="text"
-          class="w-full border p-2 rounded"
+          class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
           placeholder="Display Name"
           [(ngModel)]="displayName"
           (input)="validateDisplayName()"
           name="displayName"
           required
         />
+
         <span *ngIf="displayName && !displayNameError"
-          class="absolute right-2 top-1/2 -translate-y-1/2 text-green-500">
+          class="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">
           ✔
         </span>
       </div>
+
       <p *ngIf="displayNameError" class="text-red-500 text-sm">
         {{ displayNameError }}
       </p>
 
+      <!-- Submit -->
       <button
         type="submit"
         [disabled]="!isFormValid || usernameChecking"
-        class="w-full transition-colors duration-200 bg-green-600 text-white p-2 rounded 
-              hover:bg-green-700
-              disabled:bg-gray-400
-              disabled:cursor-not-allowed
-              disabled:hover:bg-gray-400"
+        class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition
+              disabled:bg-gray-400 disabled:cursor-not-allowed"
       >
         Create Account
       </button>
+
     </form>
 
-    <p *ngIf="error" class="text-red-500 text-sm">
+    <!-- Error -->
+    <p *ngIf="error" class="text-red-500 text-sm text-center">
       {{ error }}
     </p>
 
-    <a routerLink="/login" class="text-sm text-blue-600 underline">
-      Back to login
-    </a>
+    <!-- Back to login -->
+    <p class="text-center text-sm text-gray-500">
+      Already have an account?
+      <a routerLink="/login" class="text-blue-600 hover:underline font-medium">
+        Sign in
+      </a>
+    </p>
+
   </div>
+
 </div>
