@@ -1,5 +1,18 @@
 <div class="flex-1 p-4 max-w-4xl mx-auto">
-  <h1 class="text-2xl font-semibold mb-4">Connections</h1>
+  <h1 class="text-2xl font-semibold mb-4">
+    <ng-container *ngIf="isOwnProfile; else otherUser">
+      Connections
+    </ng-container>
+
+    <ng-template #otherUser>
+      <ng-container *ngIf="profileUsername$ | async as profileUsername; else loading">
+        {{ profileUsername }}{{ profileUsername.endsWith('s') ? '’' : "'s" }} connections
+      </ng-container>
+      <ng-template #loading>
+        Connections
+      </ng-template>
+    </ng-template>
+  </h1>
 
   <!-- Tabs -->
   <div class="flex border-b mb-6">

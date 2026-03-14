@@ -45,6 +45,7 @@ export class Connections implements OnInit, OnDestroy {
   profileUserId: string | null = null;
   currentUserId: string | null = null;
   isOwnProfile: boolean = false;
+  profileUsername$: Observable<string> | null = null;
 
   private destroy$ = new Subject<void>();
 
@@ -93,12 +94,23 @@ export class Connections implements OnInit, OnDestroy {
       const usersRef = collection(this.firestore, 'users');
       const q = query(usersRef, where('username', '==', username));
       const snapshot = await getDocs(q);
+
       if (!snapshot.empty) {
         this.profileUserId = snapshot.docs[0].id;
       }
     } else {
       // Own profile
       this.profileUserId = this.currentUserId;
+    }
+
+    // Determine if viewing own profile
+    this.isOwnProfile = this.profileUserId === this.currentUserId;
+
+    // Only fetch username observable for header if not own profile
+    if (!this.isOwnProfile && this.profileUserId) {
+      this.profileUsername$ = this.userService.getUserByUid(this.profileUserId).pipe(
+        map(user => user?.username ?? 'Unknown')
+      );
     }
   }
 
