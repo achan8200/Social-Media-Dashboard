@@ -96,16 +96,25 @@ export class PostModal implements AfterViewInit {
       this.userId$ = user$.pipe(map(u => u?.userId || ''));
       this.comments$ = this.postsService.getComments(this.post.id).pipe(
         switchMap(comments => {
-          const uid = this.auth.currentUser?.uid;
-          if (!uid) return of(comments.map(c => ({ ...c, liked$: of(false) })));
+          return combineLatest(
+            comments.map(comment => {
+              // Get the Observable for the user
+              const user$ = this.userService.getUserByUid(comment.uid);
 
-          const commentsWithLikes$ = comments.map(comment => 
-            this.postsService.getCommentLike(this.post!.id, comment.id!).pipe(
-              map(liked => ({ ...comment, liked$ : of(liked) }))
-            )
+              // Get Observable for whether the comment is liked
+              const liked$ = this.postsService.getCommentLike(this.post!.id, comment.id!);
+
+              // Combine them to produce a comment with reactive user info
+              return combineLatest([user$, liked$]).pipe(
+                map(([user, liked]) => ({
+                  ...comment,
+                  username$: of(user?.username ?? 'Unknown'),      // wrap plain values in of()
+                  userAvatar$: of(user?.profilePicture ?? null),
+                  liked$,
+                }))
+              );
+            })
           );
-
-          return combineLatest(commentsWithLikes$);
         })
       );
     }

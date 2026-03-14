@@ -131,10 +131,10 @@
           <div #commentsContainer class="h-full overflow-y-auto flex flex-col space-y-3 border-t pt-4">
             <div *ngFor="let comment of comments$ | async; trackBy: trackByCommentId" class="flex items-start justify-between">
               <div class="flex items-start space-x-2">
-                <app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username" [imageUrl]="comment.userAvatar" [userId]="comment.userId" (clicked)="onAvatarClick()"></app-avatar>
+                <app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username$ | async" [imageUrl]="comment.userAvatar$ | async" [userId]="comment.userId" (clicked)="onAvatarClick()"></app-avatar>
                 <div class="flex flex-col">
                   <a [routerLink]="['/profile', comment.userId]" class="font-medium text-sm hover:text-gray-600 transition-colors" (click)="onAvatarClick()">
-                    {{ comment.username }}
+                    {{ comment.username$ | async }}
                   </a>
                   <div *ngIf="editingCommentId === comment.id; else normalComment" class="flex items-center space-x-3">
                     <textarea #commentInput
@@ -264,10 +264,10 @@
         <div #commentsContainer class="flex-1 h-full min-h-[150px] overflow-y-auto flex flex-col space-y-3 border-t pt-4">
           <div *ngFor="let comment of comments$ | async; trackBy: trackByCommentId" class="flex items-start justify-between">
             <div class="flex items-start space-x-2">
-              <app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username" [imageUrl]="comment.userAvatar" [userId]="comment.userId" (clicked)="onAvatarClick()"></app-avatar>
+              <app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username$ | async" [imageUrl]="comment.userAvatar$ | async" [userId]="comment.userId" (clicked)="onAvatarClick()"></app-avatar>
               <div class="flex flex-col">
                 <a [routerLink]="['/profile', comment.userId]" class="font-medium text-sm hover:text-gray-600 transition-colors" (click)="onAvatarClick()">
-                  {{ comment.username }}
+                  {{ comment.username$ | async }}
                 </a>
                 <div *ngIf="editingCommentId === comment.id; else normalComment" class="flex items-center space-x-3">
                   <textarea #commentInput

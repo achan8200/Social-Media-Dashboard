@@ -2,6 +2,8 @@ import { Observable } from 'rxjs';
 
 export interface CommentWithLikes extends Comment {
   liked$: Observable<boolean>;
+  username$?: Observable<string>;
+  userAvatar$?: Observable<string | null>;
 }
 
 export interface Comment {
