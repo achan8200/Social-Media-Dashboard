@@ -2,7 +2,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { Home } from './pages/home/home';
 import { Messages } from './pages/messages/messages';
-import { Friends } from './pages/friends/friends';
+import { Connections } from './pages/connections/connections';
 import { Groups } from './pages/groups/groups';
 import { Login } from './components/login/login';
 import { Signup } from './components/signup/signup';
@@ -13,7 +13,8 @@ import { Profile } from './pages/profile/profile';
 export const routes: Routes = [
   { path: 'home', component: Home, canActivate: [AuthGuard] },
   { path: 'messages', component: Messages, canActivate: [AuthGuard] },
-  { path: 'friends', component: Friends, canActivate: [AuthGuard] },
+  { path: 'connections/:username', component: Connections }, // public view
+  { path: 'connections', component: Connections, canActivate: [AuthGuard] }, // your own
   { path: 'groups', component: Groups, canActivate: [AuthGuard] },
   { path: 'login', component: Login, canActivate: [GuestGuard] },
   { path: 'signup', component: Signup, canActivate: [GuestGuard] },

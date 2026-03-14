@@ -9,5 +9,5 @@ import { RouterModule } from '@angular/router';
   styleUrls: ['./sidebar.css']
 })
 export class Sidebar {
-  navItems = ['Home', 'Messages', 'Friends', 'Groups'];
+  navItems = ['Home', 'Messages', 'Connections', 'Groups'];
 }

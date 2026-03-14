@@ -1,0 +1,67 @@
+<div class="flex-1 p-4 max-w-2xl mx-auto">
+  <h1 class="text-2xl font-bold mb-6">Connections</h1>
+
+  <!-- Tabs -->
+  <div class="flex border-b mb-4">
+
+    <button
+      (click)="switchTab('followers')"
+      [class.border-blue-600]="activeTab === 'followers'"
+      class="px-4 py-2 border-b-2 font-medium">
+      Followers
+    </button>
+
+    <button
+      (click)="switchTab('following')"
+      [class.border-blue-600]="activeTab === 'following'"
+      class="px-4 py-2 border-b-2 font-medium">
+      Following
+    </button>
+
+  </div>
+
+  <div class="space-y-3">
+    <div *ngFor="let user of users"
+         class="flex items-center justify-between bg-white p-3 rounded shadow">
+      <div class="flex items-center gap-3">
+        <app-avatar
+          [userId]="user.userId"
+          [username]="user.username"
+          [imageUrl]="user.profilePicture">
+        </app-avatar>
+        <div>
+          <p class="font-medium">{{ user.displayName }}</p>
+          <p class="text-sm text-gray-500">@{{ user.username }}</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <!-- Followers tab: Follow + X -->
+        <ng-container *ngIf="activeTab === 'followers'">
+          <button
+            *ngIf="!user.following"
+            (click)="follow(user.uid)"
+            class="px-3 py-1 text-sm rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200">
+            Follow back
+          </button>
+
+          <button
+            (click)="removeFollower(user.uid)"
+            class="px-2 py-1 text-sm rounded-lg text-gray-500 hover:bg-gray-200 transition-colors duration-200">
+            ✕
+          </button>
+        </ng-container>
+
+        <!-- Following tab: Unfollow -->
+        <ng-container *ngIf="activeTab === 'following'">
+          <button
+            (click)="unfollow(user.uid)"
+            class="px-2 py-1 text-sm rounded-lg text-gray-500 hover:bg-gray-200 transition-colors duration-200">
+            ✕
+          </button>
+        </ng-container>
+      </div>
+
+    </div>
+  </div>
+</div>
