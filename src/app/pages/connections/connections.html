@@ -36,29 +36,32 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <!-- Followers tab: Follow + X -->
-        <ng-container *ngIf="activeTab === 'followers'">
-          <button
-            *ngIf="!user.following"
-            (click)="follow(user.uid)"
-            class="px-3 py-1 text-sm rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200">
-            Follow back
-          </button>
+        <!-- Only show buttons if own profile -->
+        <ng-container *ngIf="isOwnProfile">
+          <!-- Followers tab: Follow + X -->
+          <ng-container *ngIf="activeTab === 'followers'">
+            <button
+              *ngIf="!user.following"
+              (click)="follow(user.uid)"
+              class="px-3 py-1 text-sm rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200">
+              Follow back
+            </button>
 
-          <button
-            (click)="removeFollower(user.uid)"
-            class="px-2 py-1 text-sm rounded-lg text-gray-500 hover:bg-gray-200 transition-colors duration-200">
-            ✕
-          </button>
-        </ng-container>
+            <button
+              (click)="removeFollower(user.uid)"
+              class="px-2 py-1 text-sm rounded-lg text-gray-500 hover:bg-gray-200 transition-colors duration-200">
+              ✕
+            </button>
+          </ng-container>
 
-        <!-- Following tab: Unfollow -->
-        <ng-container *ngIf="activeTab === 'following'">
-          <button
-            (click)="unfollow(user.uid)"
-            class="px-2 py-1 text-sm rounded-lg text-gray-500 hover:bg-gray-200 transition-colors duration-200">
-            ✕
-          </button>
+          <!-- Following tab: Unfollow -->
+          <ng-container *ngIf="activeTab === 'following'">
+            <button
+              (click)="unfollow(user.uid)"
+              class="px-2 py-1 text-sm rounded-lg text-gray-500 hover:bg-gray-200 transition-colors duration-200">
+              ✕
+            </button>
+          </ng-container>
         </ng-container>
       </div>
 

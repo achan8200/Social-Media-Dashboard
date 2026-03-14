@@ -27,15 +27,24 @@ export class Connections implements OnInit {
   users: any[] = [];
   profileUserId: string | null = null;
   currentUserId: string | null = null;
+  isOwnProfile: boolean = false;
 
   async ngOnInit() {
     const authUser = await firstValueFrom(this.authService.getCurrentUser());
     if (!authUser) return;
     this.currentUserId = authUser.uid;
-    await this.loadProfileAndConnections();
+
+    await this.loadProfile();
+    await this.loadFollowersAndFollowing();
+    
+    // Determine if viewing own profile
+    this.isOwnProfile = this.profileUserId === this.currentUserId;
+
+    // Initialize active tab users after all data is ready
+    this.switchTab(this.activeTab);
   }
 
-  private async loadProfileAndConnections() {
+  private async loadProfile() {
     const params = this.route.snapshot.paramMap;
     const username = params.get('username');
 
@@ -51,22 +60,14 @@ export class Connections implements OnInit {
       // Own profile
       this.profileUserId = this.currentUserId;
     }
-
-    await this.loadFollowers();
-    await this.loadFollowing();
-
-    // set active users list
-    this.switchTab(this.activeTab);
   }
 
-  private async loadFollowers() {
+  private async loadFollowersAndFollowing() {
     if (!this.profileUserId || !this.currentUserId) return;
-    this.followers = await this.loadSubcollection('followers');
-  }
-
-  private async loadFollowing() {
-    if (!this.profileUserId || !this.currentUserId) return;
-    this.following = await this.loadSubcollection('following');
+    [this.followers, this.following] = await Promise.all([
+      this.loadSubcollection('followers'),
+      this.loadSubcollection('following')
+    ]);
   }
 
   private async loadSubcollection(sub: 'followers' | 'following'): Promise<any[]> {

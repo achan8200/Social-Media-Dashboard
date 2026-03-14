@@ -150,13 +150,21 @@
     </div>
 
     <div class="bg-white rounded-lg shadow p-4">
-      <p class="text-xl font-bold">{{ followerCount$ | async }}</p>
-      <p class="text-gray-500 text-sm">Followers</p>
+      <a [routerLink]="['/connections', profile.username]" 
+        queryParamsHandling="preserve" 
+        class="block hover:text-gray-400">
+        <p class="text-xl font-bold">{{ followerCount$ | async }}</p>
+        <p class="text-gray-500 text-sm">Followers</p>
+      </a>
     </div>
 
     <div class="bg-white rounded-lg shadow p-4">
-      <p class="text-xl font-bold">{{ followingCount$ | async }}</p>
-      <p class="text-gray-500 text-sm">Following</p>
+      <a [routerLink]="['/connections', profile.username]"
+        queryParamsHandling="preserve"
+        class="block hover:text-gray-400">
+        <p class="text-xl font-bold">{{ followingCount$ | async }}</p>
+        <p class="text-gray-500 text-sm">Following</p>
+      </a>
     </div>
 
     <div class="bg-white rounded-lg shadow p-4">

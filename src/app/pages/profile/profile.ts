@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, ElementRef, inject, ViewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Firestore, collection, query, where, getDocs, doc, serverTimestamp, setDoc, docData, getCountFromServer, collectionData } from '@angular/fire/firestore';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { Observable, map, from, combineLatest, switchMap, of, debounceTime, distinctUntilChanged, shareReplay, tap, finalize } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -23,7 +23,7 @@ type UsernameStatus =
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PostModal, CreatePostModal],
+  imports: [CommonModule, RouterModule, ReactiveFormsModule, PostModal, CreatePostModal],
   templateUrl: './profile.html',
   styleUrl: './profile.css',
   animations: [
@@ -271,13 +271,14 @@ export class Profile {
     });
 
     // Optional but VERY useful while debugging
+    /*
     this.isOwner$.subscribe(isOwner => {
       console.log('[PROFILE] isOwner =', isOwner);
     });
 
     this.profile$.subscribe(p => {
       console.log('[PROFILE STREAM]', p);
-    });
+    }); */
   }
 
   // Load profile based on /u/:username or /profile/:userId
