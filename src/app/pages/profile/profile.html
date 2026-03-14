@@ -98,7 +98,7 @@
           <textarea formControlName="bio" class="border rounded p-1 w-full"></textarea>
         </ng-container>
         <ng-template #viewBio>
-          <p class="text-gray-700 max-w-xl break-words whitespace-pre-wrap">{{ profile.bio || '' }}</p>
+          <p class="text-gray-700 max-w-xl break-words whitespace-pre-wrap max-h-[150px] overflow-y-auto">{{ profile.bio || '' }}</p>
         </ng-template>
       </div>
     </form>
