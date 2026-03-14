@@ -1,8 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, doc, setDoc, deleteDoc, docData } from '@angular/fire/firestore';
-import { map, take } from 'rxjs/operators';
-import { Observable } from 'rxjs';
-import { serverTimestamp } from '@angular/fire/firestore';
+import { Firestore, doc, setDoc, deleteDoc, docData, serverTimestamp } from '@angular/fire/firestore';
+import { Observable, map, take } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class FollowService {

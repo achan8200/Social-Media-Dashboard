@@ -1,11 +1,26 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { Firestore, collection, getDocs, query, where, documentId } from '@angular/fire/firestore';
 import { AuthService } from '../../services/auth.service';
 import { Avatar } from '../../components/avatar/avatar';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Observable, map, Subject, takeUntil } from 'rxjs';
 import { FollowService } from '../../services/follow.service';
+import { UserService } from '../../services/user.service';
+
+interface ObservableUser {
+  uid: string;
+  username$: Observable<string>;
+  displayName$: Observable<string>;
+  profilePicture$: Observable<string | null>;
+  userId$: Observable<string>;
+  following: boolean;
+
+  // cache for immediate render
+  usernameCache?: string;
+  displayNameCache?: string;
+  profilePictureCache?: string | null;
+}
 
 @Component({
   selector: 'app-connections',
@@ -14,50 +29,59 @@ import { FollowService } from '../../services/follow.service';
   templateUrl: './connections.html',
   styleUrl: './connections.css'
 })
-export class Connections implements OnInit {
+export class Connections implements OnInit, OnDestroy {
   private firestore = inject(Firestore);
   private route = inject(ActivatedRoute);
   private authService = inject(AuthService);
   private followService = inject(FollowService);
+  private userService = inject(UserService);
   private cdr = inject(ChangeDetectorRef);
 
   activeTab: 'followers' | 'following' = 'followers';
-  followers: any[] = [];
-  following: any[] = [];
-  users: any[] = [];
+  followers: ObservableUser[] = [];
+  following: ObservableUser[] = [];
+  users: ObservableUser[] = [];
+
   profileUserId: string | null = null;
   currentUserId: string | null = null;
   isOwnProfile: boolean = false;
 
+  private destroy$ = new Subject<void>();
+
   async ngOnInit() {
     const authUser = await firstValueFrom(this.authService.getCurrentUser());
-    
-    if (authUser) {
-      this.currentUserId = authUser.uid;
-    }
+    if (authUser) this.currentUserId = authUser.uid;
 
     await this.loadProfile();
     await this.loadFollowersAndFollowing();
-    
-    // Determine if viewing own profile
+
     this.isOwnProfile = this.profileUserId === this.currentUserId;
 
     this.route.queryParamMap.subscribe(params => {
       const tab = params.get('tab');
-
-      if (tab === 'followers' || tab === 'following') {
-        this.activeTab = tab;
-      } else {
-        this.activeTab = 'followers';
-      }
-
-      this.users =
-        this.activeTab === 'followers'
-          ? this.followers
-          : this.following;
-
+      this.activeTab = tab === 'following' ? 'following' : 'followers';
+      this.users = this.activeTab === 'followers' ? this.followers : this.following;
       this.cdr.detectChanges();
     });
+
+    // Patch followers
+    this.followers.forEach(u => {
+      u.username$.pipe(takeUntil(this.destroy$)).subscribe(name => u.usernameCache = name);
+      u.displayName$.pipe(takeUntil(this.destroy$)).subscribe(name => u.displayNameCache = name);
+      u.profilePicture$.pipe(takeUntil(this.destroy$)).subscribe(url => u.profilePictureCache = url);
+    });
+
+    // Patch following
+    this.following.forEach(u => {
+      u.username$.pipe(takeUntil(this.destroy$)).subscribe(name => u.usernameCache = name);
+      u.displayName$.pipe(takeUntil(this.destroy$)).subscribe(name => u.displayNameCache = name);
+      u.profilePicture$.pipe(takeUntil(this.destroy$)).subscribe(url => u.profilePictureCache = url);
+    });
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private async loadProfile() {
@@ -79,14 +103,32 @@ export class Connections implements OnInit {
   }
 
   private async loadFollowersAndFollowing() {
-    if (!this.profileUserId) return;
-    [this.followers, this.following] = await Promise.all([
-      this.loadSubcollection('followers'),
-      this.loadSubcollection('following')
-    ]);
-  }
+  if (!this.profileUserId) return;
+
+  const [rawFollowers, rawFollowing] = await Promise.all([
+    this.loadSubcollection('followers'),
+    this.loadSubcollection('following')
+  ]);
+
+  this.followers = await this.mapUsersToObservables(rawFollowers);
+  this.following = await this.mapUsersToObservables(rawFollowing);
+
+  [this.followers, this.following].forEach(list => {
+    list.forEach(u => {
+      u.usernameCache = u.usernameCache || u.usernameCache;
+      u.displayNameCache = u.displayNameCache || u.displayNameCache;
+      u.profilePictureCache = u.profilePictureCache || u.profilePictureCache;
+    });
+  });
+
+  // Assign users from the exact same array reference
+  this.users = this.activeTab === 'followers' ? this.followers : this.following;
+
+  this.cdr.detectChanges();
+}
 
   private async loadSubcollection(sub: 'followers' | 'following'): Promise<any[]> {
+    if (!this.profileUserId) return [];
     const ref = collection(this.firestore, `users/${this.profileUserId}/${sub}`);
     const snapshot = await getDocs(ref);
     if (!snapshot || snapshot.empty) return [];
@@ -104,12 +146,8 @@ export class Connections implements OnInit {
         const data: any = doc.data();
         const uid = doc.id;
         let following = false;
-
         if (this.currentUserId) {
-          following =
-            (await firstValueFrom(
-              this.followService.isFollowing(this.currentUserId, uid)
-            )) ?? false;
+          following = (await firstValueFrom(this.followService.isFollowing(this.currentUserId, uid))) ?? false;
         }
 
         result.push({
@@ -122,59 +160,36 @@ export class Connections implements OnInit {
         });
       }
     }
-
     return result;
   }
 
-  async loadConnections() {
-    if (!this.profileUserId || !this.currentUserId) return;
+  private async mapUsersToObservables(rawUsers: any[]): Promise<ObservableUser[]> {
+    return rawUsers.map(u => {
+      const user$ = this.userService.getUserByUid(u.uid);
 
-    // Clear previous users immediately
-    this.users = [];
-    this.cdr.detectChanges(); // make sure UI updates
+      const observableUser: ObservableUser = {
+        uid: u.uid,
+        username$: user$.pipe(map(user => {
+          observableUser.usernameCache = user?.username || 'Unknown';
+          return observableUser.usernameCache;
+        })),
+        displayName$: user$.pipe(map(user => {
+          observableUser.displayNameCache = user?.displayName || 'Unknown';
+          return observableUser.displayNameCache;
+        })),
+        profilePicture$: user$.pipe(map(user => {
+          observableUser.profilePictureCache = user?.profilePicture || null;
+          return observableUser.profilePictureCache;
+        })),
+        userId$: user$.pipe(map(user => user?.userId || '')),
+        following: u.following,
+        usernameCache: u.username,
+        displayNameCache: u.displayName,
+        profilePictureCache: u.profilePicture
+      };
 
-    const subcollection = this.activeTab === 'followers' ? 'followers' : 'following';
-    const ref = collection(this.firestore, `users/${this.profileUserId}/${subcollection}`);
-    const snapshot = await getDocs(ref);
-
-    // If subcollection doesn't exist or is empty, just return empty list
-    if (!snapshot || snapshot.empty) {
-      this.users = [];
-      this.cdr.detectChanges();
-      return;
-    }
-
-    const userIds = snapshot.docs.map(doc => doc.id);
-    const chunks = this.chunkArray(userIds, 10);
-    const users: any[] = [];
-
-    for (const chunk of chunks) {
-      const usersRef = collection(this.firestore, 'users');
-      const q = query(usersRef, where(documentId(), 'in', chunk));
-      const userSnap = await getDocs(q);
-
-      for (const doc of userSnap.docs) {
-        const data: any = doc.data();
-        const uid = doc.id;
-
-        // Check if the current user is following this user
-        const following = await this.followService
-          .isFollowing(this.currentUserId, uid)
-          .toPromise();
-
-        users.push({
-          uid,
-          userId: data.userId,
-          displayName: data.displayName,
-          username: data.username,
-          profilePicture: data.profilePicture,
-          following
-        });
-      }
-    }
-
-    this.users = users;
-    this.cdr.detectChanges();
+      return observableUser;
+    });
   }
 
   async switchTab(tab: 'followers' | 'following') {
@@ -192,9 +207,8 @@ export class Connections implements OnInit {
     if (user) user.following = true;
 
     // optionally update the following list
-    const followingUser = this.following.find(u => u.uid === uid);
-    if (!followingUser) {
-      this.following.push({ ...user });
+    if (!this.following.find(u => u.uid === uid)) {
+      this.following.push({ ...user } as ObservableUser);
     }
 
     this.cdr.detectChanges();
@@ -203,8 +217,6 @@ export class Connections implements OnInit {
   // Unfollow a user (used in Following tab)
   async unfollow(uid: string) {
     if (!this.currentUserId) return;
-    console.log("Current user id: ", this.currentUserId);
-    console.log("User id: ", uid);
     await this.followService.unfollowUser(this.currentUserId, uid);
     
     // remove from local following list
@@ -221,14 +233,10 @@ export class Connections implements OnInit {
   // Remove a follower (used in Followers tab)
   async removeFollower(uid: string) {
     if (!this.currentUserId) return;
-    console.log("Current user id: ", this.currentUserId);
-    console.log("User id: ", uid);
     await this.followService.unfollowUser(this.currentUserId, uid);
     
     // Remove from local Followers list
     this.users = this.users.filter(u => u.uid !== uid);
-
-    
     this.cdr.detectChanges();
   }
 
@@ -238,5 +246,9 @@ export class Connections implements OnInit {
       chunks.push(array.slice(i, i + size));
     }
     return chunks;
+  }
+
+  trackByUid(index: number, user: ObservableUser) {
+    return user.uid;
   }
 }
