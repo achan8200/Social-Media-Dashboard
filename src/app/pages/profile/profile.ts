@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, ElementRef, inject, ViewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Firestore, collection, query, where, getDocs, doc, serverTimestamp, setDoc, docData } from '@angular/fire/firestore';
+import { Firestore, collection, query, where, getDocs, doc, serverTimestamp, setDoc, docData, getCountFromServer, collectionData } from '@angular/fire/firestore';
 import { ActivatedRoute } from '@angular/router';
 import { Observable, map, from, combineLatest, switchMap, of, debounceTime, distinctUntilChanged, shareReplay, tap, finalize } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
@@ -12,6 +12,7 @@ import { PostsService } from '../../services/posts.service';
 import { Post } from '../../models/post.model';
 import { PostModal } from "../../components/post-modal/post-modal";
 import { CreatePostModal } from "../../components/create-post-modal/create-post-modal";
+import { FollowService } from '../../services/follow.service';
 
 type UsernameStatus =
   | 'available'
@@ -45,11 +46,16 @@ export class Profile {
   private authService = inject(AuthService);
   private cdr = inject(ChangeDetectorRef);
   private route = inject(ActivatedRoute);
+  private followService = inject(FollowService);
 
   profile$!: Observable<any>;
   isOwner$!: Observable<boolean>;
   userPostCount$!: Observable<number>;
   userPosts$!: Observable<Post[]>;
+
+  followerCount$!: Observable<number>;
+  followingCount$!: Observable<number>;
+  groupsCount$!: Observable<number>;
 
   editMode = false;
   originalProfile: any = null;
@@ -63,6 +69,8 @@ export class Profile {
   checkingUsername = false;
   isSaving = false;
   showRemoveConfirm = false;
+
+  following = false;
 
   profileForm = this.fb.group({
     displayName: ['', Validators.required],
@@ -210,6 +218,57 @@ export class Profile {
         );
       })
     );
+
+    // Follower count
+    this.followerCount$ = this.profile$.pipe(
+      switchMap(profile => {
+        if (!profile) return of(0);
+
+        const followersRef = collection(this.firestore, `users/${profile.uid}/followers`);
+        return collectionData(followersRef).pipe(
+          map(followers => followers.length) // counts the docs in real-time
+        );
+      })
+    );
+
+    // Following count
+    this.followingCount$ = this.profile$.pipe(
+      switchMap(profile => {
+        if (!profile) return of(0);
+
+        const followingRef = collection(this.firestore, `users/${profile.uid}/following`);
+        return collectionData(followingRef).pipe(
+          map(following => following.length)
+        );
+      })
+    );
+
+    // Groups count
+    this.groupsCount$ = this.profile$.pipe(
+      switchMap(profile => {
+        if (!profile) return of(0);
+        const groupsRef = collection(this.firestore, `groups`);
+        const q = query(groupsRef, where('members', 'array-contains', profile.uid));
+        return from(getCountFromServer(q)).pipe(
+          map(snapshot => snapshot.data().count ?? 0)
+        );
+      })
+    );
+
+    combineLatest([this.authService.user$, this.profile$])
+    .pipe(
+      switchMap(([authUser, profile]) => {
+        if (!authUser || !profile) return of(false);
+        const docRef = doc(this.firestore, `users/${profile.uid}/followers/${authUser.uid}`);
+        return docData(docRef, { idField: 'id' }).pipe(
+          map(followerDoc => !!followerDoc)
+        );
+      })
+    )
+    .subscribe(isFollowing => {
+      this.following = isFollowing;
+      this.cdr.detectChanges();
+    });
 
     // Optional but VERY useful while debugging
     this.isOwner$.subscribe(isOwner => {
@@ -593,5 +652,19 @@ export class Profile {
     return normalized
       .replace(/^[\s\u00A0]+/, '') // remove leading spaces
       .replace(/\n/g, '<br>');
+  }
+
+  async toggleFollow() {
+    const authUser = await this.authService.getCurrentUser().toPromise();
+    const targetUser = this.originalProfile;
+    if (!authUser || !targetUser) return;
+
+    if (this.following) {
+      await this.followService.unfollowUser(authUser.uid, targetUser.uid);
+      this.following = false;
+    } else {
+      await this.followService.followUser(authUser.uid, targetUser.uid);
+      this.following = true;
+    }
   }
 }
