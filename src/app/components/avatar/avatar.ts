@@ -26,11 +26,11 @@ import { getInitial, getAvatarColor } from '../../utils/avatar';
 
       <ng-template #fallback>
         <div
-          class="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold"
+          class="w-8 h-8 rounded-full flex items-center justify-center text-white font-normal"
           [style.backgroundColor]="getAvatarColor(username)"
           (click)="avatarClick()"
         >
-          {{ getInitial(username) }}
+          <span class="relative -top-[1px]">{{ getInitial(username) }}</span>
         </div>
       </ng-template>
     </ng-template>

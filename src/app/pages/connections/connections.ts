@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { RouterModule, ActivatedRoute } from '@angular/router';
 import { Firestore, collection, getDocs, query, where, documentId } from '@angular/fire/firestore';
 import { AuthService } from '../../services/auth.service';
 import { Avatar } from '../../components/avatar/avatar';
@@ -10,7 +10,7 @@ import { FollowService } from '../../services/follow.service';
 @Component({
   selector: 'app-connections',
   standalone: true,
-  imports: [CommonModule, Avatar],
+  imports: [CommonModule, RouterModule, Avatar],
   templateUrl: './connections.html',
   styleUrl: './connections.css'
 })
@@ -31,8 +31,10 @@ export class Connections implements OnInit {
 
   async ngOnInit() {
     const authUser = await firstValueFrom(this.authService.getCurrentUser());
-    if (!authUser) return;
-    this.currentUserId = authUser.uid;
+    
+    if (authUser) {
+      this.currentUserId = authUser.uid;
+    }
 
     await this.loadProfile();
     await this.loadFollowersAndFollowing();
@@ -40,8 +42,22 @@ export class Connections implements OnInit {
     // Determine if viewing own profile
     this.isOwnProfile = this.profileUserId === this.currentUserId;
 
-    // Initialize active tab users after all data is ready
-    this.switchTab(this.activeTab);
+    this.route.queryParamMap.subscribe(params => {
+      const tab = params.get('tab');
+
+      if (tab === 'followers' || tab === 'following') {
+        this.activeTab = tab;
+      } else {
+        this.activeTab = 'followers';
+      }
+
+      this.users =
+        this.activeTab === 'followers'
+          ? this.followers
+          : this.following;
+
+      this.cdr.detectChanges();
+    });
   }
 
   private async loadProfile() {
@@ -63,7 +79,7 @@ export class Connections implements OnInit {
   }
 
   private async loadFollowersAndFollowing() {
-    if (!this.profileUserId || !this.currentUserId) return;
+    if (!this.profileUserId) return;
     [this.followers, this.following] = await Promise.all([
       this.loadSubcollection('followers'),
       this.loadSubcollection('following')
@@ -87,7 +103,14 @@ export class Connections implements OnInit {
       for (const doc of userSnap.docs) {
         const data: any = doc.data();
         const uid = doc.id;
-        const following = await this.followService.isFollowing(this.currentUserId!, uid).toPromise();
+        let following = false;
+
+        if (this.currentUserId) {
+          following =
+            (await firstValueFrom(
+              this.followService.isFollowing(this.currentUserId, uid)
+            )) ?? false;
+        }
 
         result.push({
           uid,

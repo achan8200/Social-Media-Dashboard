@@ -151,7 +151,7 @@
 
     <div class="bg-white rounded-lg shadow p-4">
       <a [routerLink]="['/connections', profile.username]" 
-        queryParamsHandling="preserve" 
+        [queryParams]="{ tab: 'followers' }" 
         class="block hover:text-gray-400">
         <p class="text-xl font-bold">{{ followerCount$ | async }}</p>
         <p class="text-gray-500 text-sm">Followers</p>
@@ -160,7 +160,7 @@
 
     <div class="bg-white rounded-lg shadow p-4">
       <a [routerLink]="['/connections', profile.username]"
-        queryParamsHandling="preserve"
+        [queryParams]="{ tab: 'following' }"
         class="block hover:text-gray-400">
         <p class="text-xl font-bold">{{ followingCount$ | async }}</p>
         <p class="text-gray-500 text-sm">Following</p>

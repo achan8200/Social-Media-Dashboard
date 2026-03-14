@@ -1,55 +1,61 @@
-<div class="flex-1 p-4 max-w-2xl mx-auto">
-  <h1 class="text-2xl font-bold mb-6">Connections</h1>
+<div class="flex-1 p-4 max-w-4xl mx-auto">
+  <h1 class="text-2xl font-semibold mb-4">Connections</h1>
 
   <!-- Tabs -->
-  <div class="flex border-b mb-4">
-
+  <div class="flex border-b mb-6">
     <button
-      (click)="switchTab('followers')"
+      [routerLink]="[]"
+      [queryParams]="{ tab: 'followers' }"
       [class.border-blue-600]="activeTab === 'followers'"
-      class="px-4 py-2 border-b-2 font-medium">
+      class="px-4 py-2 border-b-2 font-medium transition-colors duration-200 hover:text-blue-600">
       Followers
     </button>
 
     <button
-      (click)="switchTab('following')"
+      [routerLink]="[]"
+      [queryParams]="{ tab: 'following' }"
       [class.border-blue-600]="activeTab === 'following'"
-      class="px-4 py-2 border-b-2 font-medium">
+      class="px-4 py-2 border-b-2 font-medium transition-colors duration-200 hover:text-blue-600">
       Following
     </button>
-
   </div>
 
-  <div class="space-y-3">
+  <!-- User Cards Grid -->
+  <div class="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
     <div *ngFor="let user of users"
-         class="flex items-center justify-between bg-white p-3 rounded shadow">
-      <div class="flex items-center gap-3">
-        <app-avatar
-          [userId]="user.userId"
-          [username]="user.username"
-          [imageUrl]="user.profilePicture">
-        </app-avatar>
-        <div>
-          <p class="font-medium">{{ user.displayName }}</p>
-          <p class="text-sm text-gray-500">@{{ user.username }}</p>
+         class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-transform duration-200 transform hover:-translate-y-1">
+      
+      <!-- Avatar + Info -->
+      <a class="flex items-center gap-4 flex-1 min-w-0" [routerLink]="['/profile', user.userId]">
+        <div class="w-14 h-14 rounded-full bg-white border border-gray-300 overflow-hidden flex items-center justify-center">
+          <app-avatar
+            [username]="user.username"
+            [imageUrl]="user.profilePicture"
+            class="transform scale-[1.75] origin-center">
+          </app-avatar>
         </div>
-      </div>
 
+        <div class="flex flex-col truncate min-w-0">
+          <p class="font-semibold text-gray-900 truncate">{{ user.displayName }}</p>
+          <p class="text-sm text-gray-500 truncate">@{{ user.username }}</p>
+        </div>
+      </a>
+
+      <!-- Action Buttons -->
       <div class="flex items-center gap-2">
-        <!-- Only show buttons if own profile -->
         <ng-container *ngIf="isOwnProfile">
-          <!-- Followers tab: Follow + X -->
+          <!-- Followers tab: Follow + Remove -->
           <ng-container *ngIf="activeTab === 'followers'">
             <button
               *ngIf="!user.following"
               (click)="follow(user.uid)"
-              class="px-3 py-1 text-sm rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200">
-              Follow back
+              class="px-3 py-1 text-sm rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition">
+              Follow
             </button>
 
             <button
               (click)="removeFollower(user.uid)"
-              class="px-2 py-1 text-sm rounded-lg text-gray-500 hover:bg-gray-200 transition-colors duration-200">
+              class="px-2 py-1 text-sm rounded-lg text-gray-500 hover:bg-gray-200 transition">
               ✕
             </button>
           </ng-container>
@@ -58,13 +64,17 @@
           <ng-container *ngIf="activeTab === 'following'">
             <button
               (click)="unfollow(user.uid)"
-              class="px-2 py-1 text-sm rounded-lg text-gray-500 hover:bg-gray-200 transition-colors duration-200">
+              class="px-2 py-1 text-sm rounded-xl text-gray-500 hover:bg-gray-200 transition">
               ✕
             </button>
           </ng-container>
         </ng-container>
       </div>
+    </div>
 
+    <!-- Empty State -->
+    <div *ngIf="users.length === 0" class="col-span-full text-center text-gray-500 p-6">
+      No {{ activeTab }} yet.
     </div>
   </div>
 </div>
