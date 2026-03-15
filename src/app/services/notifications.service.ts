@@ -1,39 +1,63 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
-
-export interface Notification {
-  text: string;
-  read: boolean;
-}
+import { Injectable, inject } from '@angular/core';
+import { Firestore, collection, setDoc, collectionData, query, where, orderBy, doc, updateDoc, serverTimestamp } from '@angular/fire/firestore'; 
+import { Observable } from 'rxjs';
+import { Notification } from '../models/notification.model';
 
 @Injectable({ providedIn: 'root' })
 export class NotificationsService {
-  private notificationsSubject = new BehaviorSubject<{ text: string; read: boolean }[]>([
-    { text: 'User1 liked your post', read: false },
-    { text: 'User2 commented on your photo', read: true },
-    { text: 'User3 sent you a friend request', read: false },
-  ]);
-
-  notifications$ = this.notificationsSubject.asObservable();
-
-  addNotification(notification: { text: string; read: boolean }) {
-    const current = this.notificationsSubject.value;
-    this.notificationsSubject.next([notification, ...current]);
-  }
-
-  getUnreadCount() {
-    return this.notificationsSubject.value.filter(n => !n.read).length;
-  }
-
-  markAllAsRead() {
-    const updated = this.notificationsSubject.value.map(n => ({ ...n, read: true }));
-    this.notificationsSubject.next(updated);
-  }
-
-  markAsRead(index: number) {
-    const updated = this.notificationsSubject.value.map((n, i) =>
-      i === index ? { ...n, read: true } : n
+  private firestore = inject(Firestore);
+  
+  getNotifications(uid: string): Observable<Notification[]> {
+    const ref = collection(this.firestore, 'notifications');
+    const q = query(
+      ref,
+      where('recipientUid', '==', uid),
+      orderBy('createdAt', 'desc')
     );
-    this.notificationsSubject.next(updated);
+    return collectionData(q, { idField: 'id' }) as Observable<Notification[]>;
+  }
+
+  async createNotification(notification: Partial<Notification>) {
+    const recipientUid = notification.recipientUid;
+    const actorUid = notification.actorUid;
+    const type = notification.type;
+
+    if (!recipientUid || !actorUid || !type) return;
+
+    let id = `${recipientUid}_${type}_${actorUid}`;
+
+    // Add resource identifiers if they exist
+    if (notification.postId) {
+      id += `_${notification.postId}`;
+    }
+
+    if (notification.commentId) {
+      id += `_${notification.commentId}`;
+    }
+
+    if (notification.threadId) {
+      id += `_${notification.threadId}`;
+    }
+
+    const ref = doc(this.firestore, `notifications/${id}`);
+
+    await setDoc(ref, {
+      ...notification,
+      createdAt: serverTimestamp(),
+      read: false
+    }, { merge: true });
+  }
+
+  async markAsRead(notificationId: string) {
+    const ref = doc(this.firestore, `notifications/${notificationId}`);
+    await updateDoc(ref, { read: true });
+  }
+
+  async markAllAsRead(notifications: Notification[]) {
+    const unread = notifications.filter(n => !n.read && n.id);
+    for (const n of unread) {
+      const ref = doc(this.firestore, `notifications/${n.id}`);
+      await updateDoc(ref, { read: true });
+    }
   }
 }

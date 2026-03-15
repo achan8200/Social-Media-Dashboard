@@ -1,10 +1,12 @@
 import { Injectable, inject } from '@angular/core';
 import { Firestore, doc, setDoc, deleteDoc, docData, serverTimestamp } from '@angular/fire/firestore';
 import { Observable, map, take } from 'rxjs';
+import { NotificationsService } from './notifications.service';
 
 @Injectable({ providedIn: 'root' })
 export class FollowService {
   private firestore = inject(Firestore);
+  private notificationsService = inject(NotificationsService);
 
   // Follow a user
   async followUser(currentUserId: string, targetUserId: string): Promise<void> {
@@ -15,6 +17,15 @@ export class FollowService {
       setDoc(followerRef, { createdAt: serverTimestamp() }),
       setDoc(followingRef, { createdAt: serverTimestamp() })
     ]);
+
+    // Prevent self-follow notifications
+    if (currentUserId !== targetUserId) {
+      await this.notificationsService.createNotification({
+        recipientUid: targetUserId,
+        actorUid: currentUserId,
+        type: 'follow'
+      });
+    }
   }
 
   // Unfollow a user

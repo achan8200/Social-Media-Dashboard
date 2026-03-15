@@ -1,9 +1,77 @@
-<div class="flex items-center justify-between p-2 rounded hover:bg-gray-100 cursor-pointer transition-colors duration-200">
-    <div class="flex items-center space-x-2">
-        <span *ngIf="!notification.read" 
-            class="h-2 w-2 bg-red-500 rounded-full flex-shrink-0"
-            (click)="markRead.emit(); $event.stopPropagation()"></span>
-        <span>{{ notification.text }}</span>
+<div class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100 cursor-pointer transition-colors duration-200"
+    [class.opacity-60]="!hasUnread"
+    (click)="markAsRead()">
+
+  <ng-container *ngIf="actors$ | async as actors">
+
+    <!-- LEFT SIDE -->
+    <div class="flex items-center space-x-3.5 flex-1">
+
+        <!-- Unread indicator -->
+        <div *ngIf="hasUnread" class="w-1 h-6 bg-red-500 rounded mr-2"></div>
+
+        <!-- Avatar stack -->
+        <div class="flex -space-x-2.5 flex-shrink-0">
+            <app-avatar
+                *ngFor="let actor of previewActors$ | async; let i = index"
+                [imageUrl]="actor?.profilePicture"
+                [username]="actor?.username"
+                [size]="i === 0 ? 'sm' : 'xs'">
+            </app-avatar>
+        </div>
+
+      <!-- Notification text -->
+      <span class="text-sm flex-1 leading-snug break-words">
+
+        <ng-container [ngSwitch]="notifications[0].type">
+
+          <span *ngSwitchCase="'like_post'">
+            <b>{{ actors[0]?.username }}</b>
+            <ng-container *ngIf="actors.length > 1">
+              and {{ actors.length - 1 }} others
+            </ng-container>
+            liked your post
+          </span>
+
+          <span *ngSwitchCase="'comment_post'">
+            <b>{{ actors[0]?.username }}</b>
+            <ng-container *ngIf="actors.length > 1">
+              and {{ actors.length - 1 }} others
+            </ng-container>
+            commented on your post
+          </span>
+
+          <span *ngSwitchCase="'like_comment'">
+            <b>{{ actors[0]?.username }}</b>
+            <ng-container *ngIf="actors.length > 1">
+              and {{ actors.length - 1 }} others
+            </ng-container>
+            liked your comment
+          </span>
+
+          <span *ngSwitchCase="'follow'">
+            <b>{{ actors[0]?.username }}</b>
+            <ng-container *ngIf="actors.length > 1">
+              and {{ actors.length - 1 }} others
+            </ng-container>
+            started following you
+          </span>
+
+          <span *ngSwitchDefault>
+            <b>{{ actors[0]?.username }}</b> sent a notification
+          </span>
+
+        </ng-container>
+
+      </span>
+
     </div>
-    <span class="text-gray-400 text-xs">2h</span>
+
+    <!-- RIGHT SIDE (timestamp) -->
+    <span class="text-gray-400 text-xs flex-shrink-0 min-w-[52px] text-right">
+      {{ notifications[0].createdAt?.toDate?.() | date:'shortTime' }}
+    </span>
+
+  </ng-container>
+
 </div>

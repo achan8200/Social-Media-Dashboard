@@ -17,29 +17,44 @@ import { getInitial, getAvatarColor } from '../../utils/avatar';
     </a>
 
     <ng-template #avatarContent>
-      <ng-container *ngIf="imageUrl; else fallback">
-        <img [src]="imageUrl"
-             alt="Avatar"
-             class="w-8 h-8 rounded-full object-cover" 
-             (click)="avatarClick()"/>
-      </ng-container>
+      <div
+        class="rounded-full overflow-hidden flex items-center justify-center text-white font-normal"
+        [ngClass]="{
+          'w-6 h-6 text-xs': size === 'xs',
+          'w-8 h-8 text-sm': size === 'sm',
+          'w-10 h-10 text-base': size === 'md',
+          'w-12 h-12 text-lg': size === 'lg'
+        }"
+        [style.backgroundColor]="!imageUrl ? getAvatarColor(username) : null"
+        (click)="avatarClick()"
+      >
 
-      <ng-template #fallback>
-        <div
-          class="w-8 h-8 rounded-full flex items-center justify-center text-white font-normal"
-          [style.backgroundColor]="getAvatarColor(username)"
-          (click)="avatarClick()"
-        >
-          <span class="relative -top-[1px]">{{ getInitial(username) }}</span>
-        </div>
-      </ng-template>
+        <ng-container *ngIf="imageUrl; else fallback">
+          <img
+            [src]="imageUrl"
+            alt="Avatar"
+            class="w-full h-full object-cover"
+          />
+        </ng-container>
+
+        <ng-template #fallback>
+          <span class="relative -top-[1px]">
+            {{ getInitial(username) }}
+          </span>
+        </ng-template>
+
+      </div>
     </ng-template>
   `
 })
 export class Avatar {
-  @Input() imageUrl?: string | null; // userAvatar
-  @Input() username?: string | null; // username
-  @Input() userId?: string | null; // userId
+
+  @Input() imageUrl?: string | null;
+  @Input() username?: string | null;
+  @Input() userId?: string | null;
+
+  // Avatar size system
+  @Input() size: 'xs' | 'sm' | 'md' | 'lg' = 'sm';
 
   @Output() clicked = new EventEmitter<string | null>();
 

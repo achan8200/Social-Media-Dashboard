@@ -9,6 +9,7 @@ import { Auth } from '@angular/fire/auth';
 import { Post, PostMedia } from '../models/post.model';
 import { Comment } from '../models/comment.model';
 import imageCompression from 'browser-image-compression';
+import { NotificationsService } from './notifications.service';
 
 @Injectable({ providedIn: 'root' })
 export class PostsService {
@@ -34,7 +35,8 @@ export class PostsService {
   constructor(
     private firestore: Firestore,
     private auth: Auth,
-    private storage: Storage
+    private storage: Storage,
+    private notificationsService: NotificationsService
   ) {
     // Defer loading browser-only state until we're sure we're in the browser
     this.safeLoadSeenPosts();
@@ -413,6 +415,24 @@ export class PostsService {
     } else {
       // Like: create the like doc
       await setDoc(likeRef, { createdAt: serverTimestamp() });
+
+      // Get post info
+      const postSnap = await getDoc(doc(this.firestore, `posts/${postId}`));
+
+      if (postSnap.exists()) {
+        const post = postSnap.data();
+
+        // Don't notify yourself
+        if (post['uid'] !== uid) {
+          await this.notificationsService.createNotification({
+            recipientUid: post['uid'],
+            actorUid: uid,
+            type: 'like_post',
+            postId: postId
+          });
+        }
+      }
+
       return true;
     }
   }
@@ -477,6 +497,23 @@ export class PostsService {
       commentsCount: increment(1),
       updatedAt: serverTimestamp()
     });
+
+    // Fetch post to determine owner
+    const postSnap = await getDoc(doc(this.firestore, `posts/${postId}`));
+
+    if (postSnap.exists()) {
+      const post = postSnap.data();
+
+      // Prevent notifying yourself
+      if (post['uid'] !== user.uid) {
+        await this.notificationsService.createNotification({
+          recipientUid: post['uid'],
+          actorUid: user.uid,
+          type: 'comment_post',
+          postId: postId
+        });
+      }
+    }
   }
 
   // Update post comment
@@ -564,6 +601,24 @@ export class PostsService {
       await setDoc(likeRef, { createdAt: serverTimestamp() });
       await updateDoc(commentRef, { likesCount: increment(1) });
       subj.next(true);
+
+      // Fetch comment to determine author
+      const commentSnap = await getDoc(commentRef);
+
+      if (commentSnap.exists()) {
+        const comment = commentSnap.data();
+
+        // Prevent self-notifications
+        if (comment['uid'] !== uid) {
+          await this.notificationsService.createNotification({
+            recipientUid: comment['uid'],
+            actorUid: uid,
+            type: 'like_comment',
+            postId: postId,
+            commentId: commentId
+          });
+        }
+      }
     }
   }
 
