@@ -7,6 +7,8 @@ import { Notification } from '../../models/notification.model';
 import { NotificationItem } from '../notification-item/notification-item';
 import { TrendingTag } from '../trending-tag/trending-tag';
 
+type DayKey = 'Today' | 'Yesterday' | 'Earlier';
+
 @Component({
   selector: 'app-right-sidebar',
   standalone: true,
@@ -78,21 +80,34 @@ export class RightSidebar {
     const days: Record<string, Notification[][]> = {};
 
     list.forEach(n => {
-      const dayKey = this.getNotificationSection(n.createdAt?.toDate?.()) || 'Earlier';
-      if (!days[dayKey]) days[dayKey] = [];
+      const date = n.createdAt?.toDate?.();
+      const dayKey = this.getNotificationSection(date) || 'Earlier';
 
-      // create type+post+comment key
-      let key = n.type;
-      if (n.type === 'like_post' || n.type === 'comment_post' || n.type === 'like_comment') {
-        key += `_${n.postId || ''}_${n.commentId || ''}`;
+      if (!days[dayKey]) {
+        days[dayKey] = [];
       }
 
-      // find existing group in this day
+      // Build grouping key
+      let key = n.type;
+      switch (n.type) {
+        case 'like_post':
+        case 'comment_post':
+        case 'like_comment':
+          key += `_${n.postId || ''}_${n.commentId || ''}`;
+          break;
+
+        case 'follow':
+          key = 'follow';
+          break;
+      }
+
+      // Find existing group
       let group = days[dayKey].find(g => {
         const gKey = g[0]?.type + '_' + (g[0]?.postId || '') + '_' + (g[0]?.commentId || '');
         return gKey === key;
       });
 
+      // Create new group if not found
       if (!group) {
         group = [];
         days[dayKey].push(group);
@@ -100,6 +115,26 @@ export class RightSidebar {
 
       group.push(n);
     });
+
+    // Sorting
+    Object.keys(days).forEach(day => {
+      // Sort notifications inside each group (newest first)
+      days[day].forEach(group => {
+        group.sort((a, b) => {
+          const timeA = a.createdAt?.toDate?.()?.getTime() ?? 0;
+          const timeB = b.createdAt?.toDate?.()?.getTime() ?? 0;
+          return timeB - timeA;
+        });
+      });
+
+      // Sort groups by most recent notification in each group
+      days[day].sort((a, b) => {
+        const timeA = a[0]?.createdAt?.toDate?.()?.getTime() ?? 0;
+        const timeB = b[0]?.createdAt?.toDate?.()?.getTime() ?? 0;
+        return timeB - timeA;
+      });
+    });
+
     return days;
   }
 
@@ -116,4 +151,14 @@ export class RightSidebar {
     if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
     return 'Earlier';
   }
+
+  readonly dayOrder: Record<DayKey, number> = {
+    Today: 0,
+    Yesterday: 1,
+    Earlier: 2
+  };
+
+  sortDays = (a: { key: string }, b: { key: string }): number => {
+    return this.dayOrder[a.key as DayKey] - this.dayOrder[b.key as DayKey];
+  };
 }

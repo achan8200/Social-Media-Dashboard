@@ -3,7 +3,7 @@
   <div class="flex items-center space-x-4">
 
     <!-- Notifications Button -->
-    <div class="relative lg:hidden flex-shrink-0">
+    <div class="relative flex-shrink-0 lg:hidden">
       <ng-container *ngIf="unreadCount$ | async as unreadCount">
         <button 
           (click)="toggleNotifications()"
@@ -40,7 +40,7 @@
 
         <!-- Grouped Notifications by Day -->
         <ng-container *ngIf="notificationsByDay$ | async as notificationsByDay">
-          <ng-container *ngFor="let dayEntry of notificationsByDay | keyvalue">
+          <ng-container *ngFor="let dayEntry of notificationsByDay | keyvalue: sortDays">
             
             <!-- Day header -->
             <div class="px-4 mt-3 mb-1 text-gray-400 text-xs font-semibold uppercase">
