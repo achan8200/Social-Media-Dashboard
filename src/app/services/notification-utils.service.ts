@@ -6,7 +6,7 @@ type DayKey = 'Today' | 'Yesterday' | 'Earlier';
 @Injectable({ providedIn: 'root' })
 export class NotificationUtilsService {
 
-// Groups notifications first by day, then by type/post/comment/follow
+	// Groups notifications first by day, then by type/post/comment/follow
   groupNotificationsByDay(list: Notification[]): Record<string, Notification[][]> {
     const days: Record<string, Notification[][]> = {};
 
@@ -83,4 +83,28 @@ export class NotificationUtilsService {
     if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
     return 'Earlier';
   }
+
+	formatNotificationTimestamp(date?: Date): string {
+		if (!date) return '';
+
+		const section = this.getNotificationSection(date);
+
+		// Today / Yesterday -> show time
+		if (section === 'Today' || section === 'Yesterday') {
+			return date.toLocaleTimeString([], {
+				hour: 'numeric',
+				minute: '2-digit'
+			});
+		}
+
+		const now = new Date();
+		const isSameYear = date.getFullYear() === now.getFullYear();
+
+		// Earlier -> show month/day (+ year if not current year)
+		return date.toLocaleDateString([], {
+			month: 'short',
+			day: 'numeric',
+			...(isSameYear ? {} : { year: 'numeric' })
+		}).replace(',', '');
+	}
 }

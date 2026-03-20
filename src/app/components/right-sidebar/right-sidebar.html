@@ -29,7 +29,8 @@
       </span>
     </h2>
 
-    <div class="max-h-80 overflow-y-auto">
+    <!-- Scrollable content -->
+    <div class="relative max-h-[70vh] xl:max-h-[80vh] pb-2 overflow-y-auto scroll-smooth">
       <ng-container *ngIf="notificationsByDay$ | async as notificationsByDay">
         <ng-container *ngFor="let dayEntry of notificationsByDay | keyvalue: sortDays">
           <div class="mt-3 mb-1 text-gray-400 text-xs font-semibold uppercase">
@@ -42,8 +43,10 @@
             </li>
           </ul>
         </ng-container>
-
       </ng-container>
+
+      <!-- Bottom Fade Overlay -->
+      <div class="pointer-events-none absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-white to-transparent"></div>
     </div>
 
     <!-- Sticky button at bottom -->

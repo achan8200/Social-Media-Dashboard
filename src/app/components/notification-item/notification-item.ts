@@ -1,10 +1,11 @@
 import { Component, Input, OnChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { NotificationsService } from '../../services/notifications.service';
+import { NotificationUtilsService } from '../../services/notification-utils.service';
 import { Notification } from '../../models/notification.model';
 import { UserService, User } from '../../services/user.service';
-import { NotificationsService } from '../../services/notifications.service';
-import { combineLatest, map, Observable, of } from 'rxjs';
 import { Avatar } from '../avatar/avatar';
+import { combineLatest, map, Observable, of } from 'rxjs';
 
 @Component({
   selector: 'app-notification-item',
@@ -18,6 +19,7 @@ export class NotificationItem implements OnChanges {
 
   private userService = inject(UserService);
   private notificationsService = inject(NotificationsService);
+  private utils = inject(NotificationUtilsService);
 
   actors$!: Observable<any[]>;
   previewActors$!: Observable<User[]>;
@@ -60,5 +62,10 @@ export class NotificationItem implements OnChanges {
   // Check if any notification in this group is unread
   get hasUnread(): boolean {
     return this.notifications?.some(n => !n.read);
+  }
+
+  getFormattedTimeForGroup(): string {
+    const date = this.notifications[0]?.createdAt?.toDate?.();
+    return this.utils.formatNotificationTimestamp(date);
   }
 }

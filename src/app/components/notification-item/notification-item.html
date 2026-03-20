@@ -69,7 +69,7 @@
 
     <!-- RIGHT SIDE (timestamp) -->
     <span class="text-gray-400 text-xs flex-shrink-0 min-w-[52px] text-right">
-      {{ notifications[0].createdAt?.toDate?.() | date:'shortTime' }}
+      {{ getFormattedTimeForGroup() }}
     </span>
 
   </ng-container>
