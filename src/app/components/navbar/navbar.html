@@ -6,7 +6,7 @@
     <div class="relative flex-shrink-0 lg:hidden">
       <ng-container *ngIf="unreadCount$ | async as unreadCount">
         <button 
-          (click)="toggleNotifications()"
+          (click)="toggleNotifications(); $event.stopPropagation()"
           class="relative p-2 rounded hover:bg-gray-100"
           [title]="unreadCount > 0 ? unreadCount + ' unread notifications' : ''">
           🔔
@@ -23,7 +23,7 @@
       <!-- If async has not emitted yet, show button with no badge -->
       <ng-container *ngIf="!(unreadCount$ | async)">
         <button 
-          (click)="toggleNotifications()"
+          (click)="toggleNotifications(); $event.stopPropagation()"
           class="relative p-2 rounded hover:bg-gray-100">
           🔔
         </button>
@@ -31,6 +31,7 @@
 
       <!-- Notifications Dropdown -->
       <div *ngIf="showNotifications"
+          @dropdownAnimation
           class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto border border-gray-200">
 
         <!-- Header -->

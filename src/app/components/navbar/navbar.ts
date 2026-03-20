@@ -1,12 +1,14 @@
-import { Component } from '@angular/core';
+import { Component, ElementRef, HostListener } from '@angular/core';
 import { AsyncPipe, CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { Observable, filter, firstValueFrom, of, switchMap, tap } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { NotificationsService } from '../../services/notifications.service';
+import { NotificationUtilsService } from '../../services/notification-utils.service';
 import { Notification } from '../../models/notification.model';
 import { NotificationItem } from '../notification-item/notification-item';
-import { UserService, User } from '../../services/user.service';
+import { UserService } from '../../services/user.service';
+import { Observable, filter, firstValueFrom, map, shareReplay, switchMap, tap } from 'rxjs';
+import { trigger, transition, style, animate } from '@angular/animations';
 
 type DayKey = 'Today' | 'Yesterday' | 'Earlier';
 
@@ -16,6 +18,17 @@ type DayKey = 'Today' | 'Yesterday' | 'Earlier';
   imports: [CommonModule, AsyncPipe, NotificationItem],
   templateUrl: './navbar.html',
   styleUrls: ['./navbar.css'],
+  animations: [
+    trigger('dropdownAnimation', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'scale(0.95)' }),
+        animate('120ms ease-out', style({ opacity: 1, transform: 'scale(1)' }))
+      ]),
+      transition(':leave', [
+        animate('100ms ease-in', style({ opacity: 0, transform: 'scale(0.95)' }))
+      ])
+    ])
+  ]
 })
 export class Navbar {
   showNotifications = false;
@@ -31,33 +44,37 @@ export class Navbar {
     private authService: AuthService,
     private userService: UserService,
     private notificationsService: NotificationsService,
-    private router: Router
+    private utils: NotificationUtilsService,
+    private router: Router,
+    private elementRef: ElementRef
   ) {}
 
   ngOnInit() {
-    // Wait until auth is ready and user exists
-    this.authService.authReady$
-      .pipe(
-        filter(ready => ready), // only continue once auth is initialized
-        switchMap(() => this.authService.user$),
-        filter(user => !!user), // skip null
-        switchMap(user => {
-          return this.notificationsService.getNotifications(user!.uid).pipe(
-            tap(list => {
-              this.latestNotifications = list;
-              if (list.some(n => !n.read)) {
-                this.newNotification = true;
-                setTimeout(() => (this.newNotification = false), 300);
-              }
-            })
-          );
-        })
-      )
-      .subscribe(list => {
-        this.notifications$ = of(list);
-        this.unreadCount$ = of(list.filter(n => !n.read).length);
-        this.notificationsByDay$ = of(this.groupNotificationsByDay(list));
-      });
+    const raw$ = this.authService.authReady$.pipe(
+      filter(Boolean),
+      switchMap(() => this.authService.user$),
+      filter(Boolean),
+      switchMap(user => this.notificationsService.getNotifications(user!.uid)),
+      tap(list => {
+        this.latestNotifications = list;
+
+        if (list.some(n => !n.read)) {
+          this.newNotification = true;
+          setTimeout(() => (this.newNotification = false), 300);
+        }
+      }),
+      shareReplay(1)
+    );
+
+    this.notifications$ = raw$;
+
+    this.unreadCount$ = raw$.pipe(
+      map(list => list.filter(n => !n.read).length)
+    );
+
+    this.notificationsByDay$ = raw$.pipe(
+      map(list => this.utils.groupNotificationsByDay(list))
+    );
   }
 
   toggleNotifications() {
@@ -73,80 +90,6 @@ export class Navbar {
     this.notificationsService.markAsRead(id);
   }
 
-  private groupNotificationsByDay(list: Notification[]): Record<string, Notification[][]> {
-    const days: Record<string, Notification[][]> = {};
-
-    list.forEach(n => {
-      const date = n.createdAt?.toDate?.();
-      const dayKey = this.getNotificationSection(date) || 'Earlier';
-
-      if (!days[dayKey]) {
-        days[dayKey] = [];
-      }
-
-      // Build grouping key
-      let key = n.type;
-      switch (n.type) {
-        case 'like_post':
-        case 'comment_post':
-        case 'like_comment':
-          key += `_${n.postId || ''}_${n.commentId || ''}`;
-          break;
-
-        case 'follow':
-          key = 'follow';
-          break;
-      }
-
-      // Find existing group
-      let group = days[dayKey].find(g => {
-        const gKey = g[0]?.type + '_' + (g[0]?.postId || '') + '_' + (g[0]?.commentId || '');
-        return gKey === key;
-      });
-
-      // Create new group if not found
-      if (!group) {
-        group = [];
-        days[dayKey].push(group);
-      }
-
-      group.push(n);
-    });
-
-    // Sorting
-    Object.keys(days).forEach(day => {
-      // Sort notifications inside each group (newest first)
-      days[day].forEach(group => {
-        group.sort((a, b) => {
-          const timeA = a.createdAt?.toDate?.()?.getTime() ?? 0;
-          const timeB = b.createdAt?.toDate?.()?.getTime() ?? 0;
-          return timeB - timeA;
-        });
-      });
-
-      // Sort groups by most recent notification in each group
-      days[day].sort((a, b) => {
-        const timeA = a[0]?.createdAt?.toDate?.()?.getTime() ?? 0;
-        const timeB = b[0]?.createdAt?.toDate?.()?.getTime() ?? 0;
-        return timeB - timeA;
-      });
-    });
-
-    return days;
-  }
-
-  private getNotificationSection(date?: Date): 'Today' | 'Yesterday' | 'Earlier' {
-    if (!date) return 'Earlier';
-    const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
-
-    const d = new Date(date);
-    if (d.toDateString() === today.toDateString()) return 'Today';
-    if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
-    return 'Earlier';
-  }
-
   async goToProfile() {
     const authUser = await firstValueFrom(this.authService.getCurrentUser());
     if (!authUser) return;
@@ -156,6 +99,13 @@ export class Navbar {
     if (appUser.userId != null) this.router.navigate(['/profile', appUser.userId]);
     else if (appUser.username) this.router.navigate(['/u', appUser.username]);
     else console.warn('[NAVBAR] No username or userId available for profile navigation');
+  }
+
+  @HostListener('document:click', ['$event'])
+  onClickOutside(event: Event) {
+    if (!this.elementRef.nativeElement.contains(event.target)) {
+      this.showNotifications = false;
+    }
   }
 
   async logout() {
