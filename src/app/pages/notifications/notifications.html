@@ -1,4 +1,59 @@
-<div class="flex-1 p-4">
-  <h1 class="text-2xl font-bold mb-4">🔔 Notifications</h1>
-  <p>This is the notifications page.</p>
+<div class="flex-1 p-4 flex flex-col relative">
+  <!-- Header with Mark all as read button and unread badge -->
+  <div class="flex justify-between items-center mb-4">
+    <div class="flex items-center space-x-2">
+      <h1 class="text-2xl font-semibold">Notifications</h1>
+      <span
+        *ngIf="(unreadCount$ | async) as count"
+        class="inline-flex items-center justify-center h-6 w-6 rounded-full bg-red-500 text-white text-sm font-semibold"
+        [class.bounce-badge]="newNotification"
+        [hidden]="count === 0">
+        <span class="relative -top-[0.5px]">{{ count }}</span>
+      </span>
+    </div>
+
+    <button
+      class="text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200 px-3 py-1 rounded-full shadow-lg"
+      (click)="markAllRead()">
+      Mark all as read
+    </button>
+  </div>
+
+  <!-- Scrollable notifications -->
+  <div 
+    class="flex-1 relative overflow-y-auto max-h-[80vh] scroll-smooth bg-white p-4 rounded shadow"
+    #scrollContainer
+    (scroll)="onScroll($event)">
+
+    <!-- Top fade -->
+    <div
+      class="pointer-events-none absolute top-0 left-0 w-full h-8 bg-gradient-to-b from-white to-transparent z-10"
+      [class.opacity-0]="!showTopFade"
+      [class.opacity-100]="showTopFade"
+      style="transition: opacity 0.2s">
+    </div>
+
+    <ng-container *ngIf="notificationsByDay$ | async as notificationsByDay">
+      <ng-container *ngFor="let dayEntry of notificationsByDay | keyvalue: sortDays">
+        <!-- Day header -->
+        <div class="mt-3 mb-1 text-gray-400 text-xs font-semibold uppercase">
+          {{ dayEntry.key }}
+        </div>
+
+        <ul class="space-y-2">
+          <li *ngFor="let group of dayEntry.value">
+            <app-notification-item [notifications]="group"></app-notification-item>
+          </li>
+        </ul>
+      </ng-container>
+    </ng-container>
+
+    <!-- Bottom fade -->
+    <div
+      class="pointer-events-none absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-white to-transparent z-10"
+      [class.opacity-0]="!showBottomFade"
+      [class.opacity-100]="showBottomFade"
+      style="transition: opacity 0.2s">
+    </div>
+  </div>
 </div>

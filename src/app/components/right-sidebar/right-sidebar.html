@@ -25,7 +25,7 @@
             class="h-5 w-5 bg-red-500 text-white text-sm font-bold rounded-full flex items-center justify-center"
             [class.bounce-badge]="newNotification"
             [hidden]="count === 0">
-        {{ count }}
+        <span class="relative -top-[0.5px]">{{ count }}</span>
       </span>
     </h2>
 
