@@ -180,8 +180,12 @@
         <ng-container *ngFor="let post of posts; trackBy: trackByPostId">
           <!-- media post -->
           <div *ngIf="post.media!.length > 0; else captionOnlyPost" 
-              (click)="openPostModal(post)"
-              class="relative aspect-square bg-gray-100 overflow-hidden rounded cursor-pointer">
+            (click)="openPostModal(post)"
+            class="relative aspect-square bg-gray-100 overflow-hidden rounded cursor-pointer">
+            <!-- Stack icon (only if multiple media) -->
+            <img *ngIf="(post?.media?.length ?? 0) > 1"
+              src="assets/icons/stack-2.svg"
+              class="absolute top-2 right-2 w-6 h-6 p-1 rounded-md"/>
             <img *ngIf="post.media![0].type === 'image'" [src]="post.media![0].url" class="w-full h-full object-cover"/>
             <video *ngIf="post.media![0].type === 'video'" [src]="post.media![0].url" class="w-full h-full object-cover" muted loop playsinline></video>
           </div>
