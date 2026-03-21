@@ -5,7 +5,8 @@ import { NotificationUtilsService } from '../../services/notification-utils.serv
 import { Notification } from '../../models/notification.model';
 import { UserService, User } from '../../services/user.service';
 import { Avatar } from '../avatar/avatar';
-import { combineLatest, map, Observable, of } from 'rxjs';
+import { combineLatest, firstValueFrom, map, Observable, of } from 'rxjs';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-notification-item',
@@ -20,6 +21,7 @@ export class NotificationItem implements OnChanges {
   private userService = inject(UserService);
   private notificationsService = inject(NotificationsService);
   private utils = inject(NotificationUtilsService);
+  private router = inject(Router);
 
   actors$!: Observable<any[]>;
   previewActors$!: Observable<User[]>;
@@ -57,6 +59,40 @@ export class NotificationItem implements OnChanges {
         n.read = true; // optimistically update local state
       }
     });
+  }
+
+  onClick() {
+    if (!this.notifications?.length) return;
+
+    const n = this.notifications[0];
+
+    // Mark entire group as read
+    this.markAsRead();
+
+    switch (n.type) {
+      case 'like_post':
+      case 'comment_post':
+      case 'like_comment':
+        if (n.postId) {
+          
+        }
+        break;
+
+      case 'follow':
+        if (!n.actorUid) return;
+
+        // Get userId before routing
+        firstValueFrom(this.userService.getUserByUid(n.actorUid))
+          .then(user => {
+            if (user?.userId) {
+              this.router.navigate(['/profile', user.userId]);
+            }
+          });
+        break;
+
+      default:
+        console.warn('[Notification] Unhandled type:', n.type);
+    }
   }
 
   // Check if any notification in this group is unread

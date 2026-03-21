@@ -1,6 +1,6 @@
 <div class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100 cursor-pointer transition-colors duration-200"
     [class.opacity-60]="!hasUnread"
-    (click)="markAsRead()">
+    (click)="onClick()">
 
   <ng-container *ngIf="actors$ | async as actors">
 

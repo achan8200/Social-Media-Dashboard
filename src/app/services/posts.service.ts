@@ -90,6 +90,17 @@ export class PostsService {
     return this.posts$;
   }
 
+  getPostById(postId: string): Observable<Post | null> {
+    const postRef = doc(this.firestore, `posts/${postId}`);
+
+    return docData(postRef, { idField: 'id' }).pipe(
+      map(data => {
+        if (!data) return null;
+        return data as Post;
+      })
+    );
+  }
+
   async loadInitialPosts() {
     const postsRef = collection(this.firestore, 'posts');
 
