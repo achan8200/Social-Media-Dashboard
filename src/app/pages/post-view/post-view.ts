@@ -11,7 +11,7 @@ import { ConfirmModal } from '../../components/confirm-modal/confirm-modal';
 import { EditPostModal } from '../../components/edit-post-modal/edit-post-modal';
 import { Comment, CommentWithLikes } from '../../models/comment.model';
 import { differenceInSeconds, differenceInMinutes, differenceInHours, differenceInDays, differenceInWeeks } from 'date-fns';
-import { combineLatest, map, Observable, of, switchMap } from 'rxjs';
+import { BehaviorSubject, combineLatest, map, Observable, of, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-post-view',
@@ -37,8 +37,9 @@ export class PostView implements AfterViewInit {
   liked$!: Observable<boolean>;
   likesCount$!: Observable<number>;
   commentsCount$!: Observable<number>;
-
-  comments$!: Observable<CommentWithLikes[]>;
+  commentsSubject = new BehaviorSubject<CommentWithLikes[]>([]);
+  comments$ = this.commentsSubject.asObservable();
+  
   newComment = '';
   editingCommentId: string | null = null;
   editingText = '';
@@ -93,7 +94,10 @@ export class PostView implements AfterViewInit {
       })
     ).subscribe(post => {
       this.post = post;
-      this.setupPost();
+      if (post) {
+        this.setupPost();
+        this.setupComments();
+      }
       this.cdr.markForCheck();
     });
   }
@@ -107,27 +111,6 @@ export class PostView implements AfterViewInit {
       this.displayName$ = user$.pipe(map(u => u?.displayName || 'Unknown'));
       this.userAvatar$ = user$.pipe(map(u => u?.profilePicture || null));
       this.userId$ = user$.pipe(map(u => u?.userId || ''));
-      
-      this.comments$ = this.postsService.getComments(this.post.id).pipe(
-        switchMap(comments => combineLatest(
-          comments.map(comment => {
-            const user$ = this.userService.getUserByUid(comment.uid);
-            const liked$ = this.postsService.getCommentLike(this.post!.id, comment.id!);
-
-            return combineLatest([user$, liked$]).pipe(
-              map(([user, liked]) => ({
-                ...comment,
-                username$: of(user?.username ?? 'Unknown'),
-                userAvatar$: of(user?.profilePicture ?? null),
-                liked$,
-              }))
-            );
-          })
-        ))
-      );
-      this.commentsCount$ = this.comments$.pipe(
-        map(comments => comments.length)
-      );
     }
 
     const media = this.post?.media ?? [];
@@ -143,6 +126,24 @@ export class PostView implements AfterViewInit {
       this.setPositionByIndex();
       this.updateMediaAspect();
     });
+  }
+
+  private setupComments() {
+    if (!this.post) return;
+
+    // Subscribe once to Firestore comments
+    this.postsService.getComments(this.post.id).subscribe(comments => {
+      const enriched = comments.map(c => ({
+        ...c,
+        username$: this.userService.getUserByUid(c.uid).pipe(map(u => u?.username ?? 'Unknown')),
+        userAvatar$: this.userService.getUserByUid(c.uid).pipe(map(u => u?.profilePicture ?? null)),
+        liked$: this.postsService.getCommentLike(this.post!.id, c.id!),
+      }));
+      this.commentsSubject.next(enriched);
+    });
+
+    // Stable commentsCount$
+    this.commentsCount$ = this.comments$.pipe(map(comments => comments.length));
   }
 
   ngAfterViewInit() {
