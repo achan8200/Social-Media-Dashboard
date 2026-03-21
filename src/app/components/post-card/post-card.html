@@ -92,12 +92,12 @@
             {{ (liked$ | async) ? '❤️' : '🤍' }}
           </span>
 
-          <span>{{ post?.likesCount ?? 0 }}</span>
+          <span>{{ likesCount$ | async }}</span>
         </button>
 
         <div class="flex items-center space-x-1 text-gray-600">
             <span>💬</span>
-            <span>{{ post?.commentsCount ?? 0 }}</span>
+            <span>{{ commentsCount$ | async }}</span>
         </div>
       </div>
     </div>

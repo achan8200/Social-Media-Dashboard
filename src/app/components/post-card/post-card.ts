@@ -35,6 +35,9 @@ export class PostCard {
   animatingLike = false;
   liked$!: Observable<boolean>;
 
+  likesCount$!: Observable<number>;
+  commentsCount$!: Observable<number>;
+
   menuOpen = false;
   private userFetched = false;
 
@@ -67,9 +70,10 @@ export class PostCard {
       this.userFetched = true; // only do this once
     }
 
-    // Check if user liked post
     if (this.post) {
-      this.liked$ = this.postsService.getPostLike(this.post.id); // only this one
+      this.liked$ = this.postsService.getPostLike(this.post.id);
+      this.likesCount$ = this.postsService.getPostLikesCount(this.post.id);
+      this.commentsCount$ = this.postsService.getPostCommentsCount(this.post.id);
     }
   }
 

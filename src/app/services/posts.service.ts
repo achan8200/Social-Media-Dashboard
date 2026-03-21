@@ -567,6 +567,12 @@ export class PostsService {
     }
   }
 
+  getPostCommentsCount(postId: string): Observable<number> {
+    return this.posts$.pipe(
+      map(posts => posts.find(p => p.id === postId)?.commentsCount ?? 0)
+    );
+  }
+
   // Observable for comment like state
   getCommentLike(postId: string, commentId: string): Observable<boolean> {
     const uid = this.auth.currentUser?.uid;
