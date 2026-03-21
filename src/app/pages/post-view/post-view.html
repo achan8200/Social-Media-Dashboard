@@ -1,0 +1,353 @@
+<div *ngIf="post" class="max-w-5xl mx-auto py-4 px-4">
+  
+	<!-- Modal Card -->
+  <div
+    class="w-full relative bg-white rounded-lg overflow-hidden shadow"
+    [ngClass]="post.media?.length ? 'max-w-5xl' : 'max-w-2xl mx-auto'"
+  >
+
+			<!-- Media Post -->
+			<div *ngIf="post.media?.length; else captionOnlyLayout"
+				class="flex md:flex-row flex-col h-full">
+
+				<!-- Left: Media Carousel -->
+				<div class="flex-1 bg-black flex items-center justify-center relative max-h-[80vh] w-full">
+					
+					<!-- Carousel Track -->
+					<div #carouselContainer
+							class="w-full h-full overflow-hidden relative select-none"
+							(mousedown)="dragStart($event)"
+							(mousemove)="dragMove($event)"
+							(mouseup)="dragEnd()"
+							(mouseleave)="dragEnd()"
+							(touchstart)="dragStart($event)"
+							(touchmove)="dragMove($event)"
+							(touchend)="dragEnd()">
+						<div class="flex h-full"
+								[style.transform]="'translateX(' + currentTranslate + 'px)'"
+								[style.transition]="isDragging ? 'none' : 'transform 300ms ease-in-out'">
+							<div *ngFor="let media of post.media"
+									class="w-full flex-shrink-0 flex items-center justify-center bg-black">
+								<img *ngIf="media.type === 'image'" [src]="media.url"
+									class="max-w-full max-h-full object-cover"/>
+								<video *ngIf="media.type === 'video'" #videoPlayer [src]="media.url"
+											class="max-w-full max-h-full object-contain"
+											[poster]="media.thumbnail"
+											loop controls playsinline preload="metadata">
+								</video>
+							</div>
+						</div>
+					</div>
+
+					<!-- Slide counter -->
+					<div *ngIf="hasMultipleMedia()"
+							class="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
+						{{ currentMediaIndex + 1 }} / {{ post.media?.length }}
+					</div>
+
+					<!-- Left/Right Arrows -->
+					<button *ngIf="hasMultipleMedia() && currentMediaIndex !== 0"
+									(click)="prevMedia()"
+									class="absolute left-2 top-1/2 transform -translate-y-1/2 text-2xl
+												bg-black/40 text-white rounded-full w-8 h-8 flex 
+												items-center justify-center hover:bg-black/60">
+						<span class="relative -top-[3px]">‹</span>
+					</button>
+
+					<button *ngIf="hasMultipleMedia() && currentMediaIndex !== ((post.media?.length ?? 0) - 1)"
+									(click)="nextMedia()"
+									class="absolute right-2 top-1/2 transform -translate-y-1/2 text-2xl
+												bg-black/40 text-white rounded-full w-8 h-8 flex 
+												items-center justify-center hover:bg-black/60">
+						<span class="relative -top-[3px]">›</span>
+					</button>
+
+					<!-- Pagination Dots -->
+					<div *ngIf="hasMultipleMedia()" class="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
+						<span *ngFor="let m of post.media; let i = index"
+									class="w-2 h-2 rounded-full"
+									[ngClass]="{'bg-white': i === currentMediaIndex, 'bg-white/50': i !== currentMediaIndex}">
+						</span>
+					</div>
+
+				</div>
+
+				<!-- Right: Details -->
+				<div class="w-full md:w-96 p-4 flex flex-col max-h-[80vh]">
+
+					<!-- Header -->
+					<div class="flex justify-between items-center mb-2 flex-shrink-0">
+						<div class="flex items-center space-x-3">
+							<app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async" [userId]="userId$ | async" (clicked)="onAvatarClick()"></app-avatar>
+							<a [routerLink]="['/profile', userId$ | async]" class="font-normal hover:text-gray-600 transition-colors" (click)="onAvatarClick()">
+								{{ username$ | async }}
+							</a>
+						</div>
+						<!-- Author Menu -->
+						<div *ngIf="post.uid === auth.currentUser?.uid" class="relative">
+							<button (click)="toggleMenu($event);"
+											[class.bg-gray-300]="menuOpen"
+											class="text-gray-600 text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 hover:text-black transition">
+								<span class="relative -top-[1px]">⋯</span>
+							</button>
+							<div *ngIf="menuOpen" class="absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg z-50">
+								<button (click)="onEdit($event)" class="block w-full text-left px-4 py-2 hover:bg-gray-100">Edit Post</button>
+								<button (click)="onDelete($event)" class="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">Delete Post</button>
+							</div>
+						</div>
+					</div>
+
+					<!-- Caption -->
+					<p class="text-sm mb-4 overflow-y-auto max-h-[20vh]" [innerHTML]="formattedCaption"></p>
+
+					<!-- Actions -->
+					<div class="flex items-center space-x-6 mb-4 text-sm">
+						<button (click)="likePost()" 
+							class="flex-shrink-0 text-red-500 font-medium flex items-center space-x-1"
+							[class.text-red-500]="(liked$ | async)">
+							<span class="like-heart" [class.like-pop]="animatingLike">{{ (liked$ | async) ? '❤️' : '🤍' }}</span>
+							<span>{{ likesCount$ | async }}</span>
+						</button>
+						<div class="flex-shrink-0 flex items-center space-x-1 text-gray-600">
+							<span>💬</span>
+							<span>{{ commentsCount$ | async }}</span>
+						</div>
+					</div>
+
+					<div class="flex-1 flex flex-col min-h-0 overflow-hidden">
+						<!-- Scrollable comments -->
+						<div #commentsContainer class="flex-1 min-h-0 overflow-y-auto flex flex-col space-y-3 border-t pt-4">
+							<div *ngFor="let comment of comments$ | async; trackBy: trackByCommentId" class="flex items-start justify-between">
+								<div class="flex items-start space-x-2">
+									<app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username$ | async" [imageUrl]="comment.userAvatar$ | async" [userId]="comment.userId" (clicked)="onAvatarClick()"></app-avatar>
+									<div class="flex flex-col">
+										<a [routerLink]="['/profile', comment.userId]" class="font-medium text-sm hover:text-gray-600 transition-colors" (click)="onAvatarClick()">
+											{{ comment.username$ | async }}
+										</a>
+										<div *ngIf="editingCommentId === comment.id; else normalComment" class="flex items-center space-x-3">
+											<textarea #commentInput
+												[(ngModel)]="editingText" 
+												class="border px-2 py-1 text-sm rounded flex-1 resize-none whitespace-pre-wrap" 
+												rows="3"
+												(input)="adjustTextareaHeight()">
+											</textarea>
+											<button (click)="saveEdit(comment)" class="text-blue-500 text-sm hover:underline" [disabled]="!editingText.trim()">Save</button>
+											<button (click)="cancelEditComment()" class="text-gray-500 text-sm hover:underline">Cancel</button>
+										</div>
+										<ng-template #normalComment>
+											<span class="text-xs text-gray-700 break-words whitespace-pre-wrap">{{ comment.text }}</span>
+											<div class="flex items-center space-x-2 mt-1 text-xs text-gray-400">
+												<span>{{ getRelativeTime(comment.createdAt) }}</span>
+												<div class="ml-2 flex items-center space-x-1">
+													<button class="ml-2 flex items-center space-x-1"
+																	(click)="toggleCommentLike(comment)">
+														<span class="like-heart" [class.like-pop]="animatingCommentLike[comment.id!]">
+															{{ (comment.liked$ | async) ? '❤️' : '🤍' }}
+														</span>
+														<span *ngIf="comment.likesCount !== undefined && comment.likesCount > 0"
+															class="transition-opacity duration-150"
+															[style.opacity]="comment.likesCount > 0 ? 1 : 0">
+															{{ comment.likesCount === 1 ? '1 like' : comment.likesCount + ' likes' }}
+														</span>
+													</button>
+												</div>
+											</div>
+										</ng-template>
+									</div>
+								</div>
+								<!-- Author Controls Dropdown for Comment -->
+								<div *ngIf="comment.uid === auth.currentUser?.uid" class="relative">
+									<!-- Trigger button -->
+									<button (click)="toggleCommentMenu(comment.id!)"
+													[class.bg-gray-300]="isCommentMenuOpen(comment.id!)"
+													class="comment-menu-toggle text-gray-500 text-sm w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 hover:text-black transition">
+										<span class="relative -top-[1px]">⋯</span>
+									</button>
+
+									<!-- Dropdown menu -->
+									<div *ngIf="isCommentMenuOpen(comment.id!)"
+											class="comment-menu absolute right-0 mt-1 w-28 bg-white border rounded shadow-lg z-50 text-sm">
+										<button (click)="startEdit(comment)" class="block w-full text-left px-3 py-1 hover:bg-gray-100">Edit</button>
+										<button (click)="deleteComment(comment)" class="block w-full text-left px-3 py-1 text-red-600 hover:bg-gray-100">Delete</button>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<!-- New comments button -->
+						<button
+							*ngIf="showNewCommentsButton"
+							(click)="jumpToBottom()"
+							class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-xs px-3 py-1 rounded-full shadow hover:bg-blue-600 transition">
+							↓ New comments
+						</button>
+					</div>
+
+					<!-- Comment Input (outside scrollable container) -->
+					<div class="flex-shrink-0 mt-3 flex border-t pt-3">
+						<textarea #newCommentInput
+							[(ngModel)]="newComment" 
+							placeholder="Add a comment..."
+							rows="1"
+							class="min-h-10 flex-1 border px-3 py-2 rounded text-sm resize-none overflow-y-hidden" 
+							(input)="adjustNewCommentTextareaHeight()"
+							(keydown)="handleCommentKeydown($event)"></textarea>
+						<button (click)="submitComment()" 
+							class="ml-2 font-medium"
+							[ngClass]="{'text-blue-500 hover:underline': newComment.trim(), 'text-gray-400 cursor-not-allowed': !newComment.trim()}"
+							[disabled]="!newComment.trim()">Post</button>
+					</div>
+				</div>
+			</div>
+
+			<!-- Caption-only Post -->
+			<ng-template #captionOnlyLayout>
+				<div class="flex flex-col justify-center p-8 w-full h-full max-h-[80vh] text-left">
+
+					<!-- Header -->
+					<div class="flex justify-between items-center mb-6">
+						<div class="flex items-center space-x-3">
+							<app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async" [userId]="userId$ | async" (clicked)="onAvatarClick()"></app-avatar>
+							<a [routerLink]="['/profile', userId$ | async]" class="font-normal hover:text-gray-600 transition-colors" (click)="onAvatarClick()">
+								{{ username$ | async }}
+							</a>
+						</div>
+
+						<!-- Author Menu -->
+						<div *ngIf="isAuthor" class="relative">
+							<button (click)="toggleMenu($event)"
+											[class.bg-gray-300]="menuOpen"
+											class="text-gray-600 text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 hover:text-black transition">
+								<span class="relative -top-[1px]">⋯</span>
+							</button>
+
+							<div *ngIf="menuOpen"
+									class="absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg z-50">
+								<button (click)="onEdit($event)" class="block w-full text-left px-4 py-2 hover:bg-gray-100">Edit Post</button>
+								<button (click)="onDelete($event)" class="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">Delete Post</button>
+							</div>
+						</div>
+					</div>
+
+					<!-- Caption -->
+					<div class="flex-1 overflow-y-auto mb-4">
+						<p class="text-lg leading-relaxed text-gray-800" [innerHTML]="formattedCaption"></p>
+					</div>
+
+					<!-- Actions -->
+					<div class="flex items-center space-x-6 mb-6 text-sm flex-shrink-0">
+						<button (click)="likePost()"
+							class="text-red-500 font-medium flex items-center space-x-1"
+							[class.text-red-500]="(liked$ | async)">
+							<span class="like-heart" [class.like-pop]="animatingLike">{{ (liked$ | async) ? '❤️' : '🤍' }}</span>
+							<span>{{ likesCount$ | async }}</span>
+						</button>
+						<div class="flex items-center space-x-1 text-gray-600">
+							<span>💬</span>
+							<span>{{ commentsCount$ | async }}</span>
+						</div>
+					</div>
+
+					<!-- Scrollable Comments -->
+					<div #commentsContainer class="flex-1 h-full min-h-[150px] overflow-y-auto flex flex-col space-y-3 border-t pt-4">
+						<div *ngFor="let comment of comments$ | async; trackBy: trackByCommentId" class="flex items-start justify-between">
+							<div class="flex items-start space-x-2">
+								<app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username$ | async" [imageUrl]="comment.userAvatar$ | async" [userId]="comment.userId" (clicked)="onAvatarClick()"></app-avatar>
+								<div class="flex flex-col">
+									<a [routerLink]="['/profile', comment.userId]" class="font-medium text-sm hover:text-gray-600 transition-colors" (click)="onAvatarClick()">
+										{{ comment.username$ | async }}
+									</a>
+									<div *ngIf="editingCommentId === comment.id; else normalComment" class="flex items-center space-x-3">
+										<textarea #commentInput
+											[(ngModel)]="editingText"
+											class="border px-2 py-1 text-sm rounded flex-1 resize-none whitespace-pre-wrap" 
+											rows="3"
+											(input)="adjustTextareaHeight()">
+										</textarea>
+										<button (click)="saveEdit(comment)" class="text-blue-500 text-sm hover:underline" [disabled]="!editingText.trim()">Save</button>
+										<button (click)="cancelEditComment()" class="text-gray-500 text-sm hover:underline">Cancel</button>
+									</div>
+									<ng-template #normalComment>
+										<span class="text-xs text-gray-700 break-words whitespace-pre-wrap">{{ comment.text }}</span>
+										<div class="flex items-center space-x-2 mt-1 text-xs text-gray-400">
+											<span>{{ getRelativeTime(comment.createdAt) }}</span>
+											<button class="ml-2 flex items-center space-x-1"
+												(click)="toggleCommentLike(comment)">
+												<span class="like-heart" [class.like-pop]="animatingCommentLike[comment.id!]">
+													{{ (comment.liked$ | async) ? '❤️' : '🤍' }}
+												</span>
+												<span *ngIf="comment.likesCount !== undefined && comment.likesCount > 0"
+													class="transition-opacity duration-150"
+													[style.opacity]="comment.likesCount > 0 ? 1 : 0">
+													{{ comment.likesCount === 1 ? '1 like' : comment.likesCount + ' likes' }}
+												</span>
+											</button>
+										</div>
+									</ng-template>
+								</div>
+							</div>
+
+							<!-- Author Controls Dropdown for Comment -->
+							<div *ngIf="comment.uid === auth.currentUser?.uid" class="relative">
+								<!-- Trigger button -->
+								<button (click)="toggleCommentMenu(comment.id!)"
+									[class.bg-gray-300]="isCommentMenuOpen(comment.id!)"
+									class="comment-menu-toggle text-gray-500 text-sm w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 hover:text-black transition">
+									<span class="relative -top-[1px]">⋯</span>
+								</button>
+
+								<!-- Dropdown menu -->
+								<div *ngIf="isCommentMenuOpen(comment.id!)"
+									class="comment-menu absolute right-0 mt-1 w-28 bg-white border rounded shadow-lg z-50 text-sm">
+									<button (click)="startEdit(comment)" class="block w-full text-left px-3 py-1 hover:bg-gray-100">Edit</button>
+									<button (click)="deleteComment(comment)" class="block w-full text-left px-3 py-1 text-red-600 hover:bg-gray-100">Delete</button>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- New comments button -->
+					<button *ngIf="showNewCommentsButton"
+						(click)="jumpToBottom()"
+						class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-xs px-3 py-1 rounded-full shadow hover:bg-blue-600 transition">
+						↓ New comments
+					</button>
+
+					<!-- Comment Input -->
+					<div class="mt-3 flex border-t pt-3 flex-shrink-0">
+						<textarea #newCommentInput
+							[(ngModel)]="newComment" 
+							placeholder="Add a comment..." 
+							rows="1"
+							class="min-h-10 flex-1 border px-3 py-2 rounded text-sm resize-none overflow-y-hidden" 
+							(input)="adjustNewCommentTextareaHeight()"
+							(keydown)="handleCommentKeydown($event)"></textarea>
+						<button (click)="submitComment()" 
+							class="ml-2 font-medium"
+							[ngClass]="{'text-blue-500 hover:underline': newComment.trim(), 'text-gray-400 cursor-not-allowed': !newComment.trim()}"
+							[disabled]="!newComment.trim()">Post</button>
+					</div>
+				</div>
+			</ng-template>
+
+  </div>
+</div>
+
+<!-- Confirm Modal for Post Deletion -->
+<app-confirm-modal
+  *ngIf="selectedPostToDelete"
+  title="Delete this post?"
+  message="This action cannot be undone."
+  confirmText="Delete"
+  cancelText="Cancel"
+  (confirmed)="confirmDelete()"
+  (cancelled)="cancelDelete()">
+</app-confirm-modal>
+
+<!-- Edit Post Modal -->
+<app-edit-post-modal
+  *ngIf="editingPost"
+  [post]="editingPost"
+  (update)="updatePost($event)"
+  (cancel)="cancelEdit()">
+</app-edit-post-modal>

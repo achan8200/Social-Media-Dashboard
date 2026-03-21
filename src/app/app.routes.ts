@@ -10,6 +10,7 @@ import { Signup } from './components/signup/signup';
 import { AuthGuard } from './guards/auth-guard';
 import { GuestGuard } from './guards/guest-guard';
 import { Profile } from './pages/profile/profile';
+import { PostView } from './pages/post-view/post-view';
 
 export const routes: Routes = [
   { path: 'home', component: Home },
@@ -22,6 +23,7 @@ export const routes: Routes = [
   { path: 'signup', component: Signup, canActivate: [GuestGuard] },
   { path: 'profile/:userId', component: Profile },
   { path: 'u/:username', component: Profile },
+  { path: 'post/:postId', component: PostView },
   { path: '', redirectTo: 'login', pathMatch: 'full' }, // default
   { path: '**', redirectTo: 'login' }, // fallback
 ];

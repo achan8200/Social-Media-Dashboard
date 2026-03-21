@@ -1,40 +1,28 @@
-import { Component, Input, Output, EventEmitter, ViewChild, ViewChildren, QueryList, ElementRef, HostListener, AfterViewInit, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
+import { Component, Input, ViewChild, ViewChildren, QueryList, ElementRef, HostListener, AfterViewInit, ChangeDetectionStrategy, Inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { RouterModule, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { PostsService } from '../../services/posts.service';
 import { Post, PostMedia } from '../../models/post.model';
-import { Avatar } from '../avatar/avatar';
+import { Avatar } from '../../components/avatar/avatar';
 import { UserService } from '../../services/user.service';
-import { combineLatest, map, Observable, of, switchMap } from 'rxjs';
-import { trigger, transition, style, animate } from '@angular/animations';
 import { Auth } from '@angular/fire/auth';
-import { ConfirmModal } from "../confirm-modal/confirm-modal";
-import { EditPostModal } from "../edit-post-modal/edit-post-modal";
+import { ConfirmModal } from '../../components/confirm-modal/confirm-modal';
+import { EditPostModal } from '../../components/edit-post-modal/edit-post-modal';
 import { Comment, CommentWithLikes } from '../../models/comment.model';
 import { differenceInSeconds, differenceInMinutes, differenceInHours, differenceInDays, differenceInWeeks } from 'date-fns';
+import { combineLatest, map, Observable, of, switchMap } from 'rxjs';
 
 @Component({
-  selector: 'app-post-modal',
+  selector: 'app-post-view',
   standalone: true,
   imports: [CommonModule, Avatar, ConfirmModal, EditPostModal, FormsModule, RouterModule],
-  templateUrl: './post-modal.html',
-  styleUrls: ['./post-modal.css'],
-  animations: [
-    trigger('overlayFade', [
-      transition(':enter', [style({ opacity: 0 }), animate('200ms ease-out', style({ opacity: 1 }))]),
-      transition(':leave', [animate('150ms ease-in', style({ opacity: 0 }))])
-    ]),
-    trigger('modalScale', [
-      transition(':enter', [style({ opacity: 0, transform: 'scale(0.95)' }), animate('200ms ease-out', style({ opacity: 1, transform: 'scale(1)' }))]),
-      transition(':leave', [animate('150ms ease-in', style({ opacity: 0, transform: 'scale(0.95)' }))])
-    ])
-  ],
+  templateUrl: './post-view.html',
+  styleUrls: ['./post-view.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class PostModal implements AfterViewInit {
+export class PostView implements AfterViewInit {
   @Input() post: Post | null = null;
-  @Output() close = new EventEmitter<void>();
 
   username$: Observable<string> = of('Unknown');
   displayName$: Observable<string> = of('Unknown');
@@ -57,7 +45,6 @@ export class PostModal implements AfterViewInit {
 
   animatingCommentLike: Record<string, boolean> = {};
 
-  isVisible = true;
   currentMediaIndex = 0;
   
   menuOpen = false;
@@ -85,58 +72,70 @@ export class PostModal implements AfterViewInit {
   @ViewChild('commentInput') commentInput!: ElementRef<HTMLTextAreaElement>;
   @ViewChildren('videoPlayer') videoPlayers!: QueryList<ElementRef<HTMLVideoElement>>;
 
-  constructor(private postsService: PostsService, private userService: UserService, public auth: Auth, private router: Router) {}
+  constructor(
+    private postsService: PostsService, 
+    private userService: UserService, 
+    public auth: Auth, 
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {}
 
-  ngOnChanges() {
+  ngOnInit() {
+    this.route.paramMap.pipe(
+      map(params => {
+        const postId = params.get('postId');
+        return postId;
+      }),
+      switchMap(postId => {
+        if (!postId) return of(null);
+        return this.postsService.getPostById(postId);
+      })
+    ).subscribe(post => {
+      this.post = post;
+      this.setupPost();
+      this.cdr.markForCheck();
+    });
+  }
+
+  private setupPost() {
     if (!this.post) return;
+
     if (this.post?.uid) {
       const user$ = this.userService.getUserByUid(this.post.uid);
       this.username$ = user$.pipe(map(u => u?.username || 'Unknown'));
       this.displayName$ = user$.pipe(map(u => u?.displayName || 'Unknown'));
       this.userAvatar$ = user$.pipe(map(u => u?.profilePicture || null));
       this.userId$ = user$.pipe(map(u => u?.userId || ''));
+      
       this.comments$ = this.postsService.getComments(this.post.id).pipe(
-        switchMap(comments => {
-          return combineLatest(
-            comments.map(comment => {
-              // Get the Observable for the user
-              const user$ = this.userService.getUserByUid(comment.uid);
+        switchMap(comments => combineLatest(
+          comments.map(comment => {
+            const user$ = this.userService.getUserByUid(comment.uid);
+            const liked$ = this.postsService.getCommentLike(this.post!.id, comment.id!);
 
-              // Get Observable for whether the comment is liked
-              const liked$ = this.postsService.getCommentLike(this.post!.id, comment.id!);
-
-              // Combine them to produce a comment with reactive user info
-              return combineLatest([user$, liked$]).pipe(
-                map(([user, liked]) => ({
-                  ...comment,
-                  username$: of(user?.username ?? 'Unknown'),      // wrap plain values in of()
-                  userAvatar$: of(user?.profilePicture ?? null),
-                  liked$,
-                }))
-              );
-            })
-          );
-        })
+            return combineLatest([user$, liked$]).pipe(
+              map(([user, liked]) => ({
+                ...comment,
+                username$: of(user?.username ?? 'Unknown'),
+                userAvatar$: of(user?.profilePicture ?? null),
+                liked$,
+              }))
+            );
+          })
+        ))
       );
       this.commentsCount$ = this.comments$.pipe(
         map(comments => comments.length)
       );
     }
 
-    const media = this.post?.media;
+    const media = this.post?.media ?? [];
 
-    if (media && media.length > 0) {
-      this.preloadMedia(media[0]);
-    }
+    if (media?.length > 0) this.preloadMedia(media[0]);
+    if (media?.length > 1) this.preloadMedia(media[1]);
 
-    if (media && media.length > 1) {
-      this.preloadMedia(media[1]);
-    }
-
-    // Subscribe to liked state
     this.liked$ = this.postsService.getPostLike(this.post.id);
-
-    // Subscribe to likes count
     this.likesCount$ = this.postsService.getPostLikesCount(this.post.id);
 
     setTimeout(() => {
@@ -152,14 +151,6 @@ export class PostModal implements AfterViewInit {
     });
   }
 
-  ngOnInit() {
-    document.body.style.overflow = 'hidden';
-  }
-
-  ngOnDestroy() {
-    document.body.style.overflow = '';
-  }
-
   get currentMedia(): PostMedia | null {
     if (!this.post?.media || this.post.media.length === 0) return null;
     return this.post.media[this.currentMediaIndex];
@@ -171,7 +162,7 @@ export class PostModal implements AfterViewInit {
 
   preloadMedia(media?: PostMedia) {
     if (!media) return;
-
+    if (!isPlatformBrowser(this.platformId)) return;
     if (media.type === 'image') {
       const img = new Image();
       img.src = media.url;
@@ -222,10 +213,6 @@ export class PostModal implements AfterViewInit {
 
   @HostListener('window:keydown', ['$event'])
   handleKeyboard(event: KeyboardEvent) {
-    if (event.key === 'Escape') {
-      this.onClose();
-    }
-
     if (event.key === 'ArrowRight') {
       this.nextMedia();
     }
@@ -342,11 +329,6 @@ export class PostModal implements AfterViewInit {
 
   trackByCommentId(index: number, comment: Comment) {
     return comment.id;
-  }
-
-  onClose() {
-    this.isVisible = false; // triggers leave animation
-    setTimeout(() => this.close.emit(), 150); // wait for animation to finish
   }
 
   onTouchStart(event: TouchEvent) {
@@ -545,7 +527,6 @@ export class PostModal implements AfterViewInit {
       .catch(err => console.error(err));
 
     this.selectedPostToDelete = null;
-    this.onClose();
   }
 
   cancelDelete() {
@@ -662,8 +643,6 @@ export class PostModal implements AfterViewInit {
   }
 
   onAvatarClick() {
-    this.onClose();
-
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 100);
@@ -671,6 +650,7 @@ export class PostModal implements AfterViewInit {
 
   // Call this whenever currentMedia changes
   updateMediaAspect() {
+    if (!isPlatformBrowser(this.platformId)) return;
     const media = this.currentMedia;
     if (!media) return;
 
