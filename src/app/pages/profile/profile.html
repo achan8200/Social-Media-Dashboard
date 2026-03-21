@@ -131,7 +131,7 @@
       </div>
     </div>
     <!-- Follow Button when viewing another user's profile -->
-    <button *ngIf="!(isOwner$ | async)"
+    <button *ngIf="!(isOwner$ | async) && !(isGuest$ | async)"
           (click)="toggleFollow()"
           class="px-4 py-2 rounded-lg text-white transition-colors duration-200"
           [ngClass]="{

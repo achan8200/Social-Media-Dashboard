@@ -1,7 +1,7 @@
 import { Component, OnInit, AfterViewInit, ElementRef, QueryList, ViewChildren, Inject, PLATFORM_ID, ChangeDetectorRef, HostListener } from '@angular/core';
 import { AsyncPipe, CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { map, Observable } from 'rxjs';
+import { AuthService } from '../../services/auth.service';
 import { PostCard } from '../post-card/post-card';
 import { Post } from '../../models/post.model';
 import { PostsService } from '../../services/posts.service';
@@ -9,6 +9,7 @@ import { CreatePostModal } from '../create-post-modal/create-post-modal';
 import { PostModal } from '../post-modal/post-modal';
 import { ConfirmModal } from "../confirm-modal/confirm-modal";
 import { EditPostModal } from "../edit-post-modal/edit-post-modal";
+import { map, Observable } from 'rxjs';
 
 @Component({
   selector: 'app-feed',
@@ -34,10 +35,13 @@ export class Feed implements OnInit, AfterViewInit {
   private observer!: IntersectionObserver;
   private isBrowser: boolean;
 
+  isGuest$!: Observable<boolean>;
+
   constructor(
     private postsService: PostsService,
     private cdr: ChangeDetectorRef,
-    @Inject(PLATFORM_ID) platformId: Object
+    @Inject(PLATFORM_ID) platformId: Object,
+    private authService: AuthService
   ) {
     this.isBrowser = isPlatformBrowser(platformId);
     this.dashboardState$ = this.postsService.dashboardState$;
@@ -55,7 +59,12 @@ export class Feed implements OnInit, AfterViewInit {
     );
   }
 
-  ngOnInit() {}
+  ngOnInit() {
+    // Determine if user is logged in
+    this.isGuest$ = this.authService.user$.pipe(
+      map(user => !user)  // true if no user is logged in
+    );
+  }
 
   ngAfterViewInit(): void {
     if (!this.isBrowser) return;

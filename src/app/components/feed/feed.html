@@ -19,6 +19,7 @@
 
   <!-- Floating Create Button -->
   <button
+    *ngIf="!(isGuest$ | async)"
     (click)="openCreateModal()"
     class="fixed bottom-8 right-8 w-14 h-14 bg-blue-600 text-white text-3xl rounded-full shadow-lg hover:scale-105 transition
           flex items-center justify-center leading-none"

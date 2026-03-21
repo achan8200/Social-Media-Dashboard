@@ -12,7 +12,7 @@ import { GuestGuard } from './guards/guest-guard';
 import { Profile } from './pages/profile/profile';
 
 export const routes: Routes = [
-  { path: 'home', component: Home, canActivate: [AuthGuard] },
+  { path: 'home', component: Home },
   { path: 'messages', component: Messages, canActivate: [AuthGuard] },
   { path: 'connections/:username', component: Connections }, // public view
   { path: 'connections', component: Connections, canActivate: [AuthGuard] }, // your own
@@ -20,8 +20,8 @@ export const routes: Routes = [
   { path: 'groups', component: Groups, canActivate: [AuthGuard] },
   { path: 'login', component: Login, canActivate: [GuestGuard] },
   { path: 'signup', component: Signup, canActivate: [GuestGuard] },
-  { path: 'profile/:userId', component: Profile},
-  { path: 'u/:username', component: Profile},
+  { path: 'profile/:userId', component: Profile },
+  { path: 'u/:username', component: Profile },
   { path: '', redirectTo: 'login', pathMatch: 'full' }, // default
   { path: '**', redirectTo: 'login' }, // fallback
 ];

@@ -50,6 +50,7 @@ export class Profile {
 
   profile$!: Observable<any>;
   isOwner$!: Observable<boolean>;
+  isGuest$!: Observable<boolean>;
   userPostCount$!: Observable<number>;
   userPosts$!: Observable<Post[]>;
 
@@ -281,8 +282,15 @@ export class Profile {
     }); */
   }
 
+  ngOnInit() {
+    // Determine if user is logged in
+    this.isGuest$ = this.authService.user$.pipe(
+      map(user => !user)  // true if no user is logged in
+    );
+  }
+
   // Load profile based on /u/:username or /profile/:userId
- private loadProfileFromRoute() {
+  private loadProfileFromRoute() {
     this.profile$ = this.route.paramMap.pipe(
       switchMap(params => {
         const username = params.get('username');
