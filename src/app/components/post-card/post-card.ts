@@ -1,5 +1,5 @@
-import { Component, ElementRef, EventEmitter, HostListener, Input, Output, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ElementRef, EventEmitter, HostListener, Input, Output, ViewChild, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser  } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { Post, PostMedia } from '../../models/post.model';
 import { Avatar } from '../avatar/avatar';
@@ -42,9 +42,15 @@ export class PostCard {
   @ViewChild('postRef') postRef?: ElementRef<HTMLElement>;
   private observer?: IntersectionObserver;
 
-  constructor(private userService: UserService, private auth: Auth, private postsService: PostsService) {}
+  constructor(
+    private userService: UserService, 
+    private auth: Auth, 
+    private postsService: PostsService,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {}
 
   ngAfterViewInit() {
+    if (!isPlatformBrowser(this.platformId)) return;
     if (this.feedVideo?.nativeElement) {
       this.setupObserver();
     }
@@ -129,6 +135,9 @@ export class PostCard {
 
   private setupObserver() {
     if (!this.feedVideo?.nativeElement) return;
+
+    // Only run in browser
+    if (!isPlatformBrowser(this.platformId)) return;
     const video = this.feedVideo.nativeElement;
 
     video.muted = true;
