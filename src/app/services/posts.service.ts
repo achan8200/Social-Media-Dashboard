@@ -7,9 +7,10 @@ import { Observable, BehaviorSubject, from, combineLatest, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { Auth } from '@angular/fire/auth';
 import { Post, PostMedia } from '../models/post.model';
-import { Comment } from '../models/comment.model';
+import { Comment, CommentWithLikes } from '../models/comment.model';
 import imageCompression from 'browser-image-compression';
 import { NotificationsService } from './notifications.service';
+import { UserService } from './user.service';
 
 @Injectable({ providedIn: 'root' })
 export class PostsService {
@@ -24,6 +25,7 @@ export class PostsService {
   private postsSubject = new BehaviorSubject<Post[]>([]);
   posts$ = this.postsSubject.asObservable();
 
+  private postSubjects = new Map<string, BehaviorSubject<Post>>();
   private likesSubjects = new Map<string, BehaviorSubject<boolean>>();
   private commentLikesSubjects = new Map<string, BehaviorSubject<boolean>>();
 
@@ -36,7 +38,8 @@ export class PostsService {
     private firestore: Firestore,
     private auth: Auth,
     private storage: Storage,
-    private notificationsService: NotificationsService
+    private notificationsService: NotificationsService,
+    private userService: UserService
   ) {
     // Defer loading browser-only state until we're sure we're in the browser
     this.safeLoadSeenPosts();
@@ -84,15 +87,25 @@ export class PostsService {
     });
   }
 
+  /** -------------------- POSTS STREAMS -------------------- */
 
-  // Real-time posts stream
   getPosts(): Observable<Post[]> {
     return this.posts$;
   }
 
+  getPostStream(postId: string): Observable<Post> {
+    if (!this.postSubjects.has(postId)) {
+      const subj = new BehaviorSubject<Post>(null!);
+      // Initialize from Firestore
+      const postRef = doc(this.firestore, `posts/${postId}`);
+      docData(postRef, { idField: 'id' }).subscribe(post => subj.next(post as Post));
+      this.postSubjects.set(postId, subj);
+    }
+    return this.postSubjects.get(postId)!.asObservable();
+  }
+
   getPostById(postId: string): Observable<Post | null> {
     const postRef = doc(this.firestore, `posts/${postId}`);
-
     return docData(postRef, { idField: 'id' }).pipe(
       map(data => {
         if (!data) return null;
@@ -101,46 +114,27 @@ export class PostsService {
     );
   }
 
+  /** -------------------- LOAD POSTS -------------------- */
+
   async loadInitialPosts() {
     const postsRef = collection(this.firestore, 'posts');
-
-    const q = query(
-      postsRef,
-      orderBy('createdAt', 'desc'),
-      limit(this.pageSize)
-    );
-
+    const q = query(postsRef, orderBy('createdAt', 'desc'), limit(this.pageSize));
     const snapshot = await getDocs(q);
-
     if (snapshot.empty) return;
 
     this.lastVisiblePost = snapshot.docs[snapshot.docs.length - 1];
-
-    const posts = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Post[];
-
+    const posts = snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as Post[];
     this.postsSubject.next(posts);
     this.savePostsCache(posts);
   }
 
   async loadMorePosts() {
     if (this.loadingMore || this.noMorePosts || !this.lastVisiblePost) return;
-
     this.loadingMore = true;
 
     const postsRef = collection(this.firestore, 'posts');
-
-    const q = query(
-      postsRef,
-      orderBy('createdAt', 'desc'),
-      startAfter(this.lastVisiblePost),
-      limit(this.pageSize)
-    );
-
+    const q = query(postsRef, orderBy('createdAt', 'desc'), startAfter(this.lastVisiblePost), limit(this.pageSize));
     const snapshot = await getDocs(q);
-
     if (snapshot.empty) {
       this.noMorePosts = true;
       this.loadingMore = false;
@@ -148,62 +142,60 @@ export class PostsService {
     }
 
     this.lastVisiblePost = snapshot.docs[snapshot.docs.length - 1];
-
-    const newPosts = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Post[];
-
-    const current = this.postsSubject.value;
-    this.postsSubject.next([...current, ...newPosts]);
+    const newPosts = snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as Post[];
+    this.postsSubject.next([...this.postsSubject.value, ...newPosts]);
     this.savePostsCache(this.postsSubject.value);
     this.loadingMore = false;
   }
 
+  /** -------------------- LOCAL CACHE -------------------- */
+
   private loadCachedPosts() {
     if (typeof window === 'undefined') return;
-
-    const cached = localStorage.getItem(this.postsCacheKey);
-    if (!cached) return;
-
     try {
-      const posts = JSON.parse(cached);
-
-      // Prevent extremely large cache loads
-      const limited = posts.slice(0, 30);
-
-      this.postsSubject.next(limited);
-
-    } catch {
-      console.warn('Failed to load cached posts');
-    }
+      const cached = localStorage.getItem(this.postsCacheKey);
+      if (cached) {
+        const posts = JSON.parse(cached).slice(0, 30);
+        this.postsSubject.next(posts);
+      }
+    } catch { console.warn('Failed to load cached posts'); }
   }
 
   private savePostsCache(posts: Post[]) {
     if (typeof window === 'undefined') return;
+    try { localStorage.setItem(this.postsCacheKey, JSON.stringify(posts)); } 
+    catch { console.warn('Failed to cache posts'); }
+  }
 
+  /** -------------------- SEEN POSTS -------------------- */
+
+  private safeLoadSeenPosts() {
+    if (typeof window === 'undefined' || !window.localStorage) return;
     try {
-      localStorage.setItem(this.postsCacheKey, JSON.stringify(posts));
-    } catch {
-      console.warn('Failed to cache posts');
+      const saved = localStorage.getItem(this.seenPostsKey);
+      if (saved) this.seenPosts = new Set(JSON.parse(saved));
+    } catch { this.seenPosts = new Set(); }
+    this.updateDashboardState();
+  }
+
+  markPostAsSeen(postId: string) {
+    if (!this.seenPosts.has(postId)) {
+      this.seenPosts.add(postId);
+      if (typeof window !== 'undefined') localStorage.setItem(this.seenPostsKey, JSON.stringify([...this.seenPosts]));
+      this.updateDashboardState();
     }
   }
 
-  private async compressImage(file: File): Promise<File> {
-    const options = {
-      maxSizeMB: 0.5,        // target ~500kb
-      maxWidthOrHeight: 1920,
-      useWebWorker: true
-    };
-
-    try {
-      const compressed = await imageCompression(file, options);
-      return compressed;
-    } catch (error) {
-      console.warn('Image compression failed, using original', error);
-      return file;
-    }
+  hasSeen(postId: string): boolean {
+    return this.seenPosts.has(postId);
   }
+
+  private updateDashboardState() {
+    const count = this.seenPosts.size;
+    this.dashboardStateSubject.next({ count, fading: false });
+  }
+
+  /** -------------------- POSTS -------------------- */
 
   // Create post 
   async createPost(
@@ -350,65 +342,44 @@ export class PostsService {
     this.postsSubject.next(updated);
   }
 
-  // Returns an Observable of like state for a specific post
-  getPostLike(postId: string): Observable<boolean> {
-    // Ensure a BehaviorSubject exists
+  /** -------------------- LIKES -------------------- */
+
+  private initPostLike(postId: string, uid: string) {
     if (!this.likesSubjects.has(postId)) {
       const subj = new BehaviorSubject<boolean>(false);
       this.likesSubjects.set(postId, subj);
-
-      // If a user is logged in, load initial state
-      const uid = this.auth.currentUser?.uid;
-      if (uid) {
-        const likeRef = doc(this.firestore, `posts/${postId}/likes/${uid}`);
-        docData(likeRef, { idField: 'id' }).pipe(
-          map(docSnap => !!docSnap?.id)
-        ).subscribe(val => subj.next(val));
-      }
+      const likeRef = doc(this.firestore, `posts/${postId}/likes/${uid}`);
+      docData(likeRef, { idField: 'id' }).pipe(map(d => !!d?.id)).subscribe(subj);
     }
+  }
 
+  // Returns an Observable of like state for a specific post
+  getPostLike(postId: string): Observable<boolean> {
+    if (!this.likesSubjects.has(postId)) {
+      const uid = this.auth.currentUser?.uid;
+      if (uid) this.initPostLike(postId, uid);
+      else this.likesSubjects.set(postId, new BehaviorSubject(false));
+    }
     return this.likesSubjects.get(postId)!.asObservable();
   }
 
   // Returns an Observable of the likes count for a specific post
   getPostLikesCount(postId: string): Observable<number> {
-    return this.posts$.pipe(
-      map(posts => {
-        const post = posts.find(p => p.id === postId);
-        return post?.likesCount ?? 0;
-      })
-    );
+    return this.posts$.pipe(map(posts => posts.find(p => p.id === postId)?.likesCount ?? 0));
   }
 
   // Toggle like locally
-  async toggleLikeOptimistic(postId: string): Promise<void> {
+  async toggleLikeOptimistic(postId: string) {
     const uid = this.auth.currentUser?.uid;
     if (!uid) return;
 
-    // ensure BehaviorSubject exists
-    if (!this.likesSubjects.has(postId)) {
-      this.getPostLike(postId).subscribe(); 
-    }
-    const subj = this.likesSubjects.get(postId)!;
-
-    // Optimistic toggle
+    const subj = this.likesSubjects.get(postId) ?? new BehaviorSubject(false);
+    this.likesSubjects.set(postId, subj);
     const newValue = !subj.value;
     subj.next(newValue);
 
-    try {
-      // Persist to Firestore
-      await this.toggleLike(postId);
-    } catch (err) {
-      console.error('Failed to toggle like in Firestore:', err);
-      // rollback if failed
-      subj.next(!newValue);
-    }
-
-    // Update likesCount in posts$ locally
-    this.updatePostLocal(postId, post => {
-      if (!post.likesCount) post.likesCount = 0;
-      post.likesCount += newValue ? 1 : -1;
-    });
+    this.updatePostLocal(postId, p => p.likesCount = (p.likesCount || 0) + (newValue ? 1 : -1));
+    try { await this.toggleLike(postId); } catch { subj.next(!newValue); }
   }
 
   // Like post, only touch the likes subcollection
@@ -432,8 +403,6 @@ export class PostsService {
 
       if (postSnap.exists()) {
         const post = postSnap.data();
-
-        // Don't notify yourself
         if (post['uid'] !== uid) {
           await this.notificationsService.createNotification({
             recipientUid: post['uid'],
@@ -443,7 +412,6 @@ export class PostsService {
           });
         }
       }
-
       return true;
     }
   }
@@ -460,32 +428,63 @@ export class PostsService {
     );
   }
 
+  /** -------------------- COMMENTS -------------------- */
+
   // Fetch comments
   getComments(postId: string): Observable<Comment[]> {
     const commentsRef = collection(this.firestore, `posts/${postId}/comments`);
     const q = query(commentsRef, orderBy('createdAt', 'asc'));
+    return collectionData(q, { idField: 'id' }).pipe(
+      switchMap(comments => {
+        if (!comments.length) return of([]);
+        const uids = [...new Set(comments.map(c => c['uid']))];
+        return combineLatest(uids.map(uid => from(getDoc(doc(this.firestore, `users/${uid}`)))))
+          .pipe(map(snaps => {
+            const userMap = new Map(snaps.map(s => [s.id, s.exists() ? s.data() : {}]));
+            return comments.map(c => ({ ...c, likesCount: c['likesCount'] || 0, ...userMap.get(c['uid']) })) as Comment[];
+          }));
+      })
+    );
+  }
+
+  getCommentsStream(postId: string): Observable<CommentWithLikes[]> {
+    const commentMap = new Map<string, CommentWithLikes>();
+
+    const commentsRef = collection(this.firestore, `posts/${postId}/comments`);
+    const q = query(commentsRef, orderBy('createdAt', 'asc'));
 
     return collectionData(q, { idField: 'id' }).pipe(
-      switchMap(comments => !comments.length ? of([]) : 
-        combineLatest([...new Set(comments.map(c => c['uid']))]
-          .map(uid => from(getDoc(doc(this.firestore, `users/${uid}`)))))
-          .pipe(
-            map(userSnaps => {
-              const userMap = new Map(userSnaps.map(snap => [snap.id, snap.exists() ? snap.data() : {}]));
-              return comments.map(c => {
-                const u = userMap.get(c['uid']) || {};
-                return {
-                  ...c,
-                  likesCount: c['likesCount'] || 0,
-                  username: u['username'] || 'Unknown',
-                  displayName: u['displayName'] || 'Unknown',
-                  userAvatar: u['profilePicture'] || null,
-                  userId: u['userId'] || null
-                } as Comment;
-              });
-            })
-          )
-      )
+      map(comments => {
+        const result: CommentWithLikes[] = [];
+
+        comments.forEach(comment => {
+          let existing = commentMap.get(comment.id!);
+
+          if (!existing) {
+            const uid = comment['uid'];
+
+            const username$ = this.userService.getUserByUid(uid).pipe(
+              map(u => u?.username ?? 'Unknown')
+            );
+            const userAvatar$ = this.userService.getUserByUid(uid).pipe(
+              map(u => u?.profilePicture ?? null)
+            );
+            const liked$ = this.getCommentLike(postId, comment.id!);
+
+            existing = { ...comment, username$, userAvatar$, liked$ } as CommentWithLikes;
+            commentMap.set(comment.id!, existing);
+          } else {
+            // update mutable fields only
+            existing.text = comment['text'];
+            existing.likesCount = comment['likesCount'] || 0;
+            existing.updatedAt = comment['updatedAt'] || existing.updatedAt;
+          }
+
+          result.push(existing);
+        });
+
+        return result;
+      })
     );
   }
 
@@ -514,8 +513,6 @@ export class PostsService {
 
     if (postSnap.exists()) {
       const post = postSnap.data();
-
-      // Prevent notifying yourself
       if (post['uid'] !== user.uid) {
         await this.notificationsService.createNotification({
           recipientUid: post['uid'],
@@ -641,51 +638,7 @@ export class PostsService {
     );
   }
 
-  // Load post on feed locally
-  updatePostLocal(postId: string, updateFn: (post: Post) => void) {
-    const posts = this.postsSubject.getValue(); // postsSubject exists here
-    const post = posts.find(p => p.id === postId);
-    if (post) updateFn(post);
-    this.postsSubject.next([...posts]);
-  }
-
-  // Update only the caption of a post
-  async updatePostCaption(postId: string, newCaption: string) {
-    const user = this.auth.currentUser;
-    if (!user) throw new Error('Not authenticated');
-
-    // Get the current post
-    const currentPost = this.postsSubject.value.find(p => p.id === postId);
-    if (!currentPost) throw new Error('Post not found');
-
-    if (currentPost.uid !== user.uid) {
-      throw new Error('Unauthorized edit attempt');
-    }
-
-    const postRef = doc(this.firestore, `posts/${postId}`);
-
-    // Optimistically update local post
-    const updatedLocal = this.postsSubject.value.map(p =>
-      p.id === postId ? { ...p, caption: newCaption, updatedAt: new Date() } : p
-    );
-    this.postsSubject.next(updatedLocal);
-
-    // Update Firestore
-    await updateDoc(postRef, {
-      caption: newCaption,
-      updatedAt: serverTimestamp()
-    });
-  }
-
-  // Optimistically update a post caption locally
-  updatePostCaptionLocal(postId: string, newCaption: string) {
-    const currentPosts = this.postsSubject.value;
-    this.postsSubject.next(
-      currentPosts.map(p =>
-        p.id === postId ? { ...p, caption: newCaption } : p
-      )
-    );
-  }
+  /** -------------------- DELETE POSTS -------------------- */
 
   // Fully delete a post and all its subcollections
   async deletePost(post: Post) {
@@ -749,45 +702,67 @@ export class PostsService {
     await deleteDoc(postDocRef);
   }
 
-  // Load already seen posts
-  private safeLoadSeenPosts() {
-    if (typeof window === 'undefined' || !window.localStorage) return;
+  /** -------------------- UTILS -------------------- */
 
-    const saved = localStorage.getItem(this.seenPostsKey);
-    if (!saved) return;
+  // Load post on feed locally
+  updatePostLocal(postId: string, updateFn: (post: Post) => void) {
+    const posts = this.postsSubject.getValue(); // postsSubject exists here
+    const post = posts.find(p => p.id === postId);
+    if (post) updateFn(post);
+    this.postsSubject.next([...posts]);
+  }
+
+  // Update only the caption of a post
+  async updatePostCaption(postId: string, newCaption: string) {
+    const user = this.auth.currentUser;
+    if (!user) throw new Error('Not authenticated');
+
+    // Get the current post
+    const currentPost = this.postsSubject.value.find(p => p.id === postId);
+    if (!currentPost) throw new Error('Post not found');
+
+    if (currentPost.uid !== user.uid) {
+      throw new Error('Unauthorized edit attempt');
+    }
+
+    const postRef = doc(this.firestore, `posts/${postId}`);
+
+    // Optimistically update local post
+    const updatedLocal = this.postsSubject.value.map(p =>
+      p.id === postId ? { ...p, caption: newCaption, updatedAt: new Date() } : p
+    );
+    this.postsSubject.next(updatedLocal);
+
+    // Update Firestore
+    await updateDoc(postRef, {
+      caption: newCaption,
+      updatedAt: serverTimestamp()
+    });
+  }
+
+  // Optimistically update a post caption locally
+  updatePostCaptionLocal(postId: string, newCaption: string) {
+    const currentPosts = this.postsSubject.value;
+    this.postsSubject.next(
+      currentPosts.map(p =>
+        p.id === postId ? { ...p, caption: newCaption } : p
+      )
+    );
+  }
+
+  private async compressImage(file: File): Promise<File> {
+    const options = {
+      maxSizeMB: 0.5,        // target ~500kb
+      maxWidthOrHeight: 1920,
+      useWebWorker: true
+    };
 
     try {
-      const ids = JSON.parse(saved) as string[];
-      this.seenPosts = new Set(ids);
-    } catch {
-      this.seenPosts = new Set();
+      const compressed = await imageCompression(file, options);
+      return compressed;
+    } catch (error) {
+      console.warn('Image compression failed, using original', error);
+      return file;
     }
-  }
-
-  // Mark post as seen
-  markPostAsSeen(postId: string) {
-    if (this.seenPosts.has(postId)) return;
-
-    this.seenPosts.add(postId);
-
-    // Only write to localStorage if in browser
-    if (typeof window !== 'undefined' && window.localStorage) {
-      try {
-        localStorage.setItem(this.seenPostsKey, JSON.stringify([...this.seenPosts]));
-      } catch {
-        // Silently fail if localStorage is unavailable or quota exceeded
-      }
-    }
-
-    this.updateDashboardState();
-  }
-
-  private updateDashboardState() {
-    const count = this.seenPosts.size;
-    this.dashboardStateSubject.next({ count, fading: false });
-  }
-
-  hasSeen(postId: string): boolean {
-    return this.seenPosts.has(postId);
   }
 }
