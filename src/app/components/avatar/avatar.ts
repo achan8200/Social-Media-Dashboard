@@ -38,9 +38,7 @@ import { getInitial, getAvatarColor } from '../../utils/avatar';
         </ng-container>
 
         <ng-template #fallback>
-          <span class="relative -top-[1px]">
-            {{ getInitial(username) }}
-          </span>
+          {{ getInitial(username) }}
         </ng-template>
 
       </div>
