@@ -1,16 +1,16 @@
 import { Injectable } from '@angular/core';
 import { Firestore, collection, collectionData, query, orderBy, addDoc, 
   serverTimestamp, doc, updateDoc, increment, getDoc, setDoc, deleteDoc, docData,
-  limit, startAfter, getDocs, QueryDocumentSnapshot } from '@angular/fire/firestore';
+  limit, startAfter, getDocs, QueryDocumentSnapshot, 
+  DocumentReference} from '@angular/fire/firestore';
 import { Storage, ref, getDownloadURL, uploadBytesResumable, deleteObject } from '@angular/fire/storage'
-import { Observable, BehaviorSubject, from, combineLatest, of } from 'rxjs';
-import { catchError, map, switchMap } from 'rxjs/operators';
 import { Auth } from '@angular/fire/auth';
 import { Post, PostMedia } from '../models/post.model';
 import { Comment, CommentWithLikes } from '../models/comment.model';
-import imageCompression from 'browser-image-compression';
 import { NotificationsService } from './notifications.service';
 import { UserService } from './user.service';
+import imageCompression from 'browser-image-compression';
+import { Observable, BehaviorSubject, from, combineLatest, of, catchError, map, switchMap } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class PostsService {
@@ -365,7 +365,11 @@ export class PostsService {
 
   // Returns an Observable of the likes count for a specific post
   getPostLikesCount(postId: string): Observable<number> {
-    return this.posts$.pipe(map(posts => posts.find(p => p.id === postId)?.likesCount ?? 0));
+    const likesRef = collection(this.firestore, `posts/${postId}/likes`);
+    const q = query(likesRef);
+    return collectionData(q).pipe(
+      map(likes => likes.length)
+    );
   }
 
   // Toggle like locally
@@ -568,8 +572,9 @@ export class PostsService {
   }
 
   getPostCommentsCount(postId: string): Observable<number> {
-    return this.posts$.pipe(
-      map(posts => posts.find(p => p.id === postId)?.commentsCount ?? 0)
+    const commentsRef = collection(this.firestore, `posts/${postId}/comments`);
+    return collectionData(commentsRef).pipe(
+      map(comments => comments.length)
     );
   }
 
@@ -770,5 +775,12 @@ export class PostsService {
       console.warn('Image compression failed, using original', error);
       return file;
     }
+  }
+
+  getPostCaption(postId: string): Observable<string | null> {
+    const postRef = doc(this.firestore, `posts/${postId}`) as DocumentReference<Post>;
+    return docData(postRef, { idField: 'id' }).pipe(
+      map(post => post?.caption ?? '')
+    );
   }
 }

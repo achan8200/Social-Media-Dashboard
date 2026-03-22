@@ -1,12 +1,12 @@
 import { Component, ElementRef, EventEmitter, HostListener, Input, Output, ViewChild, Inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser  } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { Post, PostMedia } from '../../models/post.model';
-import { Avatar } from '../avatar/avatar';
-import { UserService } from '../../services/user.service';
-import { map, Observable, of } from 'rxjs';
 import { Auth } from '@angular/fire/auth';
 import { PostsService } from '../../services/posts.service';
+import { Post, PostMedia } from '../../models/post.model';
+import { UserService } from '../../services/user.service';
+import { Avatar } from '../avatar/avatar';
+import { map, Observable, of, shareReplay, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-post-card',
@@ -26,20 +26,25 @@ export class PostCard {
   @Output() edit = new EventEmitter<Post>();
   @Output() deletePost = new EventEmitter<Post>();
 
+  private postSub?: Subscription;
+  private currentPostId: string | null = null;
+
   username$: Observable<string> = of('Unknown');
   displayName$: Observable<string> = of('Unknown');
   userAvatar$: Observable<string | null> = of(null);
   userId$: Observable<string> = of('');
 
-  liked = false;
   animatingLike = false;
-  liked$!: Observable<boolean>;
 
+  caption$!: Observable<string>;
+  liked$!: Observable<boolean>;
   likesCount$!: Observable<number>;
   commentsCount$!: Observable<number>;
 
   menuOpen = false;
   private userFetched = false;
+
+  private initialized = false;
 
   @ViewChild('feedVideo') feedVideo?: ElementRef<HTMLVideoElement>;
   @ViewChild('postRef') postRef?: ElementRef<HTMLElement>;
@@ -61,24 +66,51 @@ export class PostCard {
 
   ngOnChanges() {
     if (!this.post) return;
-    if (!this.userFetched && this.post?.uid) {
-      const user$ = this.userService.getUserByUid(this.post.uid); // returns an observable
-      this.username$ = user$.pipe(map(u => u?.username || 'Unknown'));
-      this.displayName$ = user$.pipe(map(u => u?.displayName || 'Unknown'));
-      this.userAvatar$ = user$.pipe(map(u => u?.profilePicture || null));
-      this.userId$ = user$.pipe(map(u => u?.userId || ''));
-      this.userFetched = true; // only do this once
-    }
 
-    if (this.post) {
-      this.liked$ = this.postsService.getPostLike(this.post.id);
-      this.likesCount$ = this.postsService.getPostLikesCount(this.post.id);
-      this.commentsCount$ = this.postsService.getPostCommentsCount(this.post.id);
-    }
+    if (this.currentPostId === this.post.id) return;
+    this.currentPostId = this.post.id;
+
+    // Clean up any previous subscription
+    this.postSub?.unsubscribe();
+
+    // Subscribe to reactive post stream from PostsService
+    this.postSub = this.postsService.getPostStream(this.post.id).subscribe(updatedPost => {
+      if (!updatedPost) {
+        // Post was deleted, hide the card
+        this.post = null;
+        return;
+      }
+
+      this.post = updatedPost;
+
+      if (!this.initialized) {
+        this.initialized = true;
+
+        if (updatedPost.uid) {
+          const user$ = this.userService.getUserByUid(updatedPost.uid);
+          this.username$ = user$.pipe(map(u => u?.username || 'Unknown'));
+          this.displayName$ = user$.pipe(map(u => u?.displayName || 'Unknown'));
+          this.userAvatar$ = user$.pipe(map(u => u?.profilePicture || null));
+          this.userId$ = user$.pipe(map(u => u?.userId || ''));
+        }
+
+        this.liked$ = this.postsService.getPostLike(updatedPost.id).pipe(shareReplay(1));
+
+        this.likesCount$ = this.postsService.getPostLikesCount(updatedPost.id).pipe(shareReplay(1));
+
+        this.commentsCount$ = this.postsService.getPostCommentsCount(updatedPost.id).pipe(shareReplay(1));
+
+        this.caption$ = this.postsService.getPostCaption(updatedPost.id).pipe(
+          map(caption => this.formatCaption(caption ?? '')),
+          shareReplay(1)
+        );
+      }
+    });
   }
 
   ngOnDestroy() {
     this.observer?.disconnect();
+    this.postSub?.unsubscribe();
   }
 
   get firstMediaUrl(): string | undefined {
@@ -107,21 +139,16 @@ export class PostCard {
     if (this.post) this.comment.emit(this.post.id);
   }
 
-  get formattedCaption(): string {
-    if (!this.post?.caption) return '';
-    
-    const escaped = this.post.caption
+  private formatCaption(caption: string): string {
+    const escaped = caption
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-      
-    // Normalize Windows \r\n to \n
-    const normalized = escaped.replace(/\r\n/g, '\n');
-
-    // Remove leading whitespace and convert newlines to <br>
-    return normalized
-      .replace(/^[\s\u00A0]+/, '') // remove leading spaces
+      .replace(/>/g, '&gt;')
+      .replace(/\r\n/g, '\n')
+      .replace(/^[\s\u00A0]+/, '')
       .replace(/\n/g, '<br>');
+
+    return escaped;
   }
 
   fadeOut() {

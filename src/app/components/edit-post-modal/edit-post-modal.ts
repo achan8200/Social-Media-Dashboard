@@ -1,10 +1,10 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { trigger, transition, style, animate } from '@angular/animations';
 import { Post } from '../../models/post.model';
-import { Avatar } from '../avatar/avatar';
 import { UserService } from '../../services/user.service';
+import { Avatar } from '../avatar/avatar';
+import { trigger, transition, style, animate } from '@angular/animations';
 import { map, Observable } from 'rxjs';
 
 @Component({

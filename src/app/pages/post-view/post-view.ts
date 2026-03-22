@@ -2,16 +2,16 @@ import { Component, Input, ViewChild, ViewChildren, QueryList, ElementRef, HostL
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { Auth } from '@angular/fire/auth';
 import { PostsService } from '../../services/posts.service';
 import { Post, PostMedia } from '../../models/post.model';
-import { Avatar } from '../../components/avatar/avatar';
 import { UserService } from '../../services/user.service';
-import { Auth } from '@angular/fire/auth';
 import { ConfirmModal } from '../../components/confirm-modal/confirm-modal';
 import { EditPostModal } from '../../components/edit-post-modal/edit-post-modal';
 import { Comment, CommentWithLikes } from '../../models/comment.model';
+import { Avatar } from '../../components/avatar/avatar';
 import { differenceInSeconds, differenceInMinutes, differenceInHours, differenceInDays, differenceInWeeks } from 'date-fns';
-import { BehaviorSubject, combineLatest, map, Observable, of, switchMap } from 'rxjs';
+import { BehaviorSubject, combineLatest, map, Observable, of, shareReplay, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-post-view',
@@ -32,8 +32,10 @@ export class PostView implements AfterViewInit {
   selectedPostToDelete: Post | null = null;
   editingPost: Post | null = null;
 
-  liked = false;
   animatingLike = false;
+
+  captionSubject = new BehaviorSubject<string>('');
+  caption$ = this.captionSubject.asObservable();
   liked$!: Observable<boolean>;
   likesCount$!: Observable<number>;
   commentsCount$!: Observable<number>;
@@ -67,6 +69,8 @@ export class PostView implements AfterViewInit {
 
   currentMediaAspect = 1;
 
+  private initialized = false;
+
   @ViewChild('carouselContainer') carouselContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('commentsContainer') commentsContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('newCommentInput') newCommentInput!: ElementRef<HTMLTextAreaElement>;
@@ -97,13 +101,17 @@ export class PostView implements AfterViewInit {
       if (post) {
         this.setupPost();
         this.setupComments();
+
+        this.captionSubject.next(this.formatCaption(post.caption ?? ''));
       }
       this.cdr.markForCheck();
     });
   }
 
   private setupPost() {
-    if (!this.post) return;
+    if (!this.post || this.initialized) return;
+
+    this.initialized = true;
 
     if (this.post?.uid) {
       const user$ = this.userService.getUserByUid(this.post.uid);
@@ -118,8 +126,13 @@ export class PostView implements AfterViewInit {
     if (media?.length > 0) this.preloadMedia(media[0]);
     if (media?.length > 1) this.preloadMedia(media[1]);
 
-    this.liked$ = this.postsService.getPostLike(this.post.id);
-    this.likesCount$ = this.postsService.getPostLikesCount(this.post.id);
+    this.liked$ = this.postsService.getPostLike(this.post.id).pipe(
+      shareReplay(1)
+    );
+
+    this.likesCount$ = this.postsService.getPostLikesCount(this.post.id).pipe(
+      shareReplay(1)
+    );
 
     setTimeout(() => {
       this.currentMediaIndex = 0;
@@ -143,7 +156,10 @@ export class PostView implements AfterViewInit {
     });
 
     // Stable commentsCount$
-    this.commentsCount$ = this.comments$.pipe(map(comments => comments.length));
+    this.commentsCount$ = this.comments$.pipe(
+      map(comments => comments.length),
+      shareReplay(1)
+    );
   }
 
   ngAfterViewInit() {
@@ -555,25 +571,16 @@ export class PostView implements AfterViewInit {
   async updatePost(newCaption: string) {
     if (!this.editingPost || !this.post) return;
 
-    const postId = this.editingPost.id;
-
-    // Update modal view immediately
-    this.post.caption = newCaption;
-
-    // Optimistic local update
-    this.postsService.updatePostCaptionLocal(postId, newCaption);
-
-    // Close modal
-    this.editingPost = null;
-
-    // Firestore update
     try {
-      await this.postsService.updatePostCaption(postId, newCaption);
-    } catch (err) {
-      console.error('Failed to update post:', err);
+      await this.postsService.updatePostCaption(this.editingPost.id, newCaption);
 
-      // Optionally reload posts or rollback
-      // this.posts$ = this.postsService.getPosts();
+      // Update local caption
+      this.captionSubject.next(this.formatCaption(newCaption));
+
+    } catch (err) {
+      console.error(err);
+    } finally {
+      this.editingPost = null;
     }
   }
 
@@ -631,16 +638,16 @@ export class PostView implements AfterViewInit {
     return `${weeks}w ago`;
   }
 
-  get formattedCaption(): string {
-    if (!this.post?.caption) return '';
-    
-    // Normalize Windows \r\n to \n
-    const normalized = this.post.caption.replace(/\r\n/g, '\n');
-
-    // Remove leading whitespace and convert newlines to <br>
-    return normalized
-      .replace(/^[\s\u00A0]+/, '') // remove leading spaces
+  private formatCaption(caption: string): string {
+    const escaped = caption
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\r\n/g, '\n')
+      .replace(/^[\s\u00A0]+/, '')
       .replace(/\n/g, '<br>');
+
+    return escaped;
   }
 
   onAvatarClick() {

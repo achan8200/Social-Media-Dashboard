@@ -2,17 +2,17 @@ import { Component, Input, Output, EventEmitter, ViewChild, ViewChildren, QueryL
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { Auth } from '@angular/fire/auth';
 import { PostsService } from '../../services/posts.service';
 import { Post, PostMedia } from '../../models/post.model';
-import { Avatar } from '../avatar/avatar';
 import { UserService } from '../../services/user.service';
-import { combineLatest, map, Observable, of, switchMap } from 'rxjs';
-import { trigger, transition, style, animate } from '@angular/animations';
-import { Auth } from '@angular/fire/auth';
 import { ConfirmModal } from "../confirm-modal/confirm-modal";
 import { EditPostModal } from "../edit-post-modal/edit-post-modal";
 import { Comment, CommentWithLikes } from '../../models/comment.model';
+import { Avatar } from '../avatar/avatar';
+import { trigger, transition, style, animate } from '@angular/animations';
 import { differenceInSeconds, differenceInMinutes, differenceInHours, differenceInDays, differenceInWeeks } from 'date-fns';
+import { combineLatest, map, Observable, of, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-post-modal',
@@ -43,9 +43,11 @@ export class PostModal implements AfterViewInit {
 
   selectedPostToDelete: Post | null = null;
   editingPost: Post | null = null;
+  private rawCaption: string = '';
 
-  liked = false;
   animatingLike = false;
+
+  caption$!: Observable<string>;
   liked$!: Observable<boolean>;
   likesCount$!: Observable<number>;
   commentsCount$!: Observable<number>;
@@ -120,6 +122,12 @@ export class PostModal implements AfterViewInit {
       );
       this.commentsCount$ = this.comments$.pipe(
         map(comments => comments.length)
+      );
+      this.caption$ = this.postsService.getPostCaption(this.post.id).pipe(
+        map(caption => {
+          this.rawCaption = caption ?? '';
+          return this.formatCaption(this.rawCaption);
+        })
       );
     }
 
@@ -301,14 +309,6 @@ export class PostModal implements AfterViewInit {
 
   async deleteComment(comment: CommentWithLikes) {
     if (!this.post) return;
-
-    // Optimistic UI update
-    this.comments$ = this.comments$.pipe(
-      map(comments =>
-        comments.filter(c => c.id !== comment.id) as CommentWithLikes[]
-      )
-    );
-
     try {
       await this.postsService.deleteComment(this.post.id, comment.id!);
     } catch (err) {
@@ -556,7 +556,12 @@ export class PostModal implements AfterViewInit {
   onEdit(event: Event) {
     event.stopPropagation();
     this.menuOpen = false;
-    this.editingPost = this.post;
+    if (this.post) {
+      this.editingPost = {
+        ...this.post,
+        caption: this.rawCaption
+      };
+    }
   }
 
   handleCommentKeydown(event: KeyboardEvent) {
@@ -571,27 +576,24 @@ export class PostModal implements AfterViewInit {
   }
 
   async updatePost(newCaption: string) {
-    if (!this.editingPost || !this.post) return;
+    if (!this.editingPost) return;
 
     const postId = this.editingPost.id;
 
-    // Update modal view immediately
-    this.post.caption = newCaption;
-
-    // Optimistic local update
-    this.postsService.updatePostCaptionLocal(postId, newCaption);
-
-    // Close modal
-    this.editingPost = null;
-
-    // Firestore update
     try {
+      // Update Firestore
       await this.postsService.updatePostCaption(postId, newCaption);
+
+      // Update local post so next edit shows the new caption
+      if (this.post) {
+        this.post.caption = newCaption;
+      }
+
+      // Close modal
+      this.editingPost = null;
+
     } catch (err) {
       console.error('Failed to update post:', err);
-
-      // Optionally reload posts or rollback
-      // this.posts$ = this.postsService.getPosts();
     }
   }
 
@@ -649,16 +651,16 @@ export class PostModal implements AfterViewInit {
     return `${weeks}w ago`;
   }
 
-  get formattedCaption(): string {
-    if (!this.post?.caption) return '';
-    
-    // Normalize Windows \r\n to \n
-    const normalized = this.post.caption.replace(/\r\n/g, '\n');
-
-    // Remove leading whitespace and convert newlines to <br>
-    return normalized
-      .replace(/^[\s\u00A0]+/, '') // remove leading spaces
+  private formatCaption(caption: string): string {
+    const escaped = caption
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\r\n/g, '\n')
+      .replace(/^[\s\u00A0]+/, '')
       .replace(/\n/g, '<br>');
+
+    return escaped;
   }
 
   onAvatarClick() {

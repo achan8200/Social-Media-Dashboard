@@ -76,7 +76,7 @@
     <!-- Caption -->
     <div [ngClass]="post?.media?.length ? 'p-4' : 'pb-4 px-4'">
       <p [ngClass]="post?.media?.length ? 'text-gray-700 line-clamp-2' : 'text-gray-800 text-[15px] leading-7 line-clamp-6'"
-        [innerHTML]="formattedCaption">
+        [innerHTML]="caption$ | async">
       </p>
 
       <!-- Actions -->
