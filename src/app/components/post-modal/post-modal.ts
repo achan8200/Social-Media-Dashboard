@@ -632,22 +632,25 @@ export class PostModal implements AfterViewInit {
     this.showNewCommentsButton = false;
   }
 
-  getRelativeTime(date: Date | any): string {
-    if (!date) return '';
+  getRelativeTime(date: Date): string {
+    if (!date || !(date instanceof Date) || isNaN(date.getTime())) return '';
 
     const now = new Date();
-    const commentDate = date instanceof Date ? date : date.toDate?.() ?? new Date(date);
+    const diffMs = now.getTime() - date.getTime(); // milliseconds
 
-    const seconds = differenceInSeconds(now, commentDate);
-
+    const seconds = Math.floor(diffMs / 1000);
     if (seconds < 60) return `${seconds}s ago`;
-    const minutes = differenceInMinutes(now, commentDate);
+
+    const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `${minutes}m ago`;
-    const hours = differenceInHours(now, commentDate);
+
+    const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours}h ago`;
-    const days = differenceInDays(now, commentDate);
+
+    const days = Math.floor(hours / 24);
     if (days < 7) return `${days}d ago`;
-    const weeks = differenceInWeeks(now, commentDate);
+
+    const weeks = Math.floor(days / 7);
     return `${weeks}w ago`;
   }
 

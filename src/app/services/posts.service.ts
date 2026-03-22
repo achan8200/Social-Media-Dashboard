@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Firestore, collection, collectionData, query, orderBy, addDoc, 
   serverTimestamp, doc, updateDoc, increment, getDoc, setDoc, deleteDoc, docData,
   limit, startAfter, getDocs, QueryDocumentSnapshot, 
-  DocumentReference} from '@angular/fire/firestore';
+  DocumentReference, collectionSnapshots} from '@angular/fire/firestore';
 import { Storage, ref, getDownloadURL, uploadBytesResumable, deleteObject } from '@angular/fire/storage'
 import { Auth } from '@angular/fire/auth';
 import { Post, PostMedia } from '../models/post.model';
@@ -438,15 +438,54 @@ export class PostsService {
   getComments(postId: string): Observable<Comment[]> {
     const commentsRef = collection(this.firestore, `posts/${postId}/comments`);
     const q = query(commentsRef, orderBy('createdAt', 'asc'));
-    return collectionData(q, { idField: 'id' }).pipe(
+
+    return collectionSnapshots(q).pipe(
+      map(snaps =>
+        snaps.map(snap => {
+          const data = snap.data() as any;
+          let createdAt = data.createdAt;
+
+          // Normalize timestamp to JS Date
+          if (createdAt?.toDate && typeof createdAt.toDate === 'function') {
+            createdAt = createdAt.toDate();
+          } else if (createdAt?.seconds) {
+            createdAt = new Date(createdAt.seconds * 1000);
+          } else {
+            createdAt = new Date(createdAt);
+          }
+
+          return {
+            id: snap.id,
+            ...data,
+            createdAt,          // parsed date
+            likesCount: data.likesCount || 0
+          } as Comment;
+        })
+      ),
       switchMap(comments => {
         if (!comments.length) return of([]);
-        const uids = [...new Set(comments.map(c => c['uid']))];
-        return combineLatest(uids.map(uid => from(getDoc(doc(this.firestore, `users/${uid}`)))))
-          .pipe(map(snaps => {
-            const userMap = new Map(snaps.map(s => [s.id, s.exists() ? s.data() : {}]));
-            return comments.map(c => ({ ...c, likesCount: c['likesCount'] || 0, ...userMap.get(c['uid']) })) as Comment[];
-          }));
+
+        const uids = [...new Set(comments.map(c => c.uid))];
+
+        return combineLatest(
+          uids.map(uid => from(getDoc(doc(this.firestore, `users/${uid}`))))
+        ).pipe(
+          map(snaps => {
+            const userMap = new Map(
+              snaps.map(s => [s.id, s.exists() ? s.data() : {}])
+            );
+
+            return comments.map(c => ({
+              ...c,
+              likesCount: c.likesCount || 0,
+              ...Object.fromEntries(
+                Object.entries(userMap.get(c.uid) || {}).filter(
+                  ([key]) => key !== 'createdAt'
+                )
+              )
+            })) as Comment[];
+          })
+        );
       })
     );
   }
