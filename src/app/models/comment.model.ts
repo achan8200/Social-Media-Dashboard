@@ -4,6 +4,7 @@ export interface CommentWithLikes extends Comment {
   liked$: Observable<boolean>;
   username$?: Observable<string>;
   userAvatar$?: Observable<string | null>;
+  highlighted?: boolean;
 }
 
 export interface Comment {

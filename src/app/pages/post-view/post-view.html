@@ -117,7 +117,11 @@
 					<div class="flex-1 flex flex-col min-h-0 overflow-hidden relative">
 						<!-- Scrollable comments -->
 						<div #commentsContainer class="flex-1 min-h-0 overflow-y-auto flex flex-col space-y-3 border-t pt-4">
-							<div *ngFor="let comment of comments$ | async; trackBy: trackByCommentId" class="flex items-start justify-between">
+							<div *ngFor="let comment of comments$ | async; trackBy: trackByCommentId"
+								#commentElement
+     						[attr.data-comment-id]="comment.id"
+								class="flex items-start justify-between transition-colors duration-1000"
+     						[ngClass]="comment.highlighted ? 'bg-yellow-200' : 'bg-white'">
 								<div class="flex items-start space-x-2">
 									<app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username$ | async" [imageUrl]="comment.userAvatar$ | async" [userId]="comment.userId" (clicked)="onAvatarClick()"></app-avatar>
 									<div class="flex flex-col">
@@ -250,7 +254,11 @@
 
 					<!-- Scrollable Comments -->
 					<div #commentsContainer class="flex-1 h-full min-h-[150px] overflow-y-auto flex flex-col space-y-3 border-t pt-4">
-						<div *ngFor="let comment of comments$ | async; trackBy: trackByCommentId" class="flex items-start justify-between">
+						<div *ngFor="let comment of comments$ | async; trackBy: trackByCommentId"
+							#commentElement
+     					[attr.data-comment-id]="comment.id"
+							class="flex items-start justify-between transition-colors duration-1000"
+     					[ngClass]="comment.highlighted ? 'bg-yellow-200' : 'bg-white'">
 							<div class="flex items-start space-x-2">
 								<app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username$ | async" [imageUrl]="comment.userAvatar$ | async" [userId]="comment.userId" (clicked)="onAvatarClick()"></app-avatar>
 								<div class="flex flex-col">

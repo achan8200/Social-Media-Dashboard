@@ -11,7 +11,7 @@ import { EditPostModal } from '../../components/edit-post-modal/edit-post-modal'
 import { Comment, CommentWithLikes } from '../../models/comment.model';
 import { Avatar } from '../../components/avatar/avatar';
 import { differenceInSeconds, differenceInMinutes, differenceInHours, differenceInDays, differenceInWeeks } from 'date-fns';
-import { BehaviorSubject, combineLatest, map, Observable, of, shareReplay, switchMap } from 'rxjs';
+import { BehaviorSubject, combineLatest, first, map, Observable, of, shareReplay, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-post-view',
@@ -45,6 +45,7 @@ export class PostView implements AfterViewInit {
   newComment = '';
   editingCommentId: string | null = null;
   editingText = '';
+  private commentToHighlight: string | null = null;
 
   animatingCommentLike: Record<string, boolean> = {};
 
@@ -76,6 +77,7 @@ export class PostView implements AfterViewInit {
   @ViewChild('newCommentInput') newCommentInput!: ElementRef<HTMLTextAreaElement>;
   @ViewChild('commentInput') commentInput!: ElementRef<HTMLTextAreaElement>;
   @ViewChildren('videoPlayer') videoPlayers!: QueryList<ElementRef<HTMLVideoElement>>;
+  @ViewChildren('commentElement', { read: ElementRef }) commentElements!: QueryList<ElementRef<HTMLDivElement>>;
 
   constructor(
     private postsService: PostsService, 
@@ -105,6 +107,15 @@ export class PostView implements AfterViewInit {
         this.captionSubject.next(this.formatCaption(post.caption ?? ''));
       }
       this.cdr.markForCheck();
+    });
+
+    // Capture optional commentId for highlighting
+    this.route.queryParamMap.subscribe(params => {
+      const commentId = params.get('comment');
+      if (commentId) {
+        // Save it; we'll highlight once comments are ready
+        this.commentToHighlight = commentId;
+      }
     });
   }
 
@@ -153,6 +164,11 @@ export class PostView implements AfterViewInit {
         liked$: this.postsService.getCommentLike(this.post!.id, c.id!),
       }));
       this.commentsSubject.next(enriched);
+
+      if (this.commentToHighlight) {
+        this.highlightComment(this.commentToHighlight);
+        this.commentToHighlight = null;
+      }
     });
 
     // Stable commentsCount$
@@ -693,5 +709,41 @@ export class PostView implements AfterViewInit {
     if (height > maxHeight) height = maxHeight;
 
     return height;
+  }
+
+  // --- Add this in PostView component ---
+  highlightComment(commentId: string) {
+    if (!this.post) return;
+
+    // Update the comment observable to set highlighted
+    const updatedComments = this.commentsSubject.value.map(c =>
+      c.id === commentId ? { ...c, highlighted: true } : c
+    );
+    this.commentsSubject.next(updatedComments);
+    this.cdr.markForCheck(); // OnPush
+
+    // Wait for the DOM to render via ViewChildren
+    const sub = this.commentElements.changes.subscribe((ql: QueryList<ElementRef<HTMLDivElement>>) => {
+      const elRef = ql.find(e => e.nativeElement.getAttribute('data-comment-id') === commentId);
+      if (elRef) {
+        elRef.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        sub.unsubscribe();
+      }
+    });
+
+    const elRef = this.commentElements.find(e => e.nativeElement.getAttribute('data-comment-id') === commentId);
+    if (elRef) {
+      elRef.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      sub.unsubscribe();
+    }
+
+    // Remove highlight after 2 seconds
+    setTimeout(() => {
+      const resetComments = this.commentsSubject.value.map(c =>
+        c.id === commentId ? { ...c, highlighted: false } : c
+      );
+      this.commentsSubject.next(resetComments);
+      this.cdr.markForCheck();
+    }, 2000);
   }
 }

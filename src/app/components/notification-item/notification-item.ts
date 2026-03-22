@@ -61,7 +61,7 @@ export class NotificationItem implements OnChanges {
     });
   }
 
-  onClick() {
+  async onClick() {
     if (!this.notifications?.length) return;
 
     const n = this.notifications[0];
@@ -74,9 +74,14 @@ export class NotificationItem implements OnChanges {
       case 'comment_post':
       case 'like_comment':
         if (n.postId) {
-          
+          if (n.type === 'like_comment') {
+            this.router.navigate(['/post', n.postId], { queryParams: { comment: n.commentId } });
+          } else {
+            this.router.navigate(['/post', n.postId]);
+          }
         }
         break;
+
 
       case 'follow':
         if (!n.actorUid) return;
