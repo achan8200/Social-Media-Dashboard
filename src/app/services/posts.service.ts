@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Firestore, collection, collectionData, query, orderBy, addDoc, 
   serverTimestamp, doc, updateDoc, increment, getDoc, setDoc, deleteDoc, docData,
   limit, startAfter, getDocs, QueryDocumentSnapshot, 
-  DocumentReference, collectionSnapshots} from '@angular/fire/firestore';
+  DocumentReference, collectionSnapshots } from '@angular/fire/firestore';
 import { Storage, ref, getDownloadURL, uploadBytesResumable, deleteObject } from '@angular/fire/storage'
 import { Auth } from '@angular/fire/auth';
 import { Post, PostMedia } from '../models/post.model';
@@ -345,20 +345,28 @@ export class PostsService {
   /** -------------------- LIKES -------------------- */
 
   private initPostLike(postId: string, uid: string) {
-    if (!this.likesSubjects.has(postId)) {
-      const subj = new BehaviorSubject<boolean>(false);
-      this.likesSubjects.set(postId, subj);
-      const likeRef = doc(this.firestore, `posts/${postId}/likes/${uid}`);
-      docData(likeRef, { idField: 'id' }).pipe(map(d => !!d?.id)).subscribe(subj);
-    }
+    if (this.likesSubjects.has(postId)) return;
+
+    const likeRef = doc(this.firestore, `posts/${postId}/likes/${uid}`);
+    const subj = new BehaviorSubject<boolean>(false);
+    this.likesSubjects.set(postId, subj);
+
+    // Listen for real-time updates
+    docData(likeRef, { idField: 'id' }).pipe(
+      map(docSnap => !!docSnap?.id)
+    ).subscribe({
+      next: val => subj.next(val),
+      error: err => console.error('Failed to listen to like:', err)
+    });
   }
 
   // Returns an Observable of like state for a specific post
   getPostLike(postId: string): Observable<boolean> {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) return of(false);
+
     if (!this.likesSubjects.has(postId)) {
-      const uid = this.auth.currentUser?.uid;
-      if (uid) this.initPostLike(postId, uid);
-      else this.likesSubjects.set(postId, new BehaviorSubject(false));
+      this.initPostLike(postId, uid);
     }
     return this.likesSubjects.get(postId)!.asObservable();
   }
@@ -379,11 +387,15 @@ export class PostsService {
 
     const subj = this.likesSubjects.get(postId) ?? new BehaviorSubject(false);
     this.likesSubjects.set(postId, subj);
-    const newValue = !subj.value;
-    subj.next(newValue);
 
-    this.updatePostLocal(postId, p => p.likesCount = (p.likesCount || 0) + (newValue ? 1 : -1));
-    try { await this.toggleLike(postId); } catch { subj.next(!newValue); }
+    const newValue = !subj.value;
+    subj.next(newValue); // optimistic
+
+    try { 
+      await this.toggleLike(postId); 
+    } catch { 
+      subj.next(!newValue); // revert if fails
+    }
   }
 
   // Like post, only touch the likes subcollection

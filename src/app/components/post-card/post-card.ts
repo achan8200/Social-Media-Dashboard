@@ -42,7 +42,6 @@ export class PostCard {
   commentsCount$!: Observable<number>;
 
   menuOpen = false;
-  private userFetched = false;
 
   private initialized = false;
 
