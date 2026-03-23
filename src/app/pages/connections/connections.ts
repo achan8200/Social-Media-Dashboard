@@ -230,6 +230,7 @@ export class Connections implements OnInit, OnDestroy {
   async follow(uid: string) {
     if (!this.currentUserId) return;
     await this.followService.followUser(this.currentUserId, uid);
+    
     // Update local state
     const user = this.users.find(u => u.uid === uid);
     if (user) user.following = true;
@@ -238,7 +239,6 @@ export class Connections implements OnInit, OnDestroy {
     if (!this.following.find(u => u.uid === uid)) {
       this.following.push({ ...user } as ObservableUser);
     }
-
     this.cdr.detectChanges();
   }
 
@@ -261,23 +261,14 @@ export class Connections implements OnInit, OnDestroy {
   // Remove a follower (used in Followers tab)
   async removeFollower(followerUid: string) {
     if (!this.currentUserId) return;
+    await this.followService.removeFollower(this.currentUserId, followerUid);
 
-    try {
-      // Call the Cloud Function
-      await this.followService.removeFollower(this.currentUserId, followerUid);
+    // Optimistically update local followers list
+    this.followers = this.followers.filter(u => u.uid !== followerUid);
 
-      // Optimistically update local followers list
-      this.followers = this.followers.filter(u => u.uid !== followerUid);
-
-      // Update the displayed users based on active tab
-      this.users = this.activeTab === 'followers' ? this.followers : this.following;
-
-      this.cdr.detectChanges();
-    } catch (error: any) {
-      console.error('Failed to remove follower:', error);
-      // Optionally, show a toast/snackbar to the user
-      alert(error?.message || 'Failed to remove follower. Please try again.');
-    }
+    // Update the displayed users based on active tab
+    this.users = this.activeTab === 'followers' ? this.followers : this.following;
+    this.cdr.detectChanges();
   }
 
   private chunkArray(array: string[], size: number) {
