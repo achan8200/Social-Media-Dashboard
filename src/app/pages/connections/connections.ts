@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { RouterModule, ActivatedRoute } from '@angular/router';
-import { Firestore, collection, getDocs, query, where, documentId } from '@angular/fire/firestore';
+import { Firestore, collection, getDocs, query, where, documentId, orderBy } from '@angular/fire/firestore';
 import { AuthService } from '../../services/auth.service';
 import { Avatar } from '../../components/avatar/avatar';
 import { firstValueFrom, Observable, map, Subject, takeUntil } from 'rxjs';
@@ -142,10 +142,16 @@ export class Connections implements OnInit, OnDestroy {
   private async loadSubcollection(sub: 'followers' | 'following'): Promise<any[]> {
     if (!this.profileUserId) return [];
     const ref = collection(this.firestore, `users/${this.profileUserId}/${sub}`);
-    const snapshot = await getDocs(ref);
+    const q = query(ref, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
     if (!snapshot || snapshot.empty) return [];
 
-    const userIds = snapshot.docs.map(doc => doc.id);
+    const entries = snapshot.docs.map(doc => ({
+      uid: doc.id,
+      createdAt: doc.data()['createdAt']
+    }));
+
+    const userIds = entries.map(e => e.uid);
     const chunks = this.chunkArray(userIds, 10);
     const result: any[] = [];
 
@@ -157,6 +163,9 @@ export class Connections implements OnInit, OnDestroy {
       for (const doc of userSnap.docs) {
         const data: any = doc.data();
         const uid = doc.id;
+
+        const entry = entries.find(e => e.uid === uid);
+
         let following = false;
         if (this.currentUserId) {
           following = (await firstValueFrom(this.followService.isFollowing(this.currentUserId, uid))) ?? false;
@@ -164,6 +173,7 @@ export class Connections implements OnInit, OnDestroy {
 
         result.push({
           uid,
+          createdAt: entry?.createdAt,
           userId: data.userId,
           displayName: data.displayName,
           username: data.username,
@@ -172,6 +182,12 @@ export class Connections implements OnInit, OnDestroy {
         });
       }
     }
+    result.sort((a, b) => {
+      const aTime = a.createdAt?.toMillis?.() ?? 0;
+      const bTime = b.createdAt?.toMillis?.() ?? 0;
+      return bTime - aTime;
+    });
+
     return result;
   }
 
@@ -245,10 +261,12 @@ export class Connections implements OnInit, OnDestroy {
   // Remove a follower (used in Followers tab)
   async removeFollower(uid: string) {
     if (!this.currentUserId) return;
-    await this.followService.unfollowUser(this.currentUserId, uid);
+    await this.followService.unfollowUser(uid, this.currentUserId);
     
-    // Remove from local Followers list
-    this.users = this.users.filter(u => u.uid !== uid);
+    // Remove from local followers array
+    this.followers = this.followers.filter(u => u.uid !== uid);
+
+    this.users = this.activeTab === 'followers' ? this.followers : this.following;
     this.cdr.detectChanges();
   }
 
