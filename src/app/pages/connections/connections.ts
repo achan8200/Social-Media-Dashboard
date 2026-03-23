@@ -259,15 +259,25 @@ export class Connections implements OnInit, OnDestroy {
   }
 
   // Remove a follower (used in Followers tab)
-  async removeFollower(uid: string) {
+  async removeFollower(followerUid: string) {
     if (!this.currentUserId) return;
-    await this.followService.unfollowUser(uid, this.currentUserId);
-    
-    // Remove from local followers array
-    this.followers = this.followers.filter(u => u.uid !== uid);
 
-    this.users = this.activeTab === 'followers' ? this.followers : this.following;
-    this.cdr.detectChanges();
+    try {
+      // Call the Cloud Function
+      await this.followService.removeFollower(this.currentUserId, followerUid);
+
+      // Optimistically update local followers list
+      this.followers = this.followers.filter(u => u.uid !== followerUid);
+
+      // Update the displayed users based on active tab
+      this.users = this.activeTab === 'followers' ? this.followers : this.following;
+
+      this.cdr.detectChanges();
+    } catch (error: any) {
+      console.error('Failed to remove follower:', error);
+      // Optionally, show a toast/snackbar to the user
+      alert(error?.message || 'Failed to remove follower. Please try again.');
+    }
   }
 
   private chunkArray(array: string[], size: number) {
