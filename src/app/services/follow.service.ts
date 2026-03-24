@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, doc, setDoc, deleteDoc, docData, serverTimestamp } from '@angular/fire/firestore';
+import { Firestore, doc, setDoc, deleteDoc, docData, serverTimestamp, collection, collectionData, query, orderBy } from '@angular/fire/firestore';
 import { NotificationsService } from './notifications.service';
-import { Observable, map, take } from 'rxjs';
+import { Observable, map } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class FollowService {
@@ -57,12 +57,45 @@ export class FollowService {
     }
   }
 
-  // Check if current user is following target user
-  isFollowing(currentUserId: string, targetUserId: string): Observable<boolean> {
+  // Reactive isFollowing observable
+  isFollowing$(currentUserId: string, targetUserId: string): Observable<boolean> {
     const followerRef = doc(this.firestore, `users/${targetUserId}/followers/${currentUserId}`);
     return docData(followerRef, { idField: 'id' }).pipe(
-      take(1),
       map(doc => !!doc)
+    );
+  }
+
+  // Reactive followers list
+  getFollowers(userId: string): Observable<{ uid: string; createdAt: any }[]> {
+    const followersRef = query(
+      collection(this.firestore, `users/${userId}/followers`),
+      orderBy('createdAt', 'desc')
+    );
+
+    return collectionData(followersRef, { idField: 'uid' }).pipe(
+      map(docs =>
+        docs.map(doc => ({
+          uid: doc.uid,
+          createdAt: doc['createdAt'] ?? null
+        }))
+      )
+    );
+  }
+
+  // Reactive following list
+  getFollowing(userId: string): Observable<{ uid: string; createdAt: any }[]> {
+    const followingRef = query(
+      collection(this.firestore, `users/${userId}/following`),
+      orderBy('createdAt', 'desc')
+    );
+
+    return collectionData(followingRef, { idField: 'uid' }).pipe(
+      map(docs =>
+        docs.map(doc => ({
+          uid: doc.uid,
+          createdAt: doc['createdAt'] ?? null
+        }))
+      )
     );
   }
 }
