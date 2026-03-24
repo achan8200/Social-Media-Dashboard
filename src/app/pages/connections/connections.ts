@@ -14,7 +14,6 @@ interface ObservableUser {
   displayName$: Observable<string>;
   profilePicture$: Observable<string | null>;
   userId$: Observable<string>;
-  following$: Observable<boolean>;
 
   // cache for immediate render
   following?: boolean;
@@ -42,6 +41,7 @@ export class Connections implements OnInit, OnDestroy {
   followers: ObservableUser[] = [];
   following: ObservableUser[] = [];
   users: ObservableUser[] = [];
+  private followingSet = new Set<string>();
 
   profileUserId: string | null = null;
   currentUserId: string | null = null;
@@ -53,6 +53,17 @@ export class Connections implements OnInit, OnDestroy {
   async ngOnInit() {
     const authUser = await firstValueFrom(this.authService.getCurrentUser());
     if (authUser) this.currentUserId = authUser.uid;
+
+    if (this.currentUserId) {
+      this.followService.getFollowing(this.currentUserId)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(list => {
+          this.followingSet = new Set(list.map(u => u.uid));
+
+          // Update existing users instantly
+          this.updateFollowingState();
+        });
+    }
 
     await this.loadProfile();
     await this.loadFollowersAndFollowing();
@@ -159,23 +170,12 @@ export class Connections implements OnInit, OnDestroy {
 
         userId$: user$.pipe(map(user => user?.userId || '')),
 
-        following$: this.currentUserId
-        ? this.followService.isFollowing$(this.currentUserId, u.uid)
-        : new Observable<boolean>(sub => sub.next(false)),
+        following: this.followingSet.has(u.uid),
 
         usernameCache: u.username,
         displayNameCache: u.displayName,
         profilePictureCache: u.profilePicture,
-
-        following: undefined
       };
-
-      observableUser.following$
-        .pipe(takeUntil(this.destroy$))
-        .subscribe(val => {
-          observableUser.following = val;
-          this.cdr.markForCheck();
-        });
 
       return observableUser;
     });
@@ -203,6 +203,14 @@ export class Connections implements OnInit, OnDestroy {
   async removeFollower(followerUid: string) {
     if (!this.currentUserId) return;
     await this.followService.removeFollower(this.currentUserId, followerUid);
+  }
+
+  private updateFollowingState() {
+    [...this.followers, ...this.following].forEach(user => {
+      user.following = this.followingSet.has(user.uid);
+    });
+
+    this.cdr.markForCheck();
   }
 
   private chunkArray(array: string[], size: number) {
