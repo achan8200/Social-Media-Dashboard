@@ -121,4 +121,11 @@ export class CreatePostModal {
     // Force UI refresh
     this.selectedMedia = [...this.selectedMedia];
   }
+
+  get isPostDisabled(): boolean {
+    const hasCaption = this.caption.trim().length > 0;
+    const hasMedia = this.selectedMedia.length > 0;
+
+    return this.isUploading || (!hasCaption && !hasMedia);
+  }
 }

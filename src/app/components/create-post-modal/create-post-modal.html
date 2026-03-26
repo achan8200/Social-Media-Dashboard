@@ -67,11 +67,11 @@
     <div class="flex justify-end space-x-2">
       <button (click)="onCancel()" [disabled]="isUploading" 
             class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors duration-150
-                disabled:bg-gray-400 disabled:cursor-not-allowed">Cancel</button>
-      <button (click)="onCreate()" [disabled]="isUploading" 
+                disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-70">Cancel</button>
+      <button (click)="onCreate()" [disabled]="isPostDisabled"
             class="px-4 py-2 bg-blue-500 hover:bg-blue-600 
                 text-white rounded transition-colors duration-150
-                disabled:bg-gray-400 disabled:cursor-not-allowed">Post</button>
+                disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-70">Post</button>
     </div>
 
   </div>
