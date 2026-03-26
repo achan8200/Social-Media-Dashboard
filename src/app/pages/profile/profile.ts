@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, ElementRef, inject, ViewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Firestore, collection, query, where, getDocs, doc, serverTimestamp, setDoc, docData, getCountFromServer, collectionData } from '@angular/fire/firestore';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Observable, map, from, combineLatest, switchMap, of, debounceTime, distinctUntilChanged, shareReplay, tap, finalize } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -47,6 +47,7 @@ export class Profile {
   private cdr = inject(ChangeDetectorRef);
   private route = inject(ActivatedRoute);
   private followService = inject(FollowService);
+  private router = inject(Router);
 
   profile$!: Observable<any>;
   isOwner$!: Observable<boolean>;
@@ -675,5 +676,52 @@ export class Profile {
       await this.followService.followUser(authUser.uid, targetUser.uid);
       this.following = true;
     }
+  }
+
+  async getOrCreateThread(): Promise<string | null> {
+    const currentUser = await this.authService.getCurrentUser().toPromise();
+    const targetUser = this.originalProfile;
+
+    if (!currentUser || !targetUser) return null;
+    if (currentUser.uid === targetUser.uid) return null; // don't message yourself
+
+    const threadsRef = collection(this.firestore, 'threads');
+
+    // Threads where current user is a participant
+    const q = query(
+      threadsRef,
+      where('participants', 'array-contains', currentUser.uid)
+    );
+
+    const snapshot = await getDocs(q);
+
+    // Check if a thread already exists with exactly these two participants
+    const existingThread = snapshot.docs.find(docSnap => {
+      const data = docSnap.data() as any;
+      const participants: string[] = data.participants || [];
+      return participants.includes(targetUser.uid) && participants.length === 2;
+    });
+
+    if (existingThread) {
+      return existingThread.id; // return existing thread ID
+    }
+
+    // Otherwise, create new thread
+    const newThreadRef = doc(threadsRef); // auto-generated ID
+    await setDoc(newThreadRef, {
+      participants: [currentUser.uid, targetUser.uid],
+      createdAt: serverTimestamp(),
+      lastMessage: null
+    });
+
+    return newThreadRef.id;
+  }
+
+  async openMessageThread() {
+    const threadId = await this.getOrCreateThread();
+    if (!threadId) return;
+
+    // Navigate to the messaging page
+    this.router.navigate(['/messages', threadId]);
   }
 }

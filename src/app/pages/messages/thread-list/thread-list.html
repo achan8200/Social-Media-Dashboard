@@ -1,0 +1,17 @@
+<div class="p-4 font-semibold text-lg border-b">
+  Messages
+</div>
+
+<div *ngFor="let thread of threads$ | async"
+     (click)="onSelect(thread.id)"
+     class="p-4 border-b cursor-pointer hover:bg-gray-100 transition">
+
+  <div class="font-medium text-gray-800">
+    {{ thread.participants }}
+  </div>
+
+  <div class="text-sm text-gray-500 truncate">
+    {{ thread.lastMessage }}
+  </div>
+
+</div>

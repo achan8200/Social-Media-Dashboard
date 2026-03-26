@@ -130,16 +130,24 @@
         </button>
       </div>
     </div>
-    <!-- Follow Button when viewing another user's profile -->
-    <button *ngIf="!(isOwner$ | async) && !(isGuest$ | async)"
-          (click)="toggleFollow()"
-          class="px-4 py-2 rounded-lg text-white transition-colors duration-200"
-          [ngClass]="{
-            'bg-blue-500 hover:bg-blue-600': !following,
-            'bg-gray-400 hover:bg-gray-500': following
-          }">
-    {{ following ? 'Following' : 'Follow' }}
-  </button>
+    <!-- Message & Follow buttons -->
+    <div *ngIf="!(isOwner$ | async) && !(isGuest$ | async)" class="flex gap-2 self-start">
+      <button *ngIf="following"
+              (click)="openMessageThread()"
+              class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">
+        Message
+      </button>
+
+      <button
+              (click)="toggleFollow()"
+              class="px-4 py-2 rounded-lg text-white transition-colors duration-200"
+              [ngClass]="{
+                'bg-blue-500 hover:bg-blue-600': !following,
+                'bg-gray-400 hover:bg-gray-500': following
+              }">
+        {{ following ? 'Following' : 'Follow' }}
+      </button>
+    </div>
   </div>
 
   <!-- Stats (Posts, Followers, Following, Groups) -->
