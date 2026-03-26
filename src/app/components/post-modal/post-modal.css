@@ -51,3 +51,28 @@ video.object-contain {
   object-fit: contain;
   background-color: black; /* fallback */
 }
+
+.copied-text {
+  opacity: 0;
+  transform: translateY(4px);
+  animation: fadeInOut 1.5s ease forwards;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+}

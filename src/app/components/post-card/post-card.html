@@ -99,6 +99,15 @@
             <span>💬</span>
             <span>{{ commentsCount$ | async }}</span>
         </div>
+
+        <div class="flex items-center space-x-2">
+          <button (click)="onShare($event)"
+            class="flex items-center space-x-1 hover:bg-gray-100 rounded-lg transition">
+            <span>🔗</span>
+          </button>
+
+          <span *ngIf="copied" class="copied-text text-gray-600 text-xs">Link copied</span>
+        </div>
       </div>
     </div>
 

@@ -1,4 +1,4 @@
-import { Component, ElementRef, EventEmitter, HostListener, Input, Output, ViewChild, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, ElementRef, EventEmitter, HostListener, Input, Output, ViewChild, Inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, isPlatformBrowser  } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { Auth } from '@angular/fire/auth';
@@ -42,6 +42,7 @@ export class PostCard {
   commentsCount$!: Observable<number>;
 
   menuOpen = false;
+  copied = false;
 
   private initialized = false;
 
@@ -53,6 +54,7 @@ export class PostCard {
     private userService: UserService, 
     private auth: Auth, 
     private postsService: PostsService,
+    private cdr: ChangeDetectorRef,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {}
 
@@ -131,11 +133,6 @@ export class PostCard {
 
     // Optimistic toggle like via service
     this.postsService.toggleLikeOptimistic(this.post.id);
-  }
-
-  onComment(event: Event): void {
-    event.stopPropagation();
-    if (this.post) this.comment.emit(this.post.id);
   }
 
   private formatCaption(caption: string): string {
@@ -241,5 +238,22 @@ export class PostCard {
     if (this.post) {
       this.deletePost.emit(this.post);
     }
+  }
+
+  async onShare(event: Event) {
+    event.stopPropagation();
+    if (!this.post) return;
+
+    const url = `${window.location.origin}/post/${this.post.id}`;
+
+    await navigator.clipboard.writeText(url);
+
+    this.copied = true;
+    this.cdr.detectChanges();
+
+    setTimeout(() => {
+      this.copied = false;
+      this.cdr.detectChanges();
+    }, 1500);
   }
 }

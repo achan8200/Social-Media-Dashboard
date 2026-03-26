@@ -1,6 +1,6 @@
-import { Component, Input, Output, EventEmitter, ViewChild, ViewChildren, QueryList, ElementRef, HostListener, AfterViewInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ViewChild, ViewChildren, QueryList, ElementRef, HostListener, AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
+import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Auth } from '@angular/fire/auth';
 import { PostsService } from '../../services/posts.service';
@@ -11,7 +11,6 @@ import { EditPostModal } from "../edit-post-modal/edit-post-modal";
 import { Comment, CommentWithLikes } from '../../models/comment.model';
 import { Avatar } from '../avatar/avatar';
 import { trigger, transition, style, animate } from '@angular/animations';
-import { differenceInSeconds, differenceInMinutes, differenceInHours, differenceInDays, differenceInWeeks } from 'date-fns';
 import { combineLatest, map, Observable, of, switchMap } from 'rxjs';
 
 @Component({
@@ -63,6 +62,7 @@ export class PostModal implements AfterViewInit {
   currentMediaIndex = 0;
   
   menuOpen = false;
+  copied = false;
   openCommentMenuId: string | null = null;
   commentMenuAbove: Record<string, boolean> = {}; // Track if a comment menu should open upwards
   showNewCommentsButton = false;
@@ -87,7 +87,12 @@ export class PostModal implements AfterViewInit {
   @ViewChild('commentInput') commentInput!: ElementRef<HTMLTextAreaElement>;
   @ViewChildren('videoPlayer') videoPlayers!: QueryList<ElementRef<HTMLVideoElement>>;
 
-  constructor(private postsService: PostsService, private userService: UserService, public auth: Auth, private router: Router) {}
+  constructor(
+    private postsService: PostsService, 
+    private userService: UserService, 
+    public auth: Auth,
+    private cdr: ChangeDetectorRef,
+  ) {}
 
   ngOnChanges() {
     if (!this.post) return;
@@ -707,5 +712,22 @@ export class PostModal implements AfterViewInit {
     if (height > maxHeight) height = maxHeight;
 
     return height;
+  }
+
+  async onShare(event: Event) {
+    event.stopPropagation();
+    if (!this.post) return;
+
+    const url = `${window.location.origin}/post/${this.post.id}`;
+
+    await navigator.clipboard.writeText(url);
+
+    this.copied = true;
+    this.cdr.detectChanges();
+
+    setTimeout(() => {
+      this.copied = false;
+      this.cdr.detectChanges();
+    }, 1500);
   }
 }

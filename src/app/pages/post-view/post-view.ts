@@ -10,8 +10,7 @@ import { ConfirmModal } from '../../components/confirm-modal/confirm-modal';
 import { EditPostModal } from '../../components/edit-post-modal/edit-post-modal';
 import { Comment, CommentWithLikes } from '../../models/comment.model';
 import { Avatar } from '../../components/avatar/avatar';
-import { differenceInSeconds, differenceInMinutes, differenceInHours, differenceInDays, differenceInWeeks } from 'date-fns';
-import { BehaviorSubject, combineLatest, first, map, Observable, of, shareReplay, switchMap } from 'rxjs';
+import { BehaviorSubject, combineLatest, map, Observable, of, shareReplay, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-post-view',
@@ -52,6 +51,7 @@ export class PostView implements AfterViewInit {
   currentMediaIndex = 0;
   
   menuOpen = false;
+  copied = false;
   openCommentMenuId: string | null = null;
   commentMenuAbove: Record<string, boolean> = {}; // Track if a comment menu should open upwards
   showNewCommentsButton = false;
@@ -745,5 +745,22 @@ export class PostView implements AfterViewInit {
       this.commentsSubject.next(resetComments);
       this.cdr.markForCheck();
     }, 2000);
+  }
+
+  async onShare(event: Event) {
+    event.stopPropagation();
+    if (!this.post) return;
+
+    const url = `${window.location.origin}/post/${this.post.id}`;
+
+    await navigator.clipboard.writeText(url);
+
+    this.copied = true;
+    this.cdr.detectChanges();
+
+    setTimeout(() => {
+      this.copied = false;
+      this.cdr.detectChanges();
+    }, 1500);
   }
 }
