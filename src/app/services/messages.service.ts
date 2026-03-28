@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Firestore, collection, query, where, orderBy, getDocs, addDoc, serverTimestamp, updateDoc, doc, collectionData, getDoc } from '@angular/fire/firestore';
+import { Firestore, collection, query, where, orderBy, getDocs, addDoc, serverTimestamp, updateDoc, doc, collectionData, getDoc, docData } from '@angular/fire/firestore';
 import { Auth, authState } from '@angular/fire/auth';
 import { Observable, forkJoin, from, map, switchMap, of, tap } from 'rxjs';
 import { Thread, Message } from '../models/messages.model';
@@ -46,7 +46,8 @@ export class MessagesService {
           participants: t.participants || [],
           lastMessage: t.lastMessage || null,
           lastMessageAt: t.lastMessageAt || null,
-          unreadCount: (t.unreadByUser?.[uid]) || 0 // use per-user count
+          unreadCount: (t.unreadByUser?.[uid]) || 0, // use per-user count
+          typing: t.typing || {}
         } as Thread))
       )
     );
@@ -213,5 +214,22 @@ export class MessagesService {
 
       await updateDoc(threadDocRef, { unreadByUser: newUnreadByUser });
     }
+  }
+
+  getTyping(threadId: string): Observable<{ [uid: string]: boolean }> {
+    return docData(doc(this.firestore, `threads/${threadId}`)).pipe(
+      map((thread: any) => thread?.typing || {})
+    );
+  }
+
+  async setTyping(threadId: string, isTyping: boolean) {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) return;
+
+    const threadRef = doc(this.firestore, `threads/${threadId}`);
+
+    await updateDoc(threadRef, {
+      [`typing.${uid}`]: isTyping
+    });
   }
 }

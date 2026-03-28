@@ -34,7 +34,24 @@
 		<!-- Username + Last Message -->
 		<div class="flex-1 min-w-0 ml-2 relative pr-12">
 			<div class="font-medium text-gray-800 truncate">{{ thread.username }}</div>
-			<div class="text-sm text-gray-500 truncate">{{ formatLastMessage(thread) }}</div>
+			<div class="text-sm truncate">
+				<ng-container *ngIf="isOtherUserTyping(thread); else messageText">
+					<span class="text-blue-500 italic flex items-center gap-1">
+						{{ getTypingText(thread) }}
+						<span class="flex gap-[2px] ml-1">
+							<span class="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:0ms]"></span>
+							<span class="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:150ms]"></span>
+							<span class="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:300ms]"></span>
+						</span>
+					</span>
+				</ng-container>
+
+				<ng-template #messageText>
+					<span class="text-gray-500">
+						{{ formatLastMessage(thread) }}
+					</span>
+				</ng-template>
+			</div>
 
 			<!-- Timestamp of last message -->
 			<div class="absolute top-0 right-0 text-xs text-gray-400">

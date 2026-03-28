@@ -1,10 +1,12 @@
 import { Component, ElementRef, Input, OnChanges, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MessagesService } from '../../../services/messages.service';
 import { Auth } from '@angular/fire/auth';
-import { Observable, tap } from 'rxjs';
+import { UserService } from '../../../services/user.service';
+import { MessagesService } from '../../../services/messages.service';
 import { Message } from '../../../models/messages.model';
+import { Observable, tap, combineLatest, map, switchMap, of } from 'rxjs';
+
 
 @Component({
   selector: 'app-chat-window',
@@ -23,9 +25,14 @@ export class ChatWindow implements OnChanges {
   currentUserId!: string;
   showNewMessageIndicator = false;
 
+  private typingTimeout: any;
+  typing$!: Observable<{ [uid: string]: boolean }>;
+  participants$!: Observable<{ uid: string; username: string }[]>;
+
   constructor(
     private messagesService: MessagesService,
-    private auth: Auth
+    private auth: Auth,
+    private userService: UserService
   ) {}
 
   ngOnChanges() {
@@ -44,7 +51,24 @@ export class ChatWindow implements OnChanges {
         });
       })
     );
+    this.participants$ = this.messagesService.getUserThreads().pipe(
+      map(threads => threads.find(t => t.id === this.threadId)),
+      switchMap(thread => {
+        if (!thread?.participants) return of([]);
 
+        const observables = thread.participants.map(uid =>
+          this.userService.getUserByUid(uid).pipe(
+            map(user => ({
+              uid,
+              username: user?.displayName || user?.username || 'Someone'
+            }))
+          )
+        );
+
+        return combineLatest(observables);
+      })
+    );
+    this.typing$ = this.messagesService.getTyping(this.threadId);
     this.messagesService.markMessagesAsRead(this.threadId);
 
     setTimeout(() => {
@@ -59,6 +83,8 @@ export class ChatWindow implements OnChanges {
     await this.messagesService.sendMessage(this.threadId, this.newMessage);
 
     this.newMessage = '';
+
+    await this.messagesService.setTyping(this.threadId, false);
 
     setTimeout(() => this.scrollToBottom());
   }
@@ -131,6 +157,23 @@ export class ChatWindow implements OnChanges {
 
     event.preventDefault();
     this.sendMessage();
+  }
+
+  onInputChange(event: Event) {
+    this.autoResize();
+
+    if (!this.threadId) return;
+
+    const value = (event.target as HTMLTextAreaElement).value;
+
+    // User is typing
+    this.messagesService.setTyping(this.threadId, value.length > 0);
+
+    // Auto-stop typing after 2 seconds idle
+    clearTimeout(this.typingTimeout);
+    this.typingTimeout = setTimeout(() => {
+      this.messagesService.setTyping(this.threadId!, false);
+    }, 2000);
   }
 
   autoResize() {
@@ -221,5 +264,37 @@ export class ChatWindow implements OnChanges {
     }
 
     return classes;
+  }
+
+  isOtherUserTyping(typing: { [uid: string]: boolean } | null): boolean {
+    if (!typing) return false;
+
+    return Object.entries(typing).some(
+      ([uid, isTyping]) => uid !== this.currentUserId && isTyping
+    );
+  }
+
+  getTypingText(
+    typing: { [uid: string]: boolean },
+    participants: { uid: string; username: string }[]
+  ): string {
+    const typingUsers = Object.entries(typing)
+      .filter(([uid, isTyping]) => uid !== this.currentUserId && isTyping)
+      .map(([uid]) => {
+        const user = participants.find(p => p.uid === uid);
+        return user?.username || 'Someone';
+      });
+
+    if (typingUsers.length === 0) return '';
+
+    if (typingUsers.length === 1) {
+      return `${typingUsers[0]} is typing`;
+    }
+
+    if (typingUsers.length === 2) {
+      return `${typingUsers[0]} and ${typingUsers[1]} are typing`;
+    }
+
+    return `${typingUsers[0]} and others are typing`;
   }
 }

@@ -18,6 +18,8 @@ interface ThreadDisplay {
   lastMessageSenderId?: string;
   lastMessageTime?: any;
   unreadCount?: number;
+  participants?: { uid: string; username: string }[];
+  typing?: { [uid: string]: boolean };
 }
 
 @Component({
@@ -72,7 +74,6 @@ export class ThreadList {
   ) {}
 
   ngOnInit() {
-    // Reactive thread list
     this.threads$ = authState(this.auth).pipe(
       switchMap(user => {
         if (!user?.uid) return of([] as ThreadDisplay[]);
@@ -83,29 +84,46 @@ export class ThreadList {
             if (!threads || threads.length === 0) return of([]);
 
             const threadDisplays$ = threads.map(thread => {
-              const otherUid = thread.participants.find(uid => uid !== currentUid) || '';
 
-              return this.userService.getUserByUid(otherUid).pipe(
-                map(userInfo => ({
-                  id: thread.id,
-                  userId: userInfo?.userId || otherUid,
-                  username: userInfo?.displayName || userInfo?.username || 'Unknown',
-                  avatarUrl: userInfo?.profilePicture || null,
-                  lastMessage: thread.lastMessage?.text || '',
-                  lastMessageSenderId: thread.lastMessage?.senderId || '',
-                  lastMessageTime: thread.lastMessage?.createdAt?.toDate?.() || null,
-                  unreadCount: thread.unreadCount || 0 // directly from thread
-                })),
-                catchError(() => of({
-                  id: thread.id,
-                  userId: otherUid,
-                  username: 'Unknown',
-                  avatarUrl: null,
-                  lastMessage: thread.lastMessage?.text || '',
-                  lastMessageSenderId: thread.lastMessage?.senderId || '',
-                  lastMessageTime: thread.lastMessage?.createdAt?.toDate?.() || null,
-                  unreadCount: thread.unreadCount || 0
-                }))
+              // Get all participants (for typing usernames)
+              const participantObservables = thread.participants.map(uid =>
+                this.userService.getUserByUid(uid).pipe(
+                  map(user => ({
+                    uid,
+                    username: user?.displayName || user?.username || 'Unknown',
+                    avatarUrl: user?.profilePicture || null
+                  })),
+                  catchError(() =>
+                    of({
+                      uid,
+                      username: 'Unknown',
+                      avatarUrl: null
+                    })
+                  )
+                )
+              );
+
+              return combineLatest(participantObservables).pipe(
+                map(participants => {
+                  // Identify the other user for 1-on-1
+                  const otherUser = participants.find(p => p.uid !== currentUid);
+
+                  return {
+                    id: thread.id,
+                    userId: otherUser?.uid || '',
+                    username: otherUser?.username || 'Unknown',
+                    avatarUrl: otherUser?.avatarUrl || null,
+
+                    lastMessage: thread.lastMessage?.text || '',
+                    lastMessageSenderId: thread.lastMessage?.senderId || '',
+                    lastMessageTime: thread.lastMessage?.createdAt?.toDate?.() || null,
+
+                    unreadCount: thread.unreadCount || 0,
+                    typing: thread.typing || {},
+
+                    participants
+                  } as ThreadDisplay;
+                })
               );
             });
 
@@ -191,5 +209,38 @@ export class ThreadList {
     }
 
     return thread.lastMessage;
+  }
+
+  isOtherUserTyping(thread: ThreadDisplay): boolean {
+    const currentUid = this.auth.currentUser?.uid;
+    if (!currentUid || !thread.typing) return false;
+
+    return Object.entries(thread.typing).some(
+      ([uid, isTyping]) => uid !== currentUid && isTyping
+    );
+  }
+
+  getTypingText(thread: ThreadDisplay): string {
+    const currentUid = this.auth.currentUser?.uid;
+    if (!currentUid || !thread.typing || !thread.participants) return '';
+
+    const typingUsers = Object.entries(thread.typing)
+      .filter(([uid, isTyping]) => uid !== currentUid && isTyping)
+      .map(([uid]) => {
+        const user = thread.participants?.find(p => p.uid === uid);
+        return user?.username || 'Someone';
+      });
+
+    if (typingUsers.length === 0) return '';
+
+    if (typingUsers.length === 1) {
+      return `${typingUsers[0]} is typing`;
+    }
+
+    if (typingUsers.length === 2) {
+      return `${typingUsers[0]} and ${typingUsers[1]} are typing`;
+    }
+
+    return `${typingUsers[0]} and others are typing`;
   }
 }

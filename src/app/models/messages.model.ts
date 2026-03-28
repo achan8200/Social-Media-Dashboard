@@ -18,4 +18,5 @@ export interface Thread {
   lastMessage?: Message;
   lastMessageAt?: any;
   unreadCount?: number;
+  typing?: { [uid: string]: boolean };
 }
