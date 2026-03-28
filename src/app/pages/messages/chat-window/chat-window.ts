@@ -5,6 +5,7 @@ import { Auth } from '@angular/fire/auth';
 import { UserService } from '../../../services/user.service';
 import { MessagesService } from '../../../services/messages.service';
 import { Message } from '../../../models/messages.model';
+import { Avatar } from '../../../components/avatar/avatar';
 import { PickerComponent } from '@ctrl/ngx-emoji-mart';
 import emojiRegex from 'emoji-regex';
 import { Observable, tap, combineLatest, map, switchMap, of } from 'rxjs';
@@ -13,7 +14,7 @@ import { Observable, tap, combineLatest, map, switchMap, of } from 'rxjs';
 @Component({
   selector: 'app-chat-window',
   standalone: true,
-  imports: [CommonModule, FormsModule, PickerComponent],
+  imports: [CommonModule, FormsModule, Avatar, PickerComponent],
   templateUrl: './chat-window.html'
 })
 export class ChatWindow implements OnChanges {
@@ -33,6 +34,9 @@ export class ChatWindow implements OnChanges {
   private typingTimeout: any;
   typing$!: Observable<{ [uid: string]: boolean }>;
   participants$!: Observable<{ uid: string; username: string }[]>;
+  otherParticipantName: string = 'Chat';
+  otherParticipantuserId: string = '';
+  otherParticipantPhoto: string = '';
 
   constructor(
     private messagesService: MessagesService,
@@ -65,12 +69,21 @@ export class ChatWindow implements OnChanges {
           this.userService.getUserByUid(uid).pipe(
             map(user => ({
               uid,
-              username: user?.displayName || user?.username || 'Someone'
+              userId: user?.userId || '',
+              username: user?.displayName || user?.username || 'Someone',
+              profilePicture: user?.profilePicture || ''
             }))
           )
         );
 
         return combineLatest(observables);
+      }),
+      tap(participants => {
+        // Compute the "other participant" once
+        const other = participants.find(p => p.uid !== this.currentUserId);
+        this.otherParticipantName = other?.username || 'Chat';
+        this.otherParticipantuserId = other?.userId || '';
+        this.otherParticipantPhoto = other?.profilePicture || '';
       })
     );
     this.typing$ = this.messagesService.getTyping(this.threadId);
