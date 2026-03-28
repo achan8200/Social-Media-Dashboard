@@ -51,8 +51,6 @@ export class MessagesService {
           unreadCount: t.unreadCount || 0,
         } as Thread))
       ),
-      // Single debug log for all threads fetched
-      tap(mappedThreads => console.log('Fetched threads:', mappedThreads))
     );
   }
 

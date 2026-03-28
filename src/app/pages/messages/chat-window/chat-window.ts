@@ -63,6 +63,62 @@ export class ChatWindow implements OnChanges {
     setTimeout(() => this.scrollToBottom());
   }
 
+  shouldShowTimestamp(messages: Message[], index: number): boolean {
+    const current = messages[index];
+    if (!current?.createdAt) return false;
+
+    const next = messages[index + 1];
+
+    // Always show timestamp for the last message in the thread
+    if (!next) return true;
+
+    // Check if next message is from a different sender → show timestamp
+    //if (next.senderId !== current.senderId) return true;
+
+    // Check time gap with next message
+    const currentTime = current.createdAt.toDate().getTime();
+    const nextTime = next.createdAt.toDate().getTime();
+    const diffMinutes = (nextTime - currentTime) / (1000 * 60);
+
+    const minGap = 5; // minutes threshold for timestamp
+    return diffMinutes > minGap;
+  }
+
+  shouldShowDateSeparator(messages: Message[], index: number): boolean {
+    if (index === 0) return true;
+
+    const prev = messages[index - 1];
+    const current = messages[index];
+
+    if (!prev?.createdAt || !current?.createdAt) return false;
+
+    const prevDate = prev.createdAt.toDate();
+    const currentDate = current.createdAt.toDate();
+
+    return prevDate.toDateString() !== currentDate.toDateString();
+  }
+
+  formatDateSeparator(timestamp: any): string {
+    if (!timestamp) return '';
+
+    const date = timestamp.toDate();
+    const now = new Date();
+
+    const today = now.toDateString();
+
+    const yesterday = new Date();
+    yesterday.setDate(now.getDate() - 1);
+
+    if (date.toDateString() === today) return 'Today';
+    if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+
+    return date.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
+
   handleEnter(event: Event) {
     const keyboardEvent = event as KeyboardEvent;
 
@@ -102,5 +158,68 @@ export class ChatWindow implements OnChanges {
     if (this.isNearBottom()) {
       this.showNewMessageIndicator = false;
     }
+  }
+
+  // Determines if the current message should visually group with the previous message
+  shouldGroupWithPrevious(messages: Message[], index: number): boolean {
+    if (index === 0) return false;
+
+    const prev = messages[index - 1];
+    const current = messages[index];
+
+    if (!prev?.createdAt || !current?.createdAt) return false;
+
+    const sameSender = prev.senderId === current.senderId;
+
+    // Calculate time difference in minutes
+    const prevTime = prev.createdAt.toDate().getTime();
+    const currentTime = current.createdAt.toDate().getTime();
+    const diffMinutes = (currentTime - prevTime) / (1000 * 60);
+
+    const maxGap = 30; // maximum minutes to consider grouping
+    return sameSender && diffMinutes <= maxGap;
+  }
+
+  // Determines if the bottom of the message bubble should be rounded
+  shouldRoundBottom(messages: Message[], index: number): boolean {
+    if (index === messages.length - 1) return true; // last message in thread
+
+    const next = messages[index + 1];
+    const current = messages[index];
+
+    if (!next?.createdAt || !current?.createdAt) return true;
+
+    const sameSender = next.senderId === current.senderId;
+
+    // Calculate time difference in minutes
+    const currentTime = current.createdAt.toDate().getTime();
+    const nextTime = next.createdAt.toDate().getTime();
+    const diffMinutes = (nextTime - currentTime) / (1000 * 60);
+
+    const maxGap = 30; // maximum minutes to keep bubble connected
+    return !sameSender || diffMinutes > maxGap ? true : false;
+  }
+
+  getBubbleClasses(msg: Message, messages: Message[], i: number): string {
+    const topRounded = !this.shouldGroupWithPrevious(messages, i);
+    const bottomRounded = this.shouldRoundBottom(messages, i);
+
+    let classes = 'inline-block px-3 py-2 ';
+
+    if (msg.senderId === this.currentUserId) {
+      // Outgoing (blue)
+      classes += 'bg-blue-500 text-white ';
+      classes += topRounded ? 'rounded-tr-2xl ' : 'rounded-tr-sm ';
+      classes += bottomRounded ? 'rounded-br-2xl ' : 'rounded-br-sm ';
+      classes += 'rounded-tl-2xl rounded-bl-2xl';
+    } else {
+      // Incoming (gray)
+      classes += 'bg-gray-200 text-gray-800 ';
+      classes += topRounded ? 'rounded-tl-2xl ' : 'rounded-tl-sm ';
+      classes += bottomRounded ? 'rounded-bl-2xl ' : 'rounded-bl-sm ';
+      classes += 'rounded-tr-2xl rounded-br-2xl';
+    }
+
+    return classes;
   }
 }
