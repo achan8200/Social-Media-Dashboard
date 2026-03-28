@@ -130,22 +130,47 @@ export class ChatWindow implements OnChanges {
   formatDateSeparator(timestamp: any): string {
     if (!timestamp) return '';
 
-    const date = timestamp.toDate();
+    const date = timestamp.toDate(); // Firebase Timestamp → JS Date
     const now = new Date();
 
-    const today = now.toDateString();
+    // Helper to format time
+    const timeString = date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
 
+    // Helper to compare only the date (ignore time)
+    const isSameDate = (d1: Date, d2: Date) =>
+      d1.getFullYear() === d2.getFullYear() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getDate() === d2.getDate();
+
+    // Today
+    if (isSameDate(date, now)) return `Today • ${timeString}`;
+
+    // Yesterday
     const yesterday = new Date();
     yesterday.setDate(now.getDate() - 1);
+    if (isSameDate(date, yesterday)) return `Yesterday • ${timeString}`;
 
-    if (date.toDateString() === today) return 'Today';
-    if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    // Within last 7 days
+    const diffDays = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    if (diffDays < 7) {
+      const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
+      return `${weekday} • ${timeString}`;
+    }
 
-    return date.toLocaleDateString(undefined, {
+    // Older than a week
+    const fullDate = date.toLocaleDateString('en-US', {
+      weekday: 'long',
       month: 'short',
       day: 'numeric',
       year: 'numeric'
     });
+    return `${fullDate} • ${timeString}`;
   }
 
   handleEnter(event: Event) {
