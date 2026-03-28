@@ -10,13 +10,14 @@ import { ConfirmModal } from '../../components/confirm-modal/confirm-modal';
 import { EditPostModal } from '../../components/edit-post-modal/edit-post-modal';
 import { Comment, CommentWithLikes } from '../../models/comment.model';
 import { Avatar } from '../../components/avatar/avatar';
+import { PickerComponent } from '@ctrl/ngx-emoji-mart';
 import { formatPostTimestamp } from '../../utils/date';
 import { BehaviorSubject, combineLatest, map, Observable, of, shareReplay, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-post-view',
   standalone: true,
-  imports: [CommonModule, Avatar, ConfirmModal, EditPostModal, FormsModule, RouterModule],
+  imports: [CommonModule, Avatar, ConfirmModal, EditPostModal, FormsModule, RouterModule, PickerComponent],
   templateUrl: './post-view.html',
   styleUrls: ['./post-view.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -57,6 +58,7 @@ export class PostView implements AfterViewInit {
   openCommentMenuId: string | null = null;
   commentMenuAbove: Record<string, boolean> = {}; // Track if a comment menu should open upwards
   showNewCommentsButton = false;
+  showEmojiPicker = false;
 
   private touchStartX = 0;
   private touchEndX = 0;
@@ -80,6 +82,7 @@ export class PostView implements AfterViewInit {
   @ViewChild('commentInput') commentInput!: ElementRef<HTMLTextAreaElement>;
   @ViewChildren('videoPlayer') videoPlayers!: QueryList<ElementRef<HTMLVideoElement>>;
   @ViewChildren('commentElement', { read: ElementRef }) commentElements!: QueryList<ElementRef<HTMLDivElement>>;
+  @ViewChild('emojiPickerContainer', { static: false }) emojiPickerContainer!: ElementRef;
 
   constructor(
     private postsService: PostsService, 
@@ -768,6 +771,46 @@ export class PostView implements AfterViewInit {
       this.copied = false;
       this.cdr.detectChanges();
     }, 1500);
+  }
+
+  addEmoji(event: any) {
+    const emoji = event.emoji.native;
+    const input = this.newCommentInput.nativeElement;
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+
+    // Direct DOM manipulation only
+    input.value = input.value.substring(0, start) + emoji + input.value.substring(end);
+
+    // Restore cursor
+    input.selectionStart = input.selectionEnd = start + emoji.length;
+
+    // Manually update ngModel AFTER DOM update using setTimeout
+    setTimeout(() => {
+      this.newComment = input.value;
+    }, 0);
+
+    // Keep focus
+    input.focus({ preventScroll: true });
+
+    // Optionally resize textarea after insertion
+    this.adjustNewCommentTextareaHeight();
+  }
+
+  toggleEmojiPicker(event: Event) {
+    event.stopPropagation(); // Prevent document click
+    this.showEmojiPicker = !this.showEmojiPicker;
+
+    this.newCommentInput.nativeElement.focus({ preventScroll: true });
+  }
+
+  // Close picker when clicking outside
+  @HostListener('document:click', ['$event'])
+  handleClickOutside(event: Event) {
+    const clickedInside = this.emojiPickerContainer?.nativeElement.contains(event.target);
+    if (!clickedInside) {
+      this.showEmojiPicker = false;
+    }
   }
 
   formatPostTimestamp(timestamp: any): string {

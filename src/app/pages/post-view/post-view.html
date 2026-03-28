@@ -201,13 +201,36 @@
 
 					<!-- Comment Input (outside scrollable container) -->
 					<div class="flex-shrink-0 mt-3 flex border-t pt-3">
-						<textarea #newCommentInput
-							[(ngModel)]="newComment" 
-							placeholder="Add a comment..."
-							rows="1"
-							class="min-h-10 flex-1 border px-3 py-2 rounded text-sm resize-none overflow-y-hidden" 
-							(input)="adjustNewCommentTextareaHeight()"
-							(keydown)="handleCommentKeydown($event)"></textarea>
+						<div class="flex-1 relative">
+							<textarea #newCommentInput
+								[(ngModel)]="newComment" 
+								placeholder="Add a comment..."
+								rows="1"
+								class="min-h-10 w-full border px-3 py-2 rounded text-sm resize-none overflow-y-hidden pr-10" 
+								(input)="adjustNewCommentTextareaHeight()"
+								(keydown)="handleCommentKeydown($event)">
+							</textarea>
+							<div #emojiPickerContainer>
+								<!-- Emoji Button -->
+								<button
+									type="button"
+									(click)="toggleEmojiPicker($event)"
+									(mousedown)="$event.preventDefault()"
+									class="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:scale-105">
+									<img src="assets/icons/emoji-1.svg" alt="Emoji" class="w-5 h-5" style="filter: invert(0.6);"/>
+								</button>
+
+								<!-- Emoji Picker -->
+								<div *ngIf="showEmojiPicker" 
+										class="absolute bottom-full mb-2 right-0 z-50 shadow-lg">
+									<emoji-mart
+										[perLine]="9"
+										[emojiSize]="24"
+										(emojiSelect)="addEmoji($event)">
+									</emoji-mart>
+								</div>
+							</div>
+						</div>
 						<button (click)="submitComment()" 
 							class="ml-2 font-medium"
 							[ngClass]="{'text-blue-500 hover:underline': newComment.trim(), 'text-gray-400 cursor-not-allowed': !newComment.trim()}"
@@ -347,13 +370,36 @@
 
 					<!-- Comment Input -->
 					<div class="mt-3 flex border-t pt-3 flex-shrink-0">
-						<textarea #newCommentInput
-							[(ngModel)]="newComment" 
-							placeholder="Add a comment..." 
-							rows="1"
-							class="min-h-10 flex-1 border px-3 py-2 rounded text-sm resize-none overflow-y-hidden" 
-							(input)="adjustNewCommentTextareaHeight()"
-							(keydown)="handleCommentKeydown($event)"></textarea>
+						<div class="flex-1 relative">
+							<textarea #newCommentInput
+								[(ngModel)]="newComment" 
+								placeholder="Add a comment..." 
+								rows="1"
+								class="min-h-10 w-full border px-3 py-2 rounded text-sm resize-none overflow-y-hidden pr-10" 
+								(input)="adjustNewCommentTextareaHeight()"
+								(keydown)="handleCommentKeydown($event)">
+							</textarea>
+							<div #emojiPickerContainer>
+								<!-- Emoji Button -->
+								<button
+									type="button"
+									(click)="toggleEmojiPicker($event)"
+									(mousedown)="$event.preventDefault()"
+									class="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:scale-105">
+									<img src="assets/icons/emoji-1.svg" alt="Emoji" class="w-5 h-5" style="filter: invert(0.6);"/>
+								</button>
+
+								<!-- Emoji Picker -->
+								<div *ngIf="showEmojiPicker" 
+										class="absolute bottom-full mb-2 right-0 z-50 shadow-lg">
+									<emoji-mart
+										[perLine]="9"
+										[emojiSize]="24"
+										(emojiSelect)="addEmoji($event)">
+									</emoji-mart>
+								</div>
+							</div>
+						</div>
 						<button (click)="submitComment()" 
 							class="ml-2 font-medium"
 							[ngClass]="{'text-blue-500 hover:underline': newComment.trim(), 'text-gray-400 cursor-not-allowed': !newComment.trim()}"
