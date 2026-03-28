@@ -6,6 +6,7 @@ import { UserService } from '../../../services/user.service';
 import { MessagesService } from '../../../services/messages.service';
 import { Message } from '../../../models/messages.model';
 import { PickerComponent } from '@ctrl/ngx-emoji-mart';
+import emojiRegex from 'emoji-regex';
 import { Observable, tap, combineLatest, map, switchMap, of } from 'rxjs';
 
 
@@ -27,6 +28,7 @@ export class ChatWindow implements OnChanges {
   currentUserId!: string;
   showNewMessageIndicator = false;
   showEmojiPicker = false;
+  emojiOnlyRegex = emojiRegex();
 
   private typingTimeout: any;
   typing$!: Observable<{ [uid: string]: boolean }>;
@@ -109,7 +111,7 @@ export class ChatWindow implements OnChanges {
     const nextTime = next.createdAt.toDate().getTime();
     const diffMinutes = (nextTime - currentTime) / (1000 * 60);
 
-    const minGap = 5; // minutes threshold for timestamp
+    const minGap = 30; // minutes threshold for timestamp
     return diffMinutes > minGap;
   }
 
@@ -272,6 +274,18 @@ export class ChatWindow implements OnChanges {
   }
 
   getBubbleClasses(msg: Message, messages: Message[], i: number): string {
+    const { isEmojiOnly, count } = this.getEmojiInfo(msg.text);
+
+    if (isEmojiOnly) {
+      let sizeClass = 'text-3xl'; // default
+
+      if (count <= 2) sizeClass = 'text-4xl';
+      else if (count <= 4) sizeClass = 'text-3xl';
+      else sizeClass = 'text-2xl';
+
+      return `bg-transparent px-0 py-0 inline-block ${sizeClass} text-center`;
+    }
+
     const topRounded = !this.shouldGroupWithPrevious(messages, i);
     const bottomRounded = this.shouldRoundBottom(messages, i);
 
@@ -345,6 +359,24 @@ export class ChatWindow implements OnChanges {
 
     // Keep focus
     input.focus({ preventScroll: true });
+  }
+
+  isEmojiOnly(msg: string): boolean {
+    if (!msg) return false;
+    // Remove whitespace and check if only emojis remain
+    return this.emojiOnlyRegex.test(msg.trim());
+  }
+
+  getEmojiInfo(msg: string): { isEmojiOnly: boolean; count: number } {
+    if (!msg) return { isEmojiOnly: false, count: 0 };
+
+    const emojis = msg.match(this.emojiOnlyRegex) || [];
+    const textWithoutEmojis = msg.replace(this.emojiOnlyRegex, '').trim();
+
+    return { 
+      isEmojiOnly: textWithoutEmojis.length === 0 && emojis.length > 0,
+      count: emojis.length
+    };
   }
 
   toggleEmojiPicker(event: Event) {
