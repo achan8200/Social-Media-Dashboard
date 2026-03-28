@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Auth, authState  } from '@angular/fire/auth';
 import { MessagesService } from '../../../services/messages.service';
 import { User, UserService } from '../../../services/user.service';
+import { FollowService } from '../../../services/follow.service';
 import { Thread } from '../../../models/messages.model';
 import { Avatar } from "../../../components/avatar/avatar";
 import { trigger, transition, style, animate } from '@angular/animations';
@@ -69,7 +70,8 @@ export class ThreadList {
   constructor(
     private messagesService: MessagesService, 
     private auth: Auth, 
-    private userService: UserService
+    private userService: UserService,
+    private followService: FollowService
   ) {}
 
   ngOnInit() {
@@ -144,7 +146,7 @@ export class ThreadList {
     this.showNewChatModal = true;
     if (!this.auth.currentUser) return;
 
-    this.users$ = this.messagesService.getAllUsers();
+    this.users$ = this.getFollowingUsers();
     this.filteredUsers$ = combineLatest([this.users$, this.search$]).pipe(
       map(([users, search]) =>
         users.filter(u =>
@@ -167,6 +169,25 @@ export class ThreadList {
     this.selectedThreadId = threadId;
     this.selectThread.emit(threadId);
     this.closeModal();
+  }
+
+  getFollowingUsers(): Observable<User[]> {
+    const currentUser = this.auth.currentUser;
+    if (!currentUser?.uid) return of([]);
+
+    return this.followService.getFollowing(currentUser.uid).pipe(
+      switchMap(following => {
+        if (!following.length) return of([]);
+
+        const userObservables = following.map(f =>
+          this.userService.getUserByUid(f.uid).pipe(
+            map(user => user as User)
+          )
+        );
+
+        return combineLatest(userObservables);
+      })
+    );
   }
 
   formatTimestamp(date: Date | null): string {
