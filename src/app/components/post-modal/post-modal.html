@@ -219,6 +219,7 @@
             <div #emojiPickerContainer>
               <!-- Emoji Button -->
               <button
+                #emojiButton
                 type="button"
                 (click)="toggleEmojiPicker($event)"
                 (mousedown)="$event.preventDefault()"
@@ -382,6 +383,7 @@
             <div #emojiPickerContainer>
               <!-- Emoji Button -->
               <button
+                #emojiButton
                 type="button"
                 (click)="toggleEmojiPicker($event)"
                 (mousedown)="$event.preventDefault()"

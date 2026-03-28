@@ -90,6 +90,7 @@ export class PostModal implements AfterViewInit {
   @ViewChild('newCommentInput') newCommentInput!: ElementRef<HTMLTextAreaElement>;
   @ViewChild('commentInput') commentInput!: ElementRef<HTMLTextAreaElement>;
   @ViewChildren('videoPlayer') videoPlayers!: QueryList<ElementRef<HTMLVideoElement>>;
+  @ViewChild('emojiButton', { static: false }) emojiButton!: ElementRef;
   @ViewChild('emojiPickerContainer', { static: false }) emojiPickerContainer!: ElementRef;
 
   constructor(
@@ -770,12 +771,23 @@ export class PostModal implements AfterViewInit {
     this.newCommentInput.nativeElement.focus({ preventScroll: true });
   }
 
-  // Close picker when clicking outside
   @HostListener('document:click', ['$event'])
-  handleClickOutside(event: Event) {
-    const clickedInside = this.emojiPickerContainer?.nativeElement.contains(event.target);
-    if (!clickedInside) {
+  handleDocumentClick(event: Event) {
+    const target = event.target as HTMLElement;
+
+    // Close emoji picker
+    const clickedInsidePicker =
+      this.emojiPickerContainer?.nativeElement.contains(target);
+    const clickedButton =
+      this.emojiButton?.nativeElement.contains(target);
+
+    if (!clickedInsidePicker && !clickedButton) {
       this.showEmojiPicker = false;
+    }
+
+    // Close menu
+    if (!target.closest('.menu') && !target.closest('.menu-button')) {
+      this.menuOpen = false;
     }
   }
 

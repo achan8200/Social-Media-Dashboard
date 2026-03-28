@@ -82,6 +82,7 @@ export class PostView implements AfterViewInit {
   @ViewChild('commentInput') commentInput!: ElementRef<HTMLTextAreaElement>;
   @ViewChildren('videoPlayer') videoPlayers!: QueryList<ElementRef<HTMLVideoElement>>;
   @ViewChildren('commentElement', { read: ElementRef }) commentElements!: QueryList<ElementRef<HTMLDivElement>>;
+  @ViewChild('emojiButton', { static: false }) emojiButton!: ElementRef;
   @ViewChild('emojiPickerContainer', { static: false }) emojiPickerContainer!: ElementRef;
 
   constructor(
@@ -753,7 +754,7 @@ export class PostView implements AfterViewInit {
       );
       this.commentsSubject.next(resetComments);
       this.cdr.markForCheck();
-    }, 2000);
+    }, 500);
   }
 
   async onShare(event: Event) {
@@ -804,12 +805,23 @@ export class PostView implements AfterViewInit {
     this.newCommentInput.nativeElement.focus({ preventScroll: true });
   }
 
-  // Close picker when clicking outside
   @HostListener('document:click', ['$event'])
-  handleClickOutside(event: Event) {
-    const clickedInside = this.emojiPickerContainer?.nativeElement.contains(event.target);
-    if (!clickedInside) {
+  handleDocumentClick(event: Event) {
+    const target = event.target as HTMLElement;
+
+    // Close emoji picker
+    const clickedInsidePicker =
+      this.emojiPickerContainer?.nativeElement.contains(target);
+    const clickedButton =
+      this.emojiButton?.nativeElement.contains(target);
+
+    if (!clickedInsidePicker && !clickedButton) {
       this.showEmojiPicker = false;
+    }
+
+    // Close menu
+    if (!target.closest('.menu') && !target.closest('.menu-button')) {
+      this.menuOpen = false;
     }
   }
 

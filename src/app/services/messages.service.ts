@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Firestore, collection, query, where, orderBy, getDocs, addDoc, serverTimestamp, updateDoc, doc, collectionData, getDoc, docData } from '@angular/fire/firestore';
+import { Firestore, collection, query, where, orderBy, getDocs, addDoc, serverTimestamp, updateDoc, doc, collectionData, getDoc, docData, deleteDoc } from '@angular/fire/firestore';
 import { Auth, authState } from '@angular/fire/auth';
 import { Observable, from, map, switchMap, of } from 'rxjs';
 import { Thread, Message } from '../models/messages.model';
@@ -231,5 +231,22 @@ export class MessagesService {
     await updateDoc(threadRef, {
       [`typing.${uid}`]: isTyping
     });
+  }
+
+  async deleteThread(threadId: string) {
+    const threadRef = doc(this.firestore, `threads/${threadId}`);
+    const messagesRef = collection(this.firestore, `threads/${threadId}/messages`);
+
+    // Delete all messages
+    const snapshot = await getDocs(messagesRef);
+
+    const deletePromises = snapshot.docs.map(docSnap =>
+      deleteDoc(docSnap.ref)
+    );
+
+    await Promise.all(deletePromises);
+
+    // Delete thread document
+    await deleteDoc(threadRef);
   }
 }
