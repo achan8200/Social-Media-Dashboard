@@ -75,23 +75,51 @@
       </div>
     </div>
 
-    <!-- Input -->
-    <div class="p-3 border-t flex space-x-2">
-      <textarea
-				#messageInput
-				[(ngModel)]="newMessage"
-				(keydown.enter)="handleEnter($event)"
-				(input)="onInputChange($event)"
-				placeholder="Type a message..."
-				rows="1"
-				class="flex-1 border rounded px-3 py-1.5 resize-none overflow-hidden">
-			</textarea>
+    <!-- Input Area -->
+		<div class="p-3 border-t flex items-end space-x-2 relative">
 
-      <button
-        (click)="sendMessage()"
-        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-        Send
-      </button>
-    </div>
+			<!-- Textarea + Emoji Wrapper -->
+			<div class="flex-1 relative">
+				
+				<!-- Textarea -->
+				<textarea
+					#messageInput
+					[(ngModel)]="newMessage"
+					(keydown.enter)="handleEnter($event)"
+					(input)="onInputChange($event)"
+					placeholder="Type a message..."
+					rows="1"
+					class="w-full border rounded px-3 py-1.5 pr-10 resize-none overflow-hidden">
+				</textarea>
+
+				<div #emojiPickerContainer>
+					<!-- Emoji Button -->
+					<button
+						type="button"
+						(click)="toggleEmojiPicker($event)"
+						(mousedown)="$event.preventDefault()"
+						class="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:scale-105">
+						<img src="assets/icons/emoji-1.svg" alt="Emoji" class="w-5 h-5" style="filter: invert(0.6);"/>
+					</button>
+
+					<!-- Emoji Picker -->
+					<div *ngIf="showEmojiPicker" 
+							class="absolute bottom-full mb-2 right-0 z-50 shadow-lg">
+						<emoji-mart
+							[perLine]="9"
+							[emojiSize]="24"
+							(emojiSelect)="addEmoji($event)">
+						</emoji-mart>
+					</div>
+				</div>
+			</div>
+
+			<!-- Send Button -->
+			<button
+				(click)="sendMessage()"
+				class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+				Send
+			</button>
+		</div>
   </div>
 </div>

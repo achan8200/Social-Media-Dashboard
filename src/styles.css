@@ -1,3 +1,4 @@
+@import '@ctrl/ngx-emoji-mart/picker';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

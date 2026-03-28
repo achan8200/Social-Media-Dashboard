@@ -1,17 +1,18 @@
-import { Component, ElementRef, Input, OnChanges, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, Input, OnChanges, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Auth } from '@angular/fire/auth';
 import { UserService } from '../../../services/user.service';
 import { MessagesService } from '../../../services/messages.service';
 import { Message } from '../../../models/messages.model';
+import { PickerComponent } from '@ctrl/ngx-emoji-mart';
 import { Observable, tap, combineLatest, map, switchMap, of } from 'rxjs';
 
 
 @Component({
   selector: 'app-chat-window',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PickerComponent],
   templateUrl: './chat-window.html'
 })
 export class ChatWindow implements OnChanges {
@@ -19,11 +20,13 @@ export class ChatWindow implements OnChanges {
   
   @ViewChild('messageInput') messageInput!: ElementRef<HTMLTextAreaElement>;
   @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLDivElement>;
+  @ViewChild('emojiPickerContainer', { static: false }) emojiPickerContainer!: ElementRef;
 
   messages$!: Observable<Message[]>;
   newMessage = '';
   currentUserId!: string;
   showNewMessageIndicator = false;
+  showEmojiPicker = false;
 
   private typingTimeout: any;
   typing$!: Observable<{ [uid: string]: boolean }>;
@@ -296,5 +299,42 @@ export class ChatWindow implements OnChanges {
     }
 
     return `${typingUsers[0]} and others are typing`;
+  }
+
+  addEmoji(event: any) {
+    const emoji = event.emoji.native;
+    const input = this.messageInput.nativeElement;
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+
+    // Direct DOM manipulation only
+    input.value = input.value.substring(0, start) + emoji + input.value.substring(end);
+
+    // Restore cursor
+    input.selectionStart = input.selectionEnd = start + emoji.length;
+
+    // Manually update ngModel AFTER DOM update using setTimeout
+    setTimeout(() => {
+      this.newMessage = input.value;
+    }, 0);
+
+    // Keep focus
+    input.focus({ preventScroll: true });
+  }
+
+  toggleEmojiPicker(event: Event) {
+    event.stopPropagation(); // Prevent document click
+    this.showEmojiPicker = !this.showEmojiPicker;
+
+    this.messageInput.nativeElement.focus({ preventScroll: true });
+  }
+
+  // Close picker when clicking outside
+  @HostListener('document:click', ['$event'])
+  handleClickOutside(event: Event) {
+    const clickedInside = this.emojiPickerContainer?.nativeElement.contains(event.target);
+    if (!clickedInside) {
+      this.showEmojiPicker = false;
+    }
   }
 }
