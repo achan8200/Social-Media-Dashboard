@@ -10,6 +10,7 @@ import { ConfirmModal } from '../../components/confirm-modal/confirm-modal';
 import { EditPostModal } from '../../components/edit-post-modal/edit-post-modal';
 import { Comment, CommentWithLikes } from '../../models/comment.model';
 import { Avatar } from '../../components/avatar/avatar';
+import { formatPostTimestamp } from '../../utils/date';
 import { BehaviorSubject, combineLatest, map, Observable, of, shareReplay, switchMap } from 'rxjs';
 
 @Component({
@@ -33,6 +34,7 @@ export class PostView implements AfterViewInit {
 
   animatingLike = false;
 
+  timestamp$!: Observable<string>;
   captionSubject = new BehaviorSubject<string>('');
   caption$ = this.captionSubject.asObservable();
   liked$!: Observable<boolean>;
@@ -136,6 +138,10 @@ export class PostView implements AfterViewInit {
 
     if (media?.length > 0) this.preloadMedia(media[0]);
     if (media?.length > 1) this.preloadMedia(media[1]);
+
+    this.timestamp$ = of(this.post).pipe(
+      map(post => this.formatPostTimestamp(post?.createdAt))
+    );
 
     this.liked$ = this.postsService.getPostLike(this.post.id).pipe(
       shareReplay(1)
@@ -762,5 +768,9 @@ export class PostView implements AfterViewInit {
       this.copied = false;
       this.cdr.detectChanges();
     }, 1500);
+  }
+
+  formatPostTimestamp(timestamp: any): string {
+    return formatPostTimestamp(timestamp);
   }
 }

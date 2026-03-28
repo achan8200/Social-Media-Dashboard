@@ -12,6 +12,7 @@ import { Comment, CommentWithLikes } from '../../models/comment.model';
 import { Avatar } from '../avatar/avatar';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { PickerComponent } from '@ctrl/ngx-emoji-mart';
+import { formatPostTimestamp } from '../../utils/date';
 import { combineLatest, map, Observable, of, switchMap } from 'rxjs';
 
 @Component({
@@ -47,6 +48,7 @@ export class PostModal implements AfterViewInit {
 
   animatingLike = false;
 
+  timestamp$!: Observable<string>;
   caption$!: Observable<string>;
   liked$!: Observable<boolean>;
   likesCount$!: Observable<number>;
@@ -127,6 +129,9 @@ export class PostModal implements AfterViewInit {
             })
           );
         })
+      );
+      this.timestamp$ = of(this.post).pipe(
+        map(post => this.formatPostTimestamp(post?.createdAt))
       );
       this.commentsCount$ = this.comments$.pipe(
         map(comments => comments.length)
@@ -772,5 +777,9 @@ export class PostModal implements AfterViewInit {
     if (!clickedInside) {
       this.showEmojiPicker = false;
     }
+  }
+
+  formatPostTimestamp(timestamp: any): string {
+    return formatPostTimestamp(timestamp);
   }
 }

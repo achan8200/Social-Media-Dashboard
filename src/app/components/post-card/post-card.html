@@ -6,9 +6,13 @@
       <!-- Left: Avatar + Username -->
       <div class="flex items-center space-x-3">
         <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async" [userId]="userId$ | async"></app-avatar>
-        <a [routerLink]="['/profile', userId$ | async]" class="font-normal text-gray-800 hover:text-gray-600 transition-colors duration-150">
-          {{ username$ | async }}
-        </a>
+        <div class="flex items-center space-x-2">
+          <a [routerLink]="['/profile', userId$ | async]" class="font-normal text-gray-800 hover:text-gray-600 transition-colors duration-150">
+            {{ username$ | async }}
+          </a>
+          <span class="text-gray-400 text-sm">•</span>
+          <span class="text-gray-400 text-sm">{{ timestamp$ | async }}</span>
+        </div>
       </div>
 
       <!-- Right: New Badge + Menu Button -->

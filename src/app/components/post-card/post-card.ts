@@ -6,6 +6,7 @@ import { PostsService } from '../../services/posts.service';
 import { Post, PostMedia } from '../../models/post.model';
 import { UserService } from '../../services/user.service';
 import { Avatar } from '../avatar/avatar';
+import { formatPostTimestamp } from '../../utils/date';
 import { map, Observable, of, shareReplay, Subscription } from 'rxjs';
 
 @Component({
@@ -36,6 +37,7 @@ export class PostCard {
 
   animatingLike = false;
 
+  timestamp$!: Observable<string>;
   caption$!: Observable<string>;
   liked$!: Observable<boolean>;
   likesCount$!: Observable<number>;
@@ -94,6 +96,10 @@ export class PostCard {
           this.userAvatar$ = user$.pipe(map(u => u?.profilePicture || null));
           this.userId$ = user$.pipe(map(u => u?.userId || ''));
         }
+
+        this.timestamp$ = of(updatedPost.createdAt).pipe(
+          map(ts => this.formatPostTimestamp(ts))
+        );
 
         this.liked$ = this.postsService.getPostLike(updatedPost.id).pipe(shareReplay(1));
 
@@ -255,5 +261,9 @@ export class PostCard {
       this.copied = false;
       this.cdr.detectChanges();
     }, 1500);
+  }
+
+  formatPostTimestamp(timestamp: any): string {
+    return formatPostTimestamp(timestamp);
   }
 }

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Firestore, collection, query, where, orderBy, getDocs, addDoc, serverTimestamp, updateDoc, doc, collectionData, getDoc, docData } from '@angular/fire/firestore';
 import { Auth, authState } from '@angular/fire/auth';
-import { Observable, forkJoin, from, map, switchMap, of, tap } from 'rxjs';
+import { Observable, from, map, switchMap, of } from 'rxjs';
 import { Thread, Message } from '../models/messages.model';
 import { User } from './user.service';
 
