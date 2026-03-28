@@ -1,17 +1,87 @@
-<div class="p-4 font-semibold text-lg border-b">
-  Messages
-</div>
+<!-- Thread List Container -->
+<div class="relative overflow-hidden h-full flex flex-col min-h-0">
 
-<div *ngFor="let thread of threads$ | async"
+  <!-- Header -->
+  <div class="p-4 font-semibold text-lg border-b flex justify-between items-center">
+    Messages
+  </div>
+
+  <!-- Threads scrollable list -->
+  <div *ngFor="let thread of threads$ | async"
      (click)="onSelect(thread.id)"
-     class="p-4 border-b cursor-pointer hover:bg-gray-100 transition">
+		 [ngClass]="{ 
+				'bg-gray-100': thread.id === selectedThreadId, 
+				'hover:bg-gray-50': thread.id !== selectedThreadId }"
+     class="flex items-center gap-3 p-3 border-b cursor-pointer relative min-h-[60px] transition-colors">
 
-  <div class="font-medium text-gray-800">
-    {{ thread.participants }}
+		<!-- Sliding Left Border -->
+		<div
+			class="absolute left-0 top-0 h-full w-1 bg-blue-500 transition-all duration-300"
+			[ngStyle]="{ width: thread.id === selectedThreadId ? '4px' : '0px' }">
+		</div>
+
+		<!-- Avatar with unread badge -->
+		<div class="relative ml-2">
+			<app-avatar
+				[imageUrl]="thread.avatarUrl"
+				[username]="thread.username"
+				[userId]="thread.userId"
+				size="md"
+				(clicked)="onSelect($event!)">
+			</app-avatar>
+
+			<span *ngIf="thread.unreadCount && thread.unreadCount > 0"
+						class="absolute top-0 right-0 -translate-x-1/3 -translate-y-1/3 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+				{{ thread.unreadCount }}
+			</span>
+		</div>
+
+		<!-- Username + Last Message -->
+		<div class="flex-1 min-w-0 ml-2">
+			<div class="font-medium text-gray-800 truncate">{{ thread.username }}</div>
+			<div class="text-sm text-gray-500 truncate">{{ thread.lastMessage }}</div>
+		</div>
+
+		<div class="text-xs text-gray-400 flex-shrink-0">
+			{{ thread.lastMessageTime | date:'shortTime' }}
+		</div>
+	</div>
+
+  <!-- Floating Start Chat button inside container -->
+  <button
+    class="absolute bottom-4 right-4 px-4 py-1 bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-600 hover:scale-105 transition text-xl"
+    (click)="startChat()">
+    <span class="relative -top-[1px] text-md">+ New Chat</span>
+  </button>
+
+  <!-- New Chat Modal -->
+  <div *ngIf="showNewChatModal" @overlayFade
+       class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+    <div @modalScale class="bg-white rounded p-4 w-80 max-h-96 overflow-y-auto relative">
+      <div class="flex justify-between items-center mb-2">
+        <h3 class="font-semibold text-lg">Start New Chat</h3>
+        <button class="text-gray-500 hover:text-gray-800" (click)="closeModal()">✕</button>
+      </div>
+
+      <input type="text"
+             [(ngModel)]="searchText"
+             (ngModelChange)="search$.next($event)"
+             placeholder="Search users..."
+             class="w-full p-2 border rounded mb-2" />
+
+      <div *ngFor="let user of filteredUsers$ | async"
+           (click)="selectUser(user)"
+           class="flex items-center gap-3 p-2 cursor-pointer hover:bg-gray-100 rounded">
+        <app-avatar [username]="user.displayName || user.username"
+                    [imageUrl]="user.profilePicture"
+                    size="sm">
+        </app-avatar>
+        <div class="truncate">{{ user.displayName || user.username }}</div>
+      </div>
+
+      <div *ngIf="(filteredUsers$ | async)?.length === 0" class="text-gray-500 text-sm mt-2">
+        No users found.
+      </div>
+    </div>
   </div>
-
-  <div class="text-sm text-gray-500 truncate">
-    {{ thread.lastMessage }}
-  </div>
-
 </div>

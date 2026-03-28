@@ -1,13 +1,19 @@
-<div class="flex h-[calc(100vh-64px)] bg-white">
+<!-- messages.html -->
+<div class="flex rounded shadow flex-col h-[calc(100vh-100px)] max-h-[800px] bg-white mx-auto">
 
-  <!-- LEFT: Threads -->
-  <div class="w-1/3 border-r overflow-y-auto">
-    <app-thread-list (selectThread)="onSelectThread($event)"></app-thread-list>
+  <!-- Main content -->
+  <div class="flex flex-1 overflow-hidden min-h-0">
+
+    <!-- LEFT: Threads -->
+    <div class="w-1/3 border-r overflow-y-auto min-h-0">
+      <app-thread-list (selectThread)="onSelectThread($event)"></app-thread-list>
+    </div>
+
+    <!-- RIGHT: Chat -->
+    <app-chat-window 
+      class="flex-1 flex flex-col min-h-0"
+      [threadId]="selectedThreadId">
+    </app-chat-window>
+
   </div>
-
-  <!-- RIGHT: Chat -->
-  <div class="flex-1 flex flex-col">
-    <app-chat-window [threadId]="selectedThreadId"></app-chat-window>
-  </div>
-
 </div>
