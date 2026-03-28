@@ -153,8 +153,7 @@
                       [(ngModel)]="editingText" 
                       class="border px-2 py-1 text-sm rounded flex-1 resize-none whitespace-pre-wrap" 
                       rows="3"
-                      (input)="adjustTextareaHeight()">
-                    </textarea>
+                      (input)="adjustTextareaHeight()"></textarea>
                     <button (click)="saveEdit(comment)" class="text-blue-500 text-sm hover:underline" [disabled]="!editingText.trim()">Save</button>
                     <button (click)="cancelEditComment()" class="text-gray-500 text-sm hover:underline">Cancel</button>
                   </div>
@@ -216,8 +215,7 @@
               rows="1"
               class="min-h-10 w-full border px-3 py-2 rounded text-sm resize-none overflow-y-hidden pr-10" 
               (input)="adjustNewCommentTextareaHeight()"
-              (keydown)="handleCommentKeydown($event)">
-            </textarea>
+              (keydown)="handleCommentKeydown($event)"></textarea>
             <div #emojiPickerContainer>
               <!-- Emoji Button -->
               <button
@@ -321,8 +319,7 @@
                     [(ngModel)]="editingText"
                     class="border px-2 py-1 text-sm rounded flex-1 resize-none whitespace-pre-wrap" 
                     rows="3"
-                    (input)="adjustTextareaHeight()">
-                  </textarea>
+                    (input)="adjustTextareaHeight()"></textarea>
                   <button (click)="saveEdit(comment)" class="text-blue-500 text-sm hover:underline" [disabled]="!editingText.trim()">Save</button>
                   <button (click)="cancelEditComment()" class="text-gray-500 text-sm hover:underline">Cancel</button>
                 </div>
@@ -381,8 +378,7 @@
               rows="1"
               class="min-h-10 w-full border px-3 py-2 rounded text-sm resize-none overflow-y-hidden pr-10"
               (input)="adjustNewCommentTextareaHeight()"
-              (keydown)="handleCommentKeydown($event)">
-            </textarea>
+              (keydown)="handleCommentKeydown($event)"></textarea>
             <div #emojiPickerContainer>
               <!-- Emoji Button -->
               <button
