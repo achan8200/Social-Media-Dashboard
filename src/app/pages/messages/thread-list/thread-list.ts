@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Auth, authState  } from '@angular/fire/auth';
@@ -55,9 +55,8 @@ interface ThreadDisplay {
   ]
 })
 export class ThreadList {
+  @Input() selectedThreadId: string | null = null;
   @Output() selectThread = new EventEmitter<string>();
-
-  selectedThreadId: string | null = null;
 
   users$!: Observable<User[]>;
   filteredUsers$!: Observable<User[]>;
@@ -90,12 +89,14 @@ export class ThreadList {
                 this.userService.getUserByUid(uid).pipe(
                   map(user => ({
                     uid,
+                    userId: user?.userId || '',
                     username: user?.displayName || user?.username || 'Unknown',
                     avatarUrl: user?.profilePicture || null
                   })),
                   catchError(() =>
                     of({
                       uid,
+                      userId: 'Unknown',
                       username: 'Unknown',
                       avatarUrl: null
                     })
@@ -110,7 +111,7 @@ export class ThreadList {
 
                   return {
                     id: thread.id,
-                    userId: otherUser?.uid || '',
+                    userId: otherUser?.userId || '',
                     username: otherUser?.username || 'Unknown',
                     avatarUrl: otherUser?.avatarUrl || null,
 
