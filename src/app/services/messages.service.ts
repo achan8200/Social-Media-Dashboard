@@ -23,7 +23,7 @@ export class MessagesService {
     );
   }
 
-  /** Get threads for current user with unread count */
+  /** Get threads for current user with reactive unread count */
   getUserThreads(): Observable<Thread[]> {
     const currentUser = this.auth.currentUser;
 
@@ -33,14 +33,12 @@ export class MessagesService {
     }
 
     const uid = currentUser.uid;
-
     const ref = collection(this.firestore, 'threads');
-    const q = query(
-      ref,
-      where('participants', 'array-contains', uid),
-      orderBy('lastMessageAt', 'desc')
-    );
 
+    // Query threads where user is a participant, ordered by lastMessageAt
+    const q = query(ref, where('participants', 'array-contains', uid), orderBy('lastMessageAt', 'desc'));
+
+    // Reactive observable
     return collectionData(q as any, { idField: 'id' }).pipe(
       map((threads: any[]) =>
         threads.map(t => ({
@@ -48,9 +46,9 @@ export class MessagesService {
           participants: t.participants || [],
           lastMessage: t.lastMessage || null,
           lastMessageAt: t.lastMessageAt || null,
-          unreadCount: t.unreadCount || 0,
+          unreadCount: (t.unreadByUser?.[uid]) || 0 // use per-user count
         } as Thread))
-      ),
+      )
     );
   }
 
@@ -119,16 +117,16 @@ export class MessagesService {
     const threadDocRef = doc(this.firestore, `threads/${threadId}`);
     const threadDocSnap = await getDoc(threadDocRef);
 
-    // Ensure thread exists and current user is a participant
     const threadData = threadDocSnap.data();
     const participants: string[] = threadData?.['participants'] || [];
     if (!participants.includes(currentUser.uid)) {
       throw new Error('User is not a participant of this thread or thread does not exist');
     }
 
-    // Add new message
     const messageRef = collection(this.firestore, `threads/${threadId}/messages`);
     const createdAt = serverTimestamp();
+    
+    // Add the new message
     await addDoc(messageRef, {
       senderId: currentUser.uid,
       text,
@@ -136,7 +134,13 @@ export class MessagesService {
       readBy: [currentUser.uid], // sender has read
     });
 
-    // Atomically update thread with last message info
+    // Compute unreadCount per participant
+    const unreadCounts: Record<string, number> = {};
+    participants.forEach(uid => {
+      unreadCounts[uid] = uid === currentUser.uid ? 0 : (threadData?.['unreadByUser']?.[uid] || 0) + 1;
+    });
+
+    // Update thread atomically
     await updateDoc(threadDocRef, {
       lastMessage: {
         text,
@@ -144,6 +148,7 @@ export class MessagesService {
         createdAt,
       },
       lastMessageAt: createdAt,
+      unreadByUser: unreadCounts
     });
   }
 
@@ -172,26 +177,41 @@ export class MessagesService {
     });
   }
 
+  /** Mark all messages in a thread as read by current user */
   async markMessagesAsRead(threadId: string) {
     const currentUser = this.auth.currentUser;
     if (!currentUser?.uid) return;
 
+    const threadDocRef = doc(this.firestore, `threads/${threadId}`);
     const ref = collection(this.firestore, `threads/${threadId}/messages`);
     const snapshot = await getDocs(ref);
 
+    let markedAny = false;
+
     const updates = snapshot.docs.map(docSnap => {
       const data = docSnap.data();
-      const readBy = data['readBy'] || [];
+      const readBy: string[] = data['readBy'] || [];
 
       if (!readBy.includes(currentUser.uid)) {
+        markedAny = true;
         return updateDoc(docSnap.ref, {
           readBy: [...readBy, currentUser.uid]
         });
       }
-
       return Promise.resolve();
     });
 
     await Promise.all(updates);
+
+    // If any messages were marked read, update thread unreadByUser
+    if (markedAny) {
+      const threadSnap = await getDoc(threadDocRef);
+      const threadData = threadSnap.data() || {};
+      const unreadByUser = threadData['unreadByUser'] || {};
+
+      const newUnreadByUser = { ...unreadByUser, [currentUser.uid]: 0 };
+
+      await updateDoc(threadDocRef, { unreadByUser: newUnreadByUser });
+    }
   }
 }

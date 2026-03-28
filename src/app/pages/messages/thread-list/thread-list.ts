@@ -15,6 +15,7 @@ interface ThreadDisplay {
   username: string;
   avatarUrl?: string | null;
   lastMessage?: string;
+  lastMessageSenderId?: string;
   lastMessageTime?: any;
   unreadCount?: number;
 }
@@ -64,9 +65,14 @@ export class ThreadList {
 
   search$ = new BehaviorSubject<string>('');
 
-  constructor(private messagesService: MessagesService, private auth: Auth, private userService: UserService) {}
+  constructor(
+    private messagesService: MessagesService, 
+    private auth: Auth, 
+    private userService: UserService
+  ) {}
 
   ngOnInit() {
+    // Reactive thread list
     this.threads$ = authState(this.auth).pipe(
       switchMap(user => {
         if (!user?.uid) return of([] as ThreadDisplay[]);
@@ -78,15 +84,17 @@ export class ThreadList {
 
             const threadDisplays$ = threads.map(thread => {
               const otherUid = thread.participants.find(uid => uid !== currentUid) || '';
+
               return this.userService.getUserByUid(otherUid).pipe(
-                map(user => ({
+                map(userInfo => ({
                   id: thread.id,
-                  userId: user?.userId || '',
-                  username: user?.displayName || user?.username || 'Unknown',
-                  avatarUrl: user?.profilePicture || null,
+                  userId: userInfo?.userId || otherUid,
+                  username: userInfo?.displayName || userInfo?.username || 'Unknown',
+                  avatarUrl: userInfo?.profilePicture || null,
                   lastMessage: thread.lastMessage?.text || '',
+                  lastMessageSenderId: thread.lastMessage?.senderId || '',
                   lastMessageTime: thread.lastMessage?.createdAt?.toDate?.() || null,
-                  unreadCount: thread.unreadCount || 0
+                  unreadCount: thread.unreadCount || 0 // directly from thread
                 })),
                 catchError(() => of({
                   id: thread.id,
@@ -94,6 +102,7 @@ export class ThreadList {
                   username: 'Unknown',
                   avatarUrl: null,
                   lastMessage: thread.lastMessage?.text || '',
+                  lastMessageSenderId: thread.lastMessage?.senderId || '',
                   lastMessageTime: thread.lastMessage?.createdAt?.toDate?.() || null,
                   unreadCount: thread.unreadCount || 0
                 }))
@@ -115,16 +124,12 @@ export class ThreadList {
   startChat() {
     this.showNewChatModal = true;
     if (!this.auth.currentUser) return;
+
     this.users$ = this.messagesService.getAllUsers();
-    this.filteredUsers$ = combineLatest([
-      this.users$,
-      this.search$
-    ]).pipe(
+    this.filteredUsers$ = combineLatest([this.users$, this.search$]).pipe(
       map(([users, search]) =>
         users.filter(u =>
-          (u.displayName || u.username || '')
-            .toLowerCase()
-            .includes(search.toLowerCase())
+          (u.displayName || u.username || '').toLowerCase().includes(search.toLowerCase())
         )
       )
     );
@@ -141,8 +146,50 @@ export class ThreadList {
     const threadId = await this.messagesService.getOrCreateThread(user.uid);
 
     this.selectedThreadId = threadId;
-
     this.selectThread.emit(threadId);
     this.closeModal();
+  }
+
+  formatTimestamp(date: Date | null): string {
+    if (!date) return '';
+
+    const now = new Date();
+
+    const isSameDay = date.toDateString() === now.toDateString();
+
+    // Calculate difference in days
+    const diffTime = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    // Today -> show time (5:40 PM)
+    if (isSameDay) {
+      return date.toLocaleTimeString([], {
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+    }
+
+    // Within last 6 days -> show day (Mon, Tue, etc.)
+    if (diffDays < 7) {
+      return date.toLocaleDateString([], { weekday: 'short' });
+    }
+
+    // Older -> show "Mar 18"
+    return date.toLocaleDateString([], {
+      month: 'short',
+      day: 'numeric'
+    });
+  }
+
+  formatLastMessage(thread: ThreadDisplay): string {
+    if (!thread.lastMessage) return '';
+
+    const currentUid = this.auth.currentUser?.uid;
+
+    if (thread.lastMessageSenderId === currentUid) {
+      return `You: ${thread.lastMessage}`;
+    }
+
+    return thread.lastMessage;
   }
 }
