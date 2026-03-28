@@ -1,14 +1,60 @@
 <div class="flex flex-col flex-1 min-h-0 relative">
 
 	<!-- Header -->
-	<div *ngIf="threadId" class="flex items-center p-3.5 border-b bg-white sticky top-0 z-20 gap-3">
-		<app-avatar 
-			[imageUrl]="otherParticipantPhoto"
-			[username]="otherParticipantName"
-			[userId]="otherParticipantuserId"
-			size="sm">
-		</app-avatar>
-		<span class="font-normal text-gray-800">{{ otherParticipantName }}</span>
+	<div *ngIf="threadId" class="flex items-center justify-between px-4 h-16 border-b bg-white sticky top-0 z-20">
+
+		<!-- LEFT: Avatar + Names -->
+  	<div class="flex items-center gap-3">
+			<!-- Avatar Stack -->
+			<div class="flex items-center">
+				<ng-container *ngFor="let participant of otherParticipants; let i = index">
+					
+					<!-- Show max 3 avatars -->
+					<ng-container *ngIf="i < 3">
+						<div class="relative" [ngClass]="i !== 0 ? '-ml-2' : ''">
+							<app-avatar 
+								[imageUrl]="participant.profilePicture"
+								[username]="participant.username"
+								[userId]="participant.userId"
+								size="sm">
+							</app-avatar>
+						</div>
+					</ng-container>
+
+				</ng-container>
+
+				<!-- Overflow +N -->
+				<div 
+					*ngIf="otherParticipants.length > 3"
+					class="w-8 h-8 -ml-2 rounded-full bg-gray-300 flex items-center justify-center text-xs font-semibold text-gray-700 border-2 border-white">
+					+{{ otherParticipants.length - 3 }}
+				</div>
+			</div>
+
+			<!-- Names -->
+			<span class="font-normal text-gray-800 truncate">
+				{{ participantsDisplayNames }}
+			</span>
+		</div>
+		<!-- RIGHT: Menu -->
+		<div class="relative">
+			<button
+				(click)="toggleMenu($event)"
+				[class.bg-gray-300]="menuOpen"
+				class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 transition">
+				<span class="text-xl relative -top-[1px]">⋯</span>
+			</button>
+
+			<!-- Dropdown -->
+			<div *ngIf="menuOpen"
+					class="absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg z-50">
+				<button
+					(click)="onDeleteThread($event)"
+					class="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">
+					Delete Chat
+				</button>
+			</div>
+		</div>
 	</div>
 
   <!-- Empty State -->
@@ -133,3 +179,13 @@
 		</div>
   </div>
 </div>
+
+<app-confirm-modal
+  *ngIf="showDeleteModal"
+  title="Delete chat?"
+  message="This will permanently delete your chat with {{ participantsDisplayNames }}."
+  confirmText="Delete"
+  cancelText="Cancel"
+  (confirmed)="confirmDeleteThread()"
+  (cancelled)="cancelDeleteThread()">
+</app-confirm-modal>

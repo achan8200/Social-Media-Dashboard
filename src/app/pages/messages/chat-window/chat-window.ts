@@ -6,6 +6,7 @@ import { UserService } from '../../../services/user.service';
 import { MessagesService } from '../../../services/messages.service';
 import { Message } from '../../../models/messages.model';
 import { Avatar } from '../../../components/avatar/avatar';
+import { ConfirmModal } from '../../../components/confirm-modal/confirm-modal';
 import { PickerComponent } from '@ctrl/ngx-emoji-mart';
 import emojiRegex from 'emoji-regex';
 import { Observable, tap, combineLatest, map, switchMap, of } from 'rxjs';
@@ -14,7 +15,7 @@ import { Observable, tap, combineLatest, map, switchMap, of } from 'rxjs';
 @Component({
   selector: 'app-chat-window',
   standalone: true,
-  imports: [CommonModule, FormsModule, Avatar, PickerComponent],
+  imports: [CommonModule, FormsModule, Avatar, ConfirmModal, PickerComponent],
   templateUrl: './chat-window.html'
 })
 export class ChatWindow implements OnChanges {
@@ -27,6 +28,9 @@ export class ChatWindow implements OnChanges {
   messages$!: Observable<Message[]>;
   newMessage = '';
   currentUserId!: string;
+  menuOpen = false;
+  showDeleteModal = false;
+  isDeleting = false;
   showNewMessageIndicator = false;
   showEmojiPicker = false;
   emojiOnlyRegex = emojiRegex();
@@ -34,9 +38,7 @@ export class ChatWindow implements OnChanges {
   private typingTimeout: any;
   typing$!: Observable<{ [uid: string]: boolean }>;
   participants$!: Observable<{ uid: string; username: string }[]>;
-  otherParticipantName: string = 'Chat';
-  otherParticipantuserId: string = '';
-  otherParticipantPhoto: string = '';
+  otherParticipants: { uid: string; username: string; userId: string; profilePicture: string }[] = [];
 
   constructor(
     private messagesService: MessagesService,
@@ -79,11 +81,7 @@ export class ChatWindow implements OnChanges {
         return combineLatest(observables);
       }),
       tap(participants => {
-        // Compute the "other participant" once
-        const other = participants.find(p => p.uid !== this.currentUserId);
-        this.otherParticipantName = other?.username || 'Chat';
-        this.otherParticipantuserId = other?.userId || '';
-        this.otherParticipantPhoto = other?.profilePicture || '';
+        this.otherParticipants = participants.filter(p => p.uid !== this.currentUserId);
       })
     );
     this.typing$ = this.messagesService.getTyping(this.threadId);
@@ -393,18 +391,60 @@ export class ChatWindow implements OnChanges {
   }
 
   toggleEmojiPicker(event: Event) {
-    event.stopPropagation(); // Prevent document click
+    event.stopPropagation();
     this.showEmojiPicker = !this.showEmojiPicker;
 
     this.messageInput.nativeElement.focus({ preventScroll: true });
   }
 
-  // Close picker when clicking outside
   @HostListener('document:click', ['$event'])
-  handleClickOutside(event: Event) {
-    const clickedInside = this.emojiPickerContainer?.nativeElement.contains(event.target);
-    if (!clickedInside) {
+  handleDocumentClick(event: Event) {
+    const target = event.target as HTMLElement;
+
+    this.menuOpen = false;
+
+    const clickedInsideEmojiContainer =
+      this.emojiPickerContainer?.nativeElement.contains(target);
+
+    const clickedInsidePicker =
+      target.closest('emoji-mart') !== null;
+
+    if (!clickedInsideEmojiContainer && !clickedInsidePicker) {
       this.showEmojiPicker = false;
     }
+  }
+
+  get participantsDisplayNames(): string {
+    if (this.otherParticipants.length === 1) {
+      return this.otherParticipants[0].username;
+    }
+    return this.otherParticipants.map(p => p.username).join(', ');
+  }
+
+  toggleMenu(event: Event) {
+    event.stopPropagation();
+    this.menuOpen = !this.menuOpen;
+  }
+
+  onDeleteThread(event: Event) {
+    event.stopPropagation();
+    this.menuOpen = false;
+    this.showDeleteModal = true;
+  }
+
+  async confirmDeleteThread() {
+    if (!this.threadId || this.isDeleting) return;
+
+    this.isDeleting = true;
+
+    await this.messagesService.deleteThread(this.threadId);
+
+    this.threadId = null;
+    this.showDeleteModal = false;
+    this.isDeleting = false;
+  }
+
+  cancelDeleteThread() {
+    this.showDeleteModal = false;
   }
 }
