@@ -8,7 +8,8 @@ import { FollowService } from '../../../services/follow.service';
 import { Thread } from '../../../models/messages.model';
 import { Avatar } from "../../../components/avatar/avatar";
 import { trigger, transition, style, animate } from '@angular/animations';
-import { Observable, map, of, switchMap, BehaviorSubject, combineLatest, catchError } from 'rxjs';
+import { Observable, map, of, switchMap, BehaviorSubject, combineLatest, catchError, forkJoin } from 'rxjs';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 
 interface ThreadDisplay {
   id: string;
@@ -21,6 +22,7 @@ interface ThreadDisplay {
   unreadCount?: number;
   participants?: { uid: string; username: string }[];
   typing?: { [uid: string]: boolean };
+  groupName?: string;
 }
 
 @Component({
@@ -29,29 +31,19 @@ interface ThreadDisplay {
   imports: [CommonModule, Avatar, FormsModule],
   templateUrl: './thread-list.html',
   animations: [
+    // Overlay fade
     trigger('overlayFade', [
-      transition(':enter', [
-        style({ opacity: 0 }),
-        animate('200ms ease-out', style({ opacity: 1 }))
-      ]),
-      transition(':leave', [
-        animate('150ms ease-in', style({ opacity: 0 }))
-      ])
+      transition(':enter', [style({ opacity: 0 }), animate('200ms ease-out', style({ opacity: 1 }))]),
+      transition(':leave', [animate('150ms ease-in', style({ opacity: 0 }))])
     ]),
-    trigger('modalScale', [
-      transition(':enter', [
-        style({ opacity: 0, transform: 'scale(0.95)' }),
-        animate(
-          '200ms ease-out',
-          style({ opacity: 1, transform: 'scale(1)' })
-        )
+    // Modal sliding/fade
+    trigger('modalTransition', [
+      transition('newChat <=> createGroup', [
+        style({ opacity: 0, transform: 'translateX(50px)' }),
+        animate('250ms ease-out', style({ opacity: 1, transform: 'translateX(0)' }))
       ]),
-      transition(':leave', [
-        animate(
-          '150ms ease-in',
-          style({ opacity: 0, transform: 'scale(0.95)' })
-        )
-      ])
+      transition('void => *', [style({ opacity: 0 }), animate('200ms ease-out', style({ opacity: 1 }))]),
+      transition('* => void', [animate('150ms ease-in', style({ opacity: 0 }))])
     ])
   ]
 })
@@ -59,13 +51,25 @@ export class ThreadList {
   @Input() selectedThreadId: string | null = null;
   @Output() selectThread = new EventEmitter<string>();
 
-  users$!: Observable<User[]>;
-  filteredUsers$!: Observable<User[]>;
+  // Threads
   threads$!: Observable<ThreadDisplay[]>;
-  showNewChatModal = false;
-  searchText = '';
 
+  // Users for New Chat modal
+  filteredNewChatUsers$!: Observable<User[]>;
   search$ = new BehaviorSubject<string>('');
+  searchText = '';
+  showNewChatModal = false;
+
+  // Users for Group modal
+  filteredGroupUsers$!: Observable<User[]>;
+  groupSearch$ = new BehaviorSubject<string>('');
+  groupSearchText = '';
+  showCreateGroupModal = false;
+  selectedGroupUsers = new Set<string>();
+  groupName = '';
+
+  // Modal state: 'none' | 'newChat' | 'createGroup'
+  currentModal: 'none' | 'newChat' | 'createGroup' = 'none';
 
   constructor(
     private messagesService: MessagesService, 
@@ -85,7 +89,6 @@ export class ThreadList {
             if (!threads || threads.length === 0) return of([]);
 
             const threadDisplays$ = threads.map(thread => {
-
               // Get all participants (for typing usernames)
               const participantObservables = thread.participants.map(uid =>
                 this.userService.getUserByUid(uid).pipe(
@@ -108,7 +111,6 @@ export class ThreadList {
 
               return combineLatest(participantObservables).pipe(
                 map(participants => {
-                  // Identify the other user for 1-on-1
                   const otherUser = participants.find(p => p.uid !== currentUid);
 
                   return {
@@ -124,7 +126,8 @@ export class ThreadList {
                     unreadCount: thread.unreadCount || 0,
                     typing: thread.typing || {},
 
-                    participants
+                    participants,
+                    groupName: thread.groupName || undefined
                   } as ThreadDisplay;
                 })
               );
@@ -137,28 +140,30 @@ export class ThreadList {
     );
   }
 
+  /** ---------------------- Thread Selection ---------------------- */
   onSelect(threadId: string) {
     this.selectedThreadId = threadId;
     this.selectThread.emit(threadId);
   }
 
+  /** ---------------------- New Chat Modal ---------------------- */
   startChat() {
-    this.showNewChatModal = true;
-    if (!this.auth.currentUser) return;
+    this.currentModal = 'newChat';
 
-    this.users$ = this.getFollowingUsers();
-    this.filteredUsers$ = combineLatest([this.users$, this.search$]).pipe(
-      map(([users, search]) =>
-        users.filter(u =>
-          (u.displayName || u.username || '').toLowerCase().includes(search.toLowerCase())
+    if (!this.auth.currentUser?.uid) return;
+
+    // Set filteredNewChatUsers$ directly with search logic
+    this.filteredNewChatUsers$ = this.getFollowingUsers().pipe(
+      switchMap(users =>
+        this.search$.pipe(
+          map(search =>
+            users.filter(u =>
+              (u.displayName || u.username || '').toLowerCase().includes(search.toLowerCase())
+            )
+          )
         )
       )
     );
-  }
-
-  closeModal() {
-    this.showNewChatModal = false;
-    this.searchText = '';
   }
 
   async selectUser(user: User) {
@@ -171,6 +176,67 @@ export class ThreadList {
     this.closeModal();
   }
 
+  /** ---------------------- Group Modal ---------------------- */
+  openCreateGroupModal() {
+    this.currentModal = 'createGroup';
+    this.selectedGroupUsers.clear();
+    this.groupName = '';
+    this.groupSearchText = '';
+    this.groupSearch$.next('');
+
+    if (!this.auth.currentUser?.uid) return;
+
+    // Set filteredGroupUsers$ directly with search logic
+    this.filteredGroupUsers$ = this.getFollowingUsers().pipe(
+      switchMap(users =>
+        this.groupSearch$.pipe(
+          map(search =>
+            users.filter(u =>
+              (u.displayName || u.username || '').toLowerCase().includes(search.toLowerCase())
+            )
+          )
+        )
+      )
+    );
+  }
+
+  backToNewChat() {
+    this.currentModal = 'newChat';
+  }
+
+  closeModal() {
+    this.currentModal = 'none';
+    this.searchText = '';
+    this.groupSearchText = '';
+    this.selectedGroupUsers.clear();
+    this.groupName = '';
+    this.search$.next('');
+    this.groupSearch$.next('');
+  }
+
+  toggleUserSelection(user: User) {
+    if (!user.uid) return;
+    this.selectedGroupUsers.has(user.uid)
+      ? this.selectedGroupUsers.delete(user.uid)
+      : this.selectedGroupUsers.add(user.uid);
+  }
+
+  async createGroupChat() {
+    const currentUid = this.auth.currentUser?.uid;
+    if (!currentUid) return;
+
+    const participants = Array.from(this.selectedGroupUsers);
+
+    // Use new service method
+    const threadId = await this.messagesService.getOrCreateGroupThread(participants, this.groupName);
+
+    this.selectedThreadId = threadId;
+    this.selectThread.emit(threadId);
+
+    this.closeModal();
+  }
+
+  /** ---------------------- Utilities ---------------------- */
   getFollowingUsers(): Observable<User[]> {
     const currentUser = this.auth.currentUser;
     if (!currentUser?.uid) return of([]);
@@ -178,14 +244,13 @@ export class ThreadList {
     return this.followService.getFollowing(currentUser.uid).pipe(
       switchMap(following => {
         if (!following.length) return of([]);
-
-        const userObservables = following.map(f =>
-          this.userService.getUserByUid(f.uid).pipe(
-            map(user => user as User)
-          )
+        const users$ = following.map(f =>
+          this.userService.getUserByUid(f.uid).pipe(catchError(() => of(null)))
         );
-
-        return combineLatest(userObservables);
+        // Use combineLatest + default empty array to avoid forkJoin blocking
+        return combineLatest(users$).pipe(
+          map(users => users.filter(Boolean) as User[])
+        );
       })
     );
   }
@@ -200,6 +265,8 @@ export class ThreadList {
     // Calculate difference in days
     const diffTime = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    const isSameYear = date.getFullYear() === now.getFullYear();
 
     // Today -> show time (5:40 PM)
     if (isSameDay) {
@@ -217,20 +284,15 @@ export class ThreadList {
     // Older -> show "Mar 18"
     return date.toLocaleDateString([], {
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      ...(isSameYear ? {} : { year: 'numeric' })
     });
   }
 
   formatLastMessage(thread: ThreadDisplay): string {
-    if (!thread.lastMessage) return '';
-
     const currentUid = this.auth.currentUser?.uid;
-
-    if (thread.lastMessageSenderId === currentUid) {
-      return `You: ${thread.lastMessage}`;
-    }
-
-    return thread.lastMessage;
+    if (!thread.lastMessage) return '';
+    return thread.lastMessageSenderId === currentUid ? `You: ${thread.lastMessage}` : thread.lastMessage;
   }
 
   isOtherUserTyping(thread: ThreadDisplay): boolean {
@@ -254,15 +316,13 @@ export class ThreadList {
       });
 
     if (typingUsers.length === 0) return '';
-
-    if (typingUsers.length === 1) {
-      return `${typingUsers[0]} is typing`;
-    }
-
-    if (typingUsers.length === 2) {
-      return `${typingUsers[0]} and ${typingUsers[1]} are typing`;
-    }
-
+    if (typingUsers.length === 1) return `${typingUsers[0]} is typing`;
+    if (typingUsers.length === 2) return `${typingUsers[0]} and ${typingUsers[1]} are typing`;
     return `${typingUsers[0]} and others are typing`;
+  }
+
+  /** ---------------------- trackBy ---------------------- */
+  trackByUid(index: number, user: User) {
+    return user.uid;
   }
 }

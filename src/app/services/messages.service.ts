@@ -53,37 +53,61 @@ export class MessagesService {
     );
   }
 
+  /** ---------------------- Refactored Thread Creation ---------------------- */
+
+  /**
+   * Get or create a 1-on-1 thread between the current user and another user.
+   * Internally calls getOrCreateGroupThread() for unified logic.
+   */
   async getOrCreateThread(otherUserId: string): Promise<string> {
     const currentUser = this.auth.currentUser;
     if (!currentUser?.uid) throw new Error('Not authenticated');
 
+    // Use group-thread function with exactly two participants and no groupName
+    return this.getOrCreateGroupThread([otherUserId], undefined);
+  }
+
+  /** ---------------------- Group Chat Support ---------------------- */
+
+  /**
+   * Get or create a thread with multiple participants.
+   * If a groupName is provided, it's treated as a group chat.
+   * Returns the thread ID.
+   */
+  async getOrCreateGroupThread(participantIds: string[], groupName?: string): Promise<string> {
+    const currentUser = this.auth.currentUser;
+    if (!currentUser?.uid) throw new Error('Not authenticated');
+
     const uid = currentUser.uid;
-    const participants = [uid, otherUserId].sort(); // keep consistent order
+
+    // Ensure current user is included
+    const participants = Array.from(new Set([uid, ...participantIds]));
 
     const ref = collection(this.firestore, 'threads');
 
-    // Since Firestore can't query for arrays exactly, check existing threads manually
-    const q = query(ref, where('participants', 'array-contains', uid));
-    const snapshot = await getDocs(q);
+    // For 1-on-1 chats, we try to find an existing thread
+    if (!groupName && participants.length === 2) {
+      const q = query(ref, where('participants', 'array-contains', uid));
+      const snapshot = await getDocs(q);
 
-    // Look for thread where participants exactly match our pair
-    const existingThread = snapshot.docs.find(docSnap => {
-      const data = docSnap.data();
-      const docParticipants: string[] = data['participants'] || [];
-      return (
-        docParticipants.length === participants.length &&
-        participants.every(p => docParticipants.includes(p))
-      );
-    });
+      const existingThread = snapshot.docs.find(docSnap => {
+        const data = docSnap.data();
+        const docParticipants: string[] = data['participants'] || [];
+        return (
+          docParticipants.length === participants.length &&
+          participants.every(p => docParticipants.includes(p))
+        );
+      });
 
-    if (existingThread) {
-      return existingThread.id;
+      if (existingThread) return existingThread.id;
     }
 
     // Create new thread
     const docRef = await addDoc(ref, {
       participants,
-      lastMessageAt: serverTimestamp()
+      groupName: groupName || null,
+      lastMessageAt: serverTimestamp(),
+      unreadByUser: participants.reduce((acc, uid) => ({ ...acc, [uid]: 0 }), {})
     });
 
     return docRef.id;

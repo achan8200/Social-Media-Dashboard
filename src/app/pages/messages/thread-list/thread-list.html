@@ -1,4 +1,3 @@
-<!-- Thread List Container -->
 <div class="relative overflow-hidden h-full flex flex-col min-h-0">
 
   <!-- Header -->
@@ -6,101 +5,103 @@
     Messages
   </div>
 
-  <!-- Threads scrollable list -->
+  <!-- Threads -->
   <div *ngFor="let thread of threads$ | async"
-     (click)="onSelect(thread.id)"
-		 [ngClass]="{ 
-				'bg-gray-100': thread.id === selectedThreadId, 
-				'hover:bg-gray-50': thread.id !== selectedThreadId }"
-     class="flex items-center gap-3 p-3 border-b cursor-pointer relative min-h-[60px] transition-colors">
+       (click)="onSelect(thread.id)"
+       [ngClass]="{ 'bg-gray-100': thread.id === selectedThreadId, 'hover:bg-gray-50': thread.id !== selectedThreadId }"
+       class="flex items-center gap-3 p-3 border-b cursor-pointer relative min-h-[60px] transition-colors">
 
-		<!-- Sliding Left Border -->
-		<div
-			class="absolute left-0 top-0 h-full w-1 bg-blue-500 transition-all duration-300"
-			[ngStyle]="{ width: thread.id === selectedThreadId ? '4px' : '0px' }">
-		</div>
+    <div class="absolute left-0 top-0 h-full w-1 bg-blue-500 transition-all duration-300"
+         [ngStyle]="{ width: thread.id === selectedThreadId ? '4px' : '0px' }"></div>
 
-		<!-- Avatar -->
-		<div class="relative ml-2">
-			<app-avatar
-				[imageUrl]="thread.avatarUrl"
-				[username]="thread.username"
-				[userId]="thread.userId"
-				size="md"
-				(clicked)="onSelect($event!)">
-			</app-avatar>
-		</div>
+    <div class="relative ml-2">
+      <app-avatar [imageUrl]="thread.avatarUrl" [username]="thread.username" [userId]="thread.userId" size="md" (clicked)="onSelect($event!)"></app-avatar>
+    </div>
 
-		<!-- Username + Last Message -->
-		<div class="flex-1 min-w-0 ml-2 relative pr-12">
-			<div class="font-medium text-gray-800 truncate">{{ thread.username }}</div>
-			<div class="text-sm truncate">
-				<ng-container *ngIf="isOtherUserTyping(thread); else messageText">
-					<span class="text-blue-500 italic flex items-center gap-1">
-						{{ getTypingText(thread) }}
-						<span class="flex gap-[2px] ml-1">
-							<span class="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:0ms]"></span>
-							<span class="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:150ms]"></span>
-							<span class="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:300ms]"></span>
-						</span>
-					</span>
-				</ng-container>
+    <div class="flex-1 min-w-0 ml-2 relative pr-12">
+      <div class="font-medium text-gray-800 truncate">{{ thread.username }}</div>
+      <div class="text-sm truncate">
+        <ng-container *ngIf="isOtherUserTyping(thread); else messageText">
+          <span class="text-blue-500 italic flex items-center gap-1">
+            {{ getTypingText(thread) }}
+            <span class="flex gap-[2px] ml-1">
+              <span class="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:0ms]"></span>
+              <span class="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:150ms]"></span>
+              <span class="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:300ms]"></span>
+            </span>
+          </span>
+        </ng-container>
+        <ng-template #messageText>
+          <span class="text-gray-500">{{ formatLastMessage(thread) }}</span>
+        </ng-template>
+      </div>
 
-				<ng-template #messageText>
-					<span class="text-gray-500">
-						{{ formatLastMessage(thread) }}
-					</span>
-				</ng-template>
-			</div>
+      <div class="absolute top-0 right-0 text-xs text-gray-400">{{ formatTimestamp(thread.lastMessageTime) }}</div>
 
-			<!-- Timestamp of last message -->
-			<div class="absolute top-0 right-0 text-xs text-gray-400">
-				{{ formatTimestamp(thread.lastMessageTime) }}
-			</div>
+      <span *ngIf="thread.unreadCount && thread.unreadCount > 0"
+            class="absolute bottom-1 right-1 translate-x-1/4 translate-y-1/4 bg-gray-500 text-white text-xs font-semibold rounded-full w-5 h-5 flex items-center justify-center shadow-sm">
+        <span class="relative -top-[0.5px]">{{ thread.unreadCount }}</span>
+      </span>
+    </div>
+  </div>
 
-			<!-- Unread count badge -->
-			<span *ngIf="thread.unreadCount && thread.unreadCount > 0"
-						class="absolute bottom-1 right-1 translate-x-1/4 translate-y-1/4 bg-gray-500 text-white text-xs font-semibold rounded-full w-5 h-5 flex items-center justify-center shadow-sm">
-				<span class="relative -top-[0.5px]">{{ thread.unreadCount }}</span>
-			</span>
-		</div>
-	</div>
-
-  <!-- Floating Start Chat button inside container -->
-  <button
-    class="absolute bottom-4 right-4 px-4 py-1 bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-600 hover:scale-105 transition text-xl"
-    (click)="startChat()">
+  <!-- Start Chat Button -->
+  <button class="absolute bottom-4 right-4 px-4 py-1 bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-600 hover:scale-105 transition text-xl"
+          (click)="startChat()">
     <span class="relative -top-[1px] text-md">+ New Chat</span>
   </button>
 
-  <!-- New Chat Modal -->
-  <div *ngIf="showNewChatModal" @overlayFade
+  <!-- Unified Modal -->
+  <div *ngIf="currentModal !== 'none'" @overlayFade
        class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-    <div @modalScale class="bg-white rounded p-4 w-80 max-h-96 overflow-y-auto relative">
-      <div class="flex justify-between items-center mb-2">
-        <h3 class="font-semibold text-lg">Start New Chat</h3>
-        <button class="text-gray-500 hover:text-gray-800" (click)="closeModal()">✕</button>
-      </div>
 
-      <input type="text"
-             [(ngModel)]="searchText"
-             (ngModelChange)="search$.next($event)"
-             placeholder="Search users..."
-             class="w-full p-2 border rounded mb-2" />
+    <div @modalTransition [@modalTransition]="currentModal"
+         class="bg-white rounded p-4 w-96 max-h-[400px] overflow-y-auto relative">
 
-      <div *ngFor="let user of filteredUsers$ | async"
-           (click)="selectUser(user)"
-           class="flex items-center gap-3 p-2 cursor-pointer hover:bg-gray-100 rounded">
-        <app-avatar [username]="user.displayName || user.username"
-                    [imageUrl]="user.profilePicture"
-                    size="sm">
-        </app-avatar>
-        <div class="truncate">{{ user.displayName || user.username }}</div>
-      </div>
+      <!-- NEW CHAT -->
+      <ng-container *ngIf="currentModal === 'newChat'">
+        <div class="flex justify-between items-center mb-2">
+          <h3 class="font-semibold text-lg">Start New Chat</h3>
+          <button class="text-gray-500 hover:text-gray-800" (click)="closeModal()">✕</button>
+        </div>
+        <input type="text" [(ngModel)]="searchText" (ngModelChange)="search$.next($event)" placeholder="Search users..." class="w-full p-2 border rounded mb-2" />
+        <div *ngFor="let user of filteredNewChatUsers$ | async; trackBy: trackByUid"
+             (click)="selectUser(user)"
+             class="flex items-center gap-3 p-2 cursor-pointer hover:bg-gray-100 rounded transition-colors duration-250">
+          <app-avatar [username]="user.displayName || user.username" [imageUrl]="user.profilePicture" size="sm"></app-avatar>
+          <div class="truncate">{{ user.displayName || user.username }}</div>
+        </div>
+        <div *ngIf="(filteredNewChatUsers$ | async)?.length === 0" class="text-gray-500 text-sm mt-2">No users found.</div>
+        <div class="mt-4 flex justify-center">
+          <button class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors duration-200"
+                  (click)="openCreateGroupModal()">+ Create Group</button>
+        </div>
+      </ng-container>
 
-      <div *ngIf="(filteredUsers$ | async)?.length === 0" class="text-gray-500 text-sm mt-2">
-        No users found.
-      </div>
+      <!-- CREATE GROUP -->
+      <ng-container *ngIf="currentModal === 'createGroup'">
+        <div class="flex justify-between items-center mb-2">
+          <div class="flex items-center gap-5">
+            <button class="text-gray-500 hover:text-gray-800" (click)="backToNewChat()">← Back</button>
+            <h3 class="font-semibold text-lg">Create Group Chat</h3>
+          </div>
+          <button class="text-gray-500 hover:text-gray-800" (click)="closeModal()">✕</button>
+        </div>
+        <input type="text" [(ngModel)]="groupName" placeholder="Group name (optional)" class="w-full p-2 border rounded mb-2" />
+        <input type="text" [(ngModel)]="groupSearchText" (ngModelChange)="groupSearch$.next($event)" placeholder="Search users..." class="w-full p-2 border rounded mb-2" />
+        <div *ngFor="let user of filteredGroupUsers$ | async; trackBy: trackByUid"
+             (click)="toggleUserSelection(user)"
+             class="flex items-center gap-3 p-2 cursor-pointer hover:bg-gray-100 rounded transition-colors duration-200">
+          <app-avatar [username]="user.displayName || user.username" [imageUrl]="user.profilePicture" size="sm"></app-avatar>
+          <div class="truncate flex-1">{{ user.displayName || user.username }}</div>
+          <div *ngIf="user.uid && selectedGroupUsers.has(user.uid)" class="text-green-500 font-bold">✓</div>
+        </div>
+        <div *ngIf="(filteredGroupUsers$ | async)?.length === 0" class="text-gray-500 text-sm mt-2">No users found.</div>
+        <button class="mt-4 w-full py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors duration-200"
+                (click)="createGroupChat()" [disabled]="selectedGroupUsers.size === 0">Create Group</button>
+      </ng-container>
+
     </div>
   </div>
+
 </div>
