@@ -14,12 +14,39 @@
     <div class="absolute left-0 top-0 h-full w-1 bg-blue-500 transition-all duration-300"
          [ngStyle]="{ width: thread.id === selectedThreadId ? '4px' : '0px' }"></div>
 
-    <div class="relative ml-2">
-      <app-avatar [imageUrl]="thread.avatarUrl" [username]="thread.username" [userId]="thread.userId" size="md" (clicked)="onSelect($event!)"></app-avatar>
-    </div>
+    <div class="relative ml-2 w-10 h-10">
+			<!-- 1-on-1 thread -->
+			<ng-container *ngIf="thread.participants?.length === 2; else groupAvatars">
+				<ng-container *ngFor="let participant of getThreadAvatars(thread)">
+					<app-avatar 
+						[imageUrl]="participant.avatarUrl" 
+						[username]="participant.username" 
+						[userId]="participant.userId" 
+						size="md"
+						class="w-10 h-10">
+					</app-avatar>
+				</ng-container>
+			</ng-container>
 
-    <div class="flex-1 min-w-0 ml-2 relative pr-12">
-      <div class="font-medium text-gray-800 truncate">{{ thread.username }}</div>
+			<!-- Group thread -->
+			<ng-template #groupAvatars>
+				<ng-container *ngFor="let participant of getThreadAvatars(thread); let i = index">
+					<app-avatar 
+						[imageUrl]="participant.avatarUrl" 
+						[username]="participant.username" 
+						[userId]="participant.userId" 
+						[size]="getThreadAvatars(thread).length === 2 ? 'group' : 'group2'"
+						class="absolute rounded-full scale-95"
+						[ngClass]="getAvatarPositionClass(thread, i)">
+					</app-avatar>
+				</ng-container>
+			</ng-template>
+		</div>
+
+		<div class="flex-1 min-w-0 ml-3 relative pr-12">
+			<div class="font-medium text-gray-800 truncate">
+				{{ getThreadDisplayName(thread) }}
+			</div>
       <div class="text-sm truncate">
         <ng-container *ngIf="isOtherUserTyping(thread); else messageText">
           <span class="text-blue-500 italic flex items-center gap-1">

@@ -47,7 +47,8 @@ export class MessagesService {
           lastMessage: t.lastMessage || null,
           lastMessageAt: t.lastMessageAt || null,
           unreadCount: (t.unreadByUser?.[uid]) || 0, // use per-user count
-          typing: t.typing || {}
+          typing: t.typing || {},
+          groupName: t.groupName ?? null
         } as Thread))
       )
     );

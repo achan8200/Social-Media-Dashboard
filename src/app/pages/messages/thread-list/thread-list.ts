@@ -20,7 +20,7 @@ interface ThreadDisplay {
   lastMessageSenderId?: string;
   lastMessageTime?: any;
   unreadCount?: number;
-  participants?: { uid: string; username: string }[];
+  participants?: { uid: string; userId: string; avatarUrl: string; username: string }[];
   typing?: { [uid: string]: boolean };
   groupName?: string;
 }
@@ -127,7 +127,7 @@ export class ThreadList {
                     typing: thread.typing || {},
 
                     participants,
-                    groupName: thread.groupName || undefined
+                    groupName: (thread.groupName ?? '').trim()
                   } as ThreadDisplay;
                 })
               );
@@ -319,6 +319,69 @@ export class ThreadList {
     if (typingUsers.length === 1) return `${typingUsers[0]} is typing`;
     if (typingUsers.length === 2) return `${typingUsers[0]} and ${typingUsers[1]} are typing`;
     return `${typingUsers[0]} and others are typing`;
+  }
+
+  getThreadDisplayName(thread: ThreadDisplay): string {
+    const currentUid = this.auth.currentUser?.uid;
+
+    if (thread.groupName) {
+      // Group chat -> show group name
+      return thread.groupName;
+    }
+
+    // 1-on-1 or small threads -> show all other users except current
+    const otherUsers = thread.participants?.filter(p => p.uid !== currentUid);
+
+    if (!otherUsers || otherUsers.length === 0) return 'Unknown';
+
+    // Join names if multiple others exist (rare in 1-on-1)
+    return otherUsers.map(u => u.username).join(', ');
+  }
+
+  getThreadAvatars(thread: ThreadDisplay) {
+    const currentUid = this.auth.currentUser?.uid;
+
+    if (!thread.participants) return [];
+
+    const others = thread.participants.filter(p => p.uid !== currentUid);
+
+    if (others.length === 1) {
+      // 1-on-1
+      return others.slice(0, 1);
+    }
+
+    // Group logic
+    if (others.length === 2) return others.slice(0, 2); // 3 total
+    if (others.length === 3) return others.slice(0, 3); // 4 total
+    return others.slice(0, 4); // 5+
+  }
+
+  getAvatarPositionClass(thread: ThreadDisplay, index: number): string {
+    const count = this.getThreadAvatars(thread).length;
+    console.log("Thread id: ", thread.id, " count: ", count);
+    // 2 avatars
+    if (count === 2) {
+      return index === 0
+        ? 'top-[0.5px] left-[0.5px]'
+        : 'bottom-[0.5px] right-[0.5px]';
+    }
+
+    // 3 avatars
+    if (count === 3) {
+      if (index === 0) return 'bottom-[1px] left-[0.5px]';
+      if (index === 1) return 'bottom-[1px] right-[0.5px]';
+      return 'top-[2.5px] left-1/2 -translate-x-1/2';
+    }
+
+    // 4 avatars
+    if (count >= 4) {
+      if (index === 0) return 'top-[0.5px] left-[0.5px]';
+      if (index === 1) return 'top-[0.5px] right-[0.5px]';
+      if (index === 2) return 'bottom-[0.5px] left-[0.5px]';
+      return 'bottom-[0.5px] right-[0.5px]';
+    }
+
+    return '';
   }
 
   /** ---------------------- trackBy ---------------------- */
