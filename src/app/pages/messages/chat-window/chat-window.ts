@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, Input, OnChanges, ViewChild } from '@angular/core';
+import { Component, ElementRef, EventEmitter, HostListener, Input, OnChanges, Output, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Auth } from '@angular/fire/auth';
@@ -20,6 +20,7 @@ import { Observable, tap, combineLatest, map, switchMap, of } from 'rxjs';
 })
 export class ChatWindow implements OnChanges {
   @Input() threadId: string | null = null;
+  @Output() threadDeleted = new EventEmitter<void>();
   
   @ViewChild('messageInput') messageInput!: ElementRef<HTMLTextAreaElement>;
   @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLDivElement>;
@@ -47,7 +48,12 @@ export class ChatWindow implements OnChanges {
   ) {}
 
   ngOnChanges() {
-    if (!this.threadId) return;
+    if (!this.threadId) {
+      this.messages$ = of([]);
+      this.participants$ = of([]);
+      this.otherParticipants = [];
+      return;
+    }
 
     this.currentUserId = this.auth.currentUser?.uid!;
     this.messages$ = this.messagesService.getMessages(this.threadId).pipe(
@@ -110,6 +116,7 @@ export class ChatWindow implements OnChanges {
     if (!current?.createdAt) return false;
 
     const next = messages[index + 1];
+    if (!next?.createdAt) return true; // if next is missing, show timestamp
 
     // Always show timestamp for the last message in the thread
     if (!next) return true;
@@ -439,7 +446,7 @@ export class ChatWindow implements OnChanges {
 
     await this.messagesService.deleteThread(this.threadId);
 
-    this.threadId = null;
+    this.threadDeleted.emit();
     this.showDeleteModal = false;
     this.isDeleting = false;
   }
