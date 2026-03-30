@@ -24,8 +24,7 @@ import { getInitial, getAvatarColor } from '../../utils/avatar';
           'w-8 h-8 text-sm': size === 'sm',
           'w-10 h-10 text-base': size === 'md',
           'w-12 h-12 text-lg': size === 'lg',
-          'w-[1.46rem] h-[1.46rem] text-[0.7rem]': size === 'group',
-          'w-5 h-5 text-[0.6rem]': size === 'group2'
+          'w-[1.28rem] h-[1.28rem] text-[0.6rem]': size === 'group'
         }"
         [style.backgroundColor]="!imageUrl ? getAvatarColor(username) : null"
         (click)="avatarClick()"
@@ -40,7 +39,7 @@ import { getInitial, getAvatarColor } from '../../utils/avatar';
         </ng-container>
 
         <ng-template #fallback>
-          <span class="relative justify-items-center -top-[0.5px]">{{ getInitial(username) }}</span>
+          <span class="relative -top-[0.5px]">{{ getInitial(username) }}</span>
         </ng-template>
 
       </div>
@@ -54,7 +53,7 @@ export class Avatar {
   @Input() userId?: string | null;
 
   // Avatar size system
-  @Input() size: 'xs' | 'sm' | 'md' | 'lg' | 'group' | 'group2' = 'sm';
+  @Input() size: 'xs' | 'sm' | 'md' | 'lg' | 'group' = 'sm';
 
   @Output() clicked = new EventEmitter<string | null>();
 

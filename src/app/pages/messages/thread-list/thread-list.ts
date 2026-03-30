@@ -8,8 +8,7 @@ import { FollowService } from '../../../services/follow.service';
 import { Thread } from '../../../models/messages.model';
 import { Avatar } from "../../../components/avatar/avatar";
 import { trigger, transition, style, animate } from '@angular/animations';
-import { Observable, map, of, switchMap, BehaviorSubject, combineLatest, catchError, forkJoin } from 'rxjs';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { Observable, map, of, switchMap, BehaviorSubject, combineLatest, catchError } from 'rxjs';
 
 interface ThreadDisplay {
   id: string;
@@ -362,23 +361,23 @@ export class ThreadList {
     // 2 avatars
     if (count === 2) {
       return index === 0
-        ? 'top-[0.5px] left-[0.5px]'
-        : 'bottom-[0.5px] right-[0.5px]';
+        ? 'top-0 left-0'
+        : 'bottom-0 right-0';
     }
 
     // 3 avatars
     if (count === 3) {
-      if (index === 0) return 'bottom-[1px] left-[0.5px]';
-      if (index === 1) return 'bottom-[1px] right-[0.5px]';
+      if (index === 0) return 'bottom-0 left-0';
+      if (index === 1) return 'bottom-0 right-0';
       return 'top-[2.5px] left-1/2 -translate-x-1/2';
     }
 
     // 4 avatars
     if (count >= 4) {
-      if (index === 0) return 'top-[0.5px] left-[0.5px]';
-      if (index === 1) return 'top-[0.5px] right-[0.5px]';
-      if (index === 2) return 'bottom-[0.5px] left-[0.5px]';
-      return 'bottom-[0.5px] right-[0.5px]';
+      if (index === 0) return 'top-0 left-0';
+      if (index === 1) return 'top-0 right-0';
+      if (index === 2) return 'bottom-0 left-0';
+      return 'bottom-0 right-0';
     }
 
     return '';
