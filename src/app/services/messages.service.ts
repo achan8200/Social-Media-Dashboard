@@ -171,6 +171,7 @@ export class MessagesService {
       lastMessage: {
         text,
         senderId: currentUser.uid,
+        senderName: currentUser.displayName,
         createdAt,
       },
       lastMessageAt: createdAt,

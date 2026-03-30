@@ -17,6 +17,7 @@ interface ThreadDisplay {
   avatarUrl?: string | null;
   lastMessage?: string;
   lastMessageSenderId?: string;
+  lastMessageSenderName?: string;
   lastMessageTime?: any;
   unreadCount?: number;
   participants?: { uid: string; userId: string; avatarUrl: string; username: string }[];
@@ -120,6 +121,7 @@ export class ThreadList {
 
                     lastMessage: thread.lastMessage?.text || '',
                     lastMessageSenderId: thread.lastMessage?.senderId || '',
+                    lastMessageSenderName: thread.lastMessage?.senderName || '',
                     lastMessageTime: thread.lastMessage?.createdAt?.toDate?.() || null,
 
                     unreadCount: thread.unreadCount || 0,
@@ -290,8 +292,27 @@ export class ThreadList {
 
   formatLastMessage(thread: ThreadDisplay): string {
     const currentUid = this.auth.currentUser?.uid;
+
     if (!thread.lastMessage) return '';
-    return thread.lastMessageSenderId === currentUid ? `You: ${thread.lastMessage}` : thread.lastMessage;
+
+    const isCurrentUser = thread.lastMessageSenderId === currentUid;
+    const isGroup = (thread.participants?.length || 0) > 2;
+
+    // 1-on-1 chat → keep existing behavior
+    if (!isGroup) {
+      return isCurrentUser
+        ? `You: ${thread.lastMessage}`
+        : thread.lastMessage;
+    }
+
+    // Group chat
+    if (isCurrentUser) {
+      return `You: ${thread.lastMessage}`;
+    }
+
+    // Someone else in group
+    const senderName = thread.lastMessageSenderName || 'Someone';
+    return `${senderName}: ${thread.lastMessage}`;
   }
 
   isOtherUserTyping(thread: ThreadDisplay): boolean {

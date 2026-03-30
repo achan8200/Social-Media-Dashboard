@@ -1,6 +1,7 @@
 export interface Message {
   id?: string;
   senderId: string;
+  senderName: string;
   text: string;
   createdAt: any;
   readBy?: string[]; // Array of user IDs who have read this message
