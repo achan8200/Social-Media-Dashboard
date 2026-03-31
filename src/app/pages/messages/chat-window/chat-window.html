@@ -5,30 +5,34 @@
 
 		<!-- LEFT: Avatar + Names -->
   	<div class="flex items-center gap-3">
-			<!-- Avatar Stack -->
-			<div class="flex items-center">
-				<ng-container *ngFor="let participant of otherParticipants; let i = index">
-					
-					<!-- Show max 3 avatars -->
-					<ng-container *ngIf="i < 3">
-						<div class="relative" [ngClass]="i !== 0 ? '-ml-2' : ''">
-							<app-avatar 
-								[imageUrl]="participant.profilePicture"
-								[username]="participant.username"
-								[userId]="participant.userId"
-								size="sm">
-							</app-avatar>
-						</div>
-					</ng-container>
-
+			<div class="relative w-10 h-10">
+  
+				<!-- 1-on-1 -->
+				<ng-container *ngIf="otherParticipants.length === 1; else groupAvatars">
+					<div class="absolute inset-0 flex items-center justify-center">
+						<app-avatar 
+							[imageUrl]="otherParticipants[0].profilePicture"
+							[username]="otherParticipants[0].username"
+							[userId]="otherParticipants[0].userId"
+							size="sm">
+						</app-avatar>
+					</div>
 				</ng-container>
 
-				<!-- Overflow +N -->
-				<div 
-					*ngIf="otherParticipants.length > 3"
-					class="w-8 h-8 -ml-2 rounded-full bg-gray-300 flex items-center justify-center text-xs font-semibold text-gray-700 border-2 border-white">
-					+{{ otherParticipants.length - 3 }}
-				</div>
+				<!-- Group -->
+				<ng-template #groupAvatars>
+					<ng-container *ngFor="let participant of getThreadAvatars(); let i = index">
+						<app-avatar 
+							[imageUrl]="participant.profilePicture"
+							[username]="participant.username"
+							[userId]="participant.userId"
+							[size]="getThreadAvatars().length === 2 ? 'xs' : 'group'"
+							class="absolute rounded-full scale-95"
+							[ngClass]="getAvatarPositionClass(i)">
+						</app-avatar>
+					</ng-container>
+				</ng-template>
+
 			</div>
 
 			<!-- Names -->

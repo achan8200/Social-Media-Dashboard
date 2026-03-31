@@ -122,6 +122,47 @@ export class ChatWindow implements OnChanges {
     return this.participantsDisplayNames;
   }
 
+  getThreadAvatars() {
+    if (!this.otherParticipants) return [];
+
+    if (this.otherParticipants.length === 1) {
+      return this.otherParticipants.slice(0, 1);
+    }
+
+    if (this.otherParticipants.length === 2) return this.otherParticipants.slice(0, 2);
+    if (this.otherParticipants.length === 3) return this.otherParticipants.slice(0, 3);
+
+    return this.otherParticipants.slice(0, 4);
+  }
+
+  getAvatarPositionClass(index: number): string {
+    const count = this.getThreadAvatars().length;
+
+    // 2 avatars
+    if (count === 2) {
+      return index === 0
+        ? 'top-0 left-0'
+        : 'bottom-0 right-0';
+    }
+
+    // 3 avatars
+    if (count === 3) {
+      if (index === 0) return 'bottom-0 left-0';
+      if (index === 1) return 'bottom-0 right-0';
+      return 'top-[2.5px] left-1/2 -translate-x-1/2';
+    }
+
+    // 4 avatars
+    if (count >= 4) {
+      if (index === 0) return 'top-0 left-0';
+      if (index === 1) return 'top-0 right-0';
+      if (index === 2) return 'bottom-0 left-0';
+      return 'bottom-0 right-0';
+    }
+
+    return '';
+  }
+
   shouldShowTimestamp(messages: Message[], index: number): boolean {
     const current = messages[index];
     if (!current?.createdAt) return false;
