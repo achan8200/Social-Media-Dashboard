@@ -32,9 +32,15 @@
 			</div>
 
 			<!-- Names -->
-			<span class="font-normal text-gray-800 truncate">
-				{{ participantsDisplayNames }}
-			</span>
+			<div class="flex flex-col">
+				<span class="font-normal text-gray-800 truncate">
+					{{ headerTitle }}
+				</span>
+
+				<span *ngIf="groupName" class="text-xs text-gray-500 truncate">
+					{{ participantsDisplayNames }}
+				</span>
+			</div>
 		</div>
 		<!-- RIGHT: Menu -->
 		<div class="relative">

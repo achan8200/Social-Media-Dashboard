@@ -40,6 +40,7 @@ export class ChatWindow implements OnChanges {
   typing$!: Observable<{ [uid: string]: boolean }>;
   participants$!: Observable<{ uid: string; username: string }[]>;
   otherParticipants: { uid: string; username: string; userId: string; profilePicture: string }[] = [];
+  groupName: string | null = null;
 
   constructor(
     private messagesService: MessagesService,
@@ -71,7 +72,11 @@ export class ChatWindow implements OnChanges {
     this.participants$ = this.messagesService.getUserThreads().pipe(
       map(threads => threads.find(t => t.id === this.threadId)),
       switchMap(thread => {
-        if (!thread?.participants) return of([]);
+        if (!thread) return of([]);
+
+        this.groupName = thread.groupName || null;
+
+        if (!thread.participants) return of([]);
 
         const observables = thread.participants.map(uid =>
           this.userService.getUserByUid(uid).pipe(
@@ -84,10 +89,11 @@ export class ChatWindow implements OnChanges {
           )
         );
 
-        return combineLatest(observables);
-      }),
-      tap(participants => {
-        this.otherParticipants = participants.filter(p => p.uid !== this.currentUserId);
+        return combineLatest(observables).pipe(
+          tap(participants => {
+            this.otherParticipants = participants.filter(p => p.uid !== this.currentUserId);
+          })
+        );
       })
     );
     this.typing$ = this.messagesService.getTyping(this.threadId);
@@ -109,6 +115,11 @@ export class ChatWindow implements OnChanges {
     await this.messagesService.setTyping(this.threadId, false);
 
     setTimeout(() => this.scrollToBottom());
+  }
+
+  get headerTitle(): string {
+    if (this.groupName) return this.groupName;
+    return this.participantsDisplayNames;
   }
 
   shouldShowTimestamp(messages: Message[], index: number): boolean {
