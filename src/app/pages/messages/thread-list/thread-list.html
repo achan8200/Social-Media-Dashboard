@@ -124,8 +124,8 @@
           <div *ngIf="user.uid && selectedGroupUsers.has(user.uid)" class="text-green-500 font-bold">✓</div>
         </div>
         <div *ngIf="(filteredGroupUsers$ | async)?.length === 0" class="text-gray-500 text-sm mt-2">No users found.</div>
-        <button class="mt-4 w-full py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors duration-200"
-                (click)="createGroupChat()" [disabled]="selectedGroupUsers.size === 0">Create Group</button>
+        <button class="mt-4 w-full py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                (click)="createGroupChat()" [disabled]="selectedGroupUsers.size < 2">Create Group</button>
       </ng-container>
 
     </div>

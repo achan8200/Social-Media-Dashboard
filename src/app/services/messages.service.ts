@@ -81,6 +81,10 @@ export class MessagesService {
 
     const uid = currentUser.uid;
 
+    if (!participantIds || participantIds.length < 2) {
+      throw new Error('Cannot create a group with 2 or less participants');
+    }
+
     // Ensure current user is included
     const participants = Array.from(new Set([uid, ...participantIds]));
 

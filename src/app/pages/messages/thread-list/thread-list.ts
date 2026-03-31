@@ -228,6 +228,11 @@ export class ThreadList {
 
     const participants = Array.from(this.selectedGroupUsers);
 
+    if (participants.length < 2) {
+      alert('Group chats require at least 2 people');
+      return;
+    }
+
     // Use new service method
     const threadId = await this.messagesService.getOrCreateGroupThread(participants, this.groupName);
 
