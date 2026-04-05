@@ -1,5 +1,7 @@
 .sidebar-link {
-  display: block;
+  display: flex;           /* changed from block to flex */
+  align-items: center;     /* vertically center icon + text */
+  gap: 0.5rem;             /* spacing between icon and text */
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
   color: #374151; /* gray-700 */
@@ -13,9 +15,27 @@
   color: #111827;      /* gray-900 */
 }
 
+.sidebar-link:hover img {
+  filter: brightness(0) invert(0);
+}
+
 /* active state */
 .active-link {
   background: #3b82f6; /* blue-500 */
   color: white;
   font-weight: 600;
+}
+
+.sidebar-link img {
+  filter: brightness(0) invert(0); /* default black */
+  transition: filter 0.2s;
+  margin-left: 0.125rem;
+}
+
+.sidebar-link.active-link:hover img {
+  filter: brightness(0) invert(0); /* black icon */
+}
+
+.sidebar-link.active-link img {
+  filter: brightness(0) invert(1); /* white icon */
 }

@@ -1,7 +1,10 @@
 <aside class="w-72 xl:w-80 space-y-4 hidden lg:block">
   <!-- Trending Section -->
   <div class="bg-white p-4 rounded shadow">
-    <h2 class="font-semibold text-gray-700 mb-3 text-lg">🔥 Trending</h2>
+    <h2 class="font-semibold text-gray-700 mb-3 text-lg flex items-center gap-2">
+      <img src="assets/icons/trending.svg" alt="Trending" class="w-5 h-5" />
+      <span>Trending</span>
+    </h2>
     <ul class="space-y-2 text-sm text-gray-600">
       @for (tag of trending; track tag) {
         <!--
@@ -20,7 +23,11 @@
   <!-- Notifications Section -->
   <div class="bg-white p-4 rounded shadow relative">
     <h2 class="font-semibold text-gray-700 mb-3 flex justify-between items-center">
-      <span class="text-lg">🔔 Notifications</span>
+      <span class="flex items-center gap-2 text-lg">
+        <img src="assets/icons/notification.svg" alt="Notifications" class="w-5 h-5" />
+        Notifications
+      </span>
+
       <span *ngIf="(unreadCount$ | async) as count" 
             class="h-5 w-5 bg-red-500 text-white text-sm font-bold rounded-full flex items-center justify-center"
             [class.bounce-badge]="newNotification"
@@ -29,21 +36,25 @@
       </span>
     </h2>
 
-    <!-- Scrollable content -->
-    <div class="relative max-h-[30vh] xl-max-h-[50vh] pb-2 overflow-y-auto scroll-smooth">
-      <ng-container *ngIf="notificationsByDay$ | async as notificationsByDay">
-        <ng-container *ngFor="let dayEntry of notificationsByDay | keyvalue: sortDays">
-          <div class="mt-3 mb-1 text-gray-400 text-xs font-semibold uppercase">
-            {{ dayEntry.key }}
-          </div>
+    <div class="relative">
+      <!-- Scrollable content -->
+      <div class="relative max-h-[35vh] xl-max-h-[50vh] pb-2 overflow-y-auto scroll-smooth">
+        <ng-container *ngIf="notificationsByDay$ | async as notificationsByDay">
+          <ng-container *ngFor="let dayEntry of notificationsByDay | keyvalue: sortDays">
+            <div class="mt-3 mb-1 text-gray-400 text-xs font-semibold uppercase">
+              {{ dayEntry.key }}
+            </div>
 
-          <ul class="space-y-2">
-            <li *ngFor="let group of dayEntry.value">
-              <app-notification-item [notifications]="group"></app-notification-item>
-            </li>
-          </ul>
+            <ul class="space-y-2">
+              <li *ngFor="let group of dayEntry.value">
+                <app-notification-item [notifications]="group"></app-notification-item>
+              </li>
+            </ul>
+          </ng-container>
         </ng-container>
-      </ng-container>
+      </div>
+      <!-- Bottom Fade Overlay -->
+      <div class="pointer-events-none absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-white to-transparent"></div>
     </div>
 
     <!-- Sticky button at bottom -->

@@ -119,19 +119,24 @@
         <!-- Actions -->
         <div class="flex items-center space-x-6 mb-4 text-sm">
           <button (click)="likePost()" 
-            class="flex-shrink-0 text-red-500 font-medium flex items-center space-x-1"
+            class="flex-shrink-0 text-red-500 font-medium flex items-center space-x-2"
             [class.text-red-500]="(liked$ | async)">
-            <span class="like-heart" [class.like-pop]="animatingLike">{{ (liked$ | async) ? '❤️' : '🤍' }}</span>
+            <img
+              class="like-heart w-[18px] h-[18px]"
+              [class.like-pop]="animatingLike"
+              [src]="(liked$ | async) ? 'assets/icons/red-heart-2.svg' : 'assets/icons/heart.svg'"
+              alt="Like"
+            />
             <span>{{ likesCount$ | async }}</span>
           </button>
-          <div class="flex-shrink-0 flex items-center space-x-1 text-gray-600">
-            <span>💬</span>
+          <div class="flex-shrink-0 flex items-center space-x-2 text-gray-600">
+            <img src="assets/icons/comment.svg" class="w-5 h-5" alt="Comments" />
             <span>{{ commentsCount$ | async }}</span>
           </div>
           <div class="flex items-center space-x-2">
             <button (click)="onShare($event)"
               class="flex items-center space-x-1 hover:bg-gray-100 rounded-lg transition">
-              <span>🔗</span>
+              <img src="assets/icons/link.svg" class="w-4 h-4" alt="Share" />
             </button>
 
             <span *ngIf="copied" class="copied-text text-gray-600 text-xs">Link copied</span>
@@ -164,9 +169,11 @@
                       <div class="ml-2 flex items-center space-x-1">
                         <button class="ml-2 flex items-center space-x-1"
                                 (click)="toggleCommentLike(comment)">
-                          <span class="like-heart" [class.like-pop]="animatingCommentLike[comment.id!]">
-                            {{ (comment.liked$ | async) ? '❤️' : '🤍' }}
-                          </span>
+                          <img
+                            class="like-heart w-[12px] h-[12px]"
+                            [class.like-pop]="animatingCommentLike[comment.id!]"
+                            [src]="(comment.liked$ | async) ? 'assets/icons/red-heart-2.svg' : 'assets/icons/heart.svg'"
+                          />
                           <span *ngIf="comment.likesCount !== undefined && comment.likesCount > 0"
                             class="transition-opacity duration-150"
                             [style.opacity]="comment.likesCount > 0 ? 1 : 0">
@@ -280,26 +287,31 @@
         </div>
 
         <!-- Caption -->
-        <div class="overflow-y-auto max-h-[25vh] mb-4">
+        <div class="overflow-y-auto max-h-[25vh] mb-6">
           <p class="text-lg leading-relaxed text-gray-800" [innerHTML]="caption$ | async"></p>
         </div>
 
         <!-- Actions -->
         <div class="flex items-center space-x-6 mb-6 text-sm flex-shrink-0">
           <button (click)="likePost()"
-            class="text-red-500 font-medium flex items-center space-x-1"
+            class="text-red-500 font-medium flex items-center space-x-2"
             [class.text-red-500]="(liked$ | async)">
-            <span class="like-heart" [class.like-pop]="animatingLike">{{ (liked$ | async) ? '❤️' : '🤍' }}</span>
+            <img
+              class="like-heart w-[18px] h-[18px]"
+              [class.like-pop]="animatingLike"
+              [src]="(liked$ | async) ? 'assets/icons/red-heart-2.svg' : 'assets/icons/heart.svg'"
+              alt="Like"
+            />
             <span>{{ likesCount$ | async }}</span>
           </button>
-          <div class="flex items-center space-x-1 text-gray-600">
-            <span>💬</span>
+          <div class="flex items-center space-x-2 text-gray-600">
+            <img src="assets/icons/comment.svg" class="w-5 h-5" alt="Comments" />
             <span>{{ commentsCount$ | async }}</span>
           </div>
           <div class="flex items-center space-x-2">
             <button (click)="onShare($event)"
               class="flex items-center space-x-1 hover:bg-gray-100 rounded-lg transition">
-              <span>🔗</span>
+              <img src="assets/icons/link.svg" class="w-4 h-4" alt="Share" />
             </button>
 
             <span *ngIf="copied" class="copied-text text-gray-600 text-xs">Link copied</span>
@@ -326,13 +338,15 @@
                 </div>
                 <ng-template #normalComment>
                   <span class="text-xs text-gray-700 break-words whitespace-pre-wrap">{{ comment.text }}</span>
-                  <div class="flex items-center space-x-2 mt-1 text-xs text-gray-400">
+                  <div class="flex items-center space-x-4 mt-1 text-xs text-gray-400">
                     <span>{{ getRelativeTime(comment.createdAt) }}</span>
                     <button class="ml-2 flex items-center space-x-1"
                       (click)="toggleCommentLike(comment)">
-                      <span class="like-heart" [class.like-pop]="animatingCommentLike[comment.id!]">
-                        {{ (comment.liked$ | async) ? '❤️' : '🤍' }}
-                      </span>
+                      <img
+                        class="like-heart w-[12px] h-[12px]"
+                        [class.like-pop]="animatingCommentLike[comment.id!]"
+                        [src]="(comment.liked$ | async) ? 'assets/icons/red-heart-2.svg' : 'assets/icons/heart.svg'"
+                      />
                       <span *ngIf="comment.likesCount !== undefined && comment.likesCount > 0"
                         class="transition-opacity duration-150"
                         [style.opacity]="comment.likesCount > 0 ? 1 : 0">

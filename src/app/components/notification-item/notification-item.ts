@@ -109,4 +109,20 @@ export class NotificationItem implements OnChanges {
     const date = this.notifications[0]?.createdAt?.toDate?.();
     return this.utils.formatNotificationTimestamp(date);
   }
+
+  formatActorsText(actors: any[]): string {
+    if (!actors || actors.length === 0) return 'Someone';
+
+    if (actors.length === 1) {
+      return actors[0].username;
+    }
+
+    if (actors.length === 2) {
+      return `${actors[0].username} and ${actors[1].username}`;
+    }
+
+    // 3+ users
+    const othersCount = actors.length - 1;
+    return `${actors[0].username} and ${othersCount} others`;
+  }
 }

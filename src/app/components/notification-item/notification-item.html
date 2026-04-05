@@ -26,35 +26,19 @@
         <ng-container [ngSwitch]="notifications[0].type">
 
           <span *ngSwitchCase="'like_post'">
-            <b>{{ actors[0]?.username }}</b>
-            <ng-container *ngIf="actors.length > 1">
-              and {{ actors.length - 1 }} others
-            </ng-container>
-            liked your post
+            <b>{{ formatActorsText(actors) }}</b> liked your post
           </span>
 
           <span *ngSwitchCase="'comment_post'">
-            <b>{{ actors[0]?.username }}</b>
-            <ng-container *ngIf="actors.length > 1">
-              and {{ actors.length - 1 }} others
-            </ng-container>
-            commented on your post
+            <b>{{ formatActorsText(actors) }}</b> commented on your post
           </span>
 
           <span *ngSwitchCase="'like_comment'">
-            <b>{{ actors[0]?.username }}</b>
-            <ng-container *ngIf="actors.length > 1">
-              and {{ actors.length - 1 }} others
-            </ng-container>
-            liked your comment
+            <b>{{ formatActorsText(actors) }}</b> liked your comment
           </span>
 
           <span *ngSwitchCase="'follow'">
-            <b>{{ actors[0]?.username }}</b>
-            <ng-container *ngIf="actors.length > 1">
-              and {{ actors.length - 1 }} others
-            </ng-container>
-            started following you
+            <b>{{ formatActorsText(actors) }}</b> started following you
           </span>
 
           <span *ngSwitchDefault>

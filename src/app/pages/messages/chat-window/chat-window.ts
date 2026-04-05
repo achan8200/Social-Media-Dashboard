@@ -205,6 +205,8 @@ export class ChatWindow implements OnChanges {
     const date = timestamp.toDate(); // Firebase Timestamp → JS Date
     const now = new Date();
 
+    const isSameYear = date.getFullYear() === now.getFullYear();
+
     // Helper to format time
     const timeString = date.toLocaleTimeString('en-US', {
       hour: 'numeric',
@@ -240,7 +242,7 @@ export class ChatWindow implements OnChanges {
       weekday: 'long',
       month: 'short',
       day: 'numeric',
-      year: 'numeric'
+      ...(isSameYear ? {} : { year: 'numeric' })
     });
     return `${fullDate} • ${timeString}`;
   }
