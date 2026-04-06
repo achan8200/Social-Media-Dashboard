@@ -2,21 +2,38 @@ import { Component, ElementRef, EventEmitter, HostListener, Input, OnChanges, Ou
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Auth } from '@angular/fire/auth';
-import { UserService } from '../../../services/user.service';
+import { User, UserService } from '../../../services/user.service';
+import { FollowService } from '../../../services/follow.service';
 import { MessagesService } from '../../../services/messages.service';
 import { Message } from '../../../models/messages.model';
 import { Avatar } from '../../../components/avatar/avatar';
 import { ConfirmModal } from '../../../components/confirm-modal/confirm-modal';
 import { PickerComponent } from '@ctrl/ngx-emoji-mart';
 import emojiRegex from 'emoji-regex';
-import { Observable, tap, combineLatest, map, switchMap, of } from 'rxjs';
-
+import { trigger, transition, style, animate } from '@angular/animations';
+import { Observable, tap, combineLatest, map, switchMap, of, BehaviorSubject, catchError } from 'rxjs';
 
 @Component({
   selector: 'app-chat-window',
   standalone: true,
   imports: [CommonModule, FormsModule, Avatar, ConfirmModal, PickerComponent],
-  templateUrl: './chat-window.html'
+  templateUrl: './chat-window.html',
+  animations: [
+    // Overlay fade
+    trigger('overlayFade', [
+      transition(':enter', [style({ opacity: 0 }), animate('200ms ease-out', style({ opacity: 1 }))]),
+      transition(':leave', [animate('150ms ease-in', style({ opacity: 0 }))])
+    ]),
+    // Modal sliding/fade
+    trigger('modalTransition', [
+      transition('newChat <=> createGroup', [
+        style({ opacity: 0, transform: 'translateX(50px)' }),
+        animate('250ms ease-out', style({ opacity: 1, transform: 'translateX(0)' }))
+      ]),
+      transition('void => *', [style({ opacity: 0 }), animate('200ms ease-out', style({ opacity: 1 }))]),
+      transition('* => void', [animate('150ms ease-in', style({ opacity: 0 }))])
+    ])
+  ]
 })
 export class ChatWindow implements OnChanges {
   @Input() threadId: string | null = null;
@@ -24,6 +41,7 @@ export class ChatWindow implements OnChanges {
   
   @ViewChild('messageInput') messageInput!: ElementRef<HTMLTextAreaElement>;
   @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLDivElement>;
+  @ViewChild('detailsButton', { static: false }) detailsButton!: ElementRef;
   @ViewChild('emojiPickerContainer', { static: false }) emojiPickerContainer!: ElementRef;
 
   messages$!: Observable<Message[]>;
@@ -42,10 +60,27 @@ export class ChatWindow implements OnChanges {
   otherParticipants: { uid: string; username: string; userId: string; profilePicture: string }[] = [];
   groupName: string | null = null;
 
+  showDetailsModal = false;
+  showAddPeopleModal = false;
+
+  editingGroupName = false;
+  editedGroupName = '';
+
+  selectedParticipantMenu: string | null = null;
+
+  filteredAddPeople$!: Observable<User[]>;
+  addPeopleSearch$ = new BehaviorSubject<string>('');
+  addPeopleSearchText = '';
+  selectedToAdd = new Set<string>();
+
+  private followingMapSubject = new BehaviorSubject<Set<string>>(new Set());
+  followingMap$ = this.followingMapSubject.asObservable();
+
   constructor(
     private messagesService: MessagesService,
     private auth: Auth,
-    private userService: UserService
+    private userService: UserService,
+    private followService: FollowService
   ) {}
 
   ngOnChanges() {
@@ -57,6 +92,16 @@ export class ChatWindow implements OnChanges {
     }
 
     this.currentUserId = this.auth.currentUser?.uid!;
+    this.followService.getFollowing(this.currentUserId).subscribe(following => {
+      const current = this.followingMapSubject.value;
+
+      // Only update if different
+      const newSet = new Set(following.map(f => f.uid));
+      if (newSet.size !== current.size ||
+          [...newSet].some(uid => !current.has(uid))) {
+        this.followingMapSubject.next(newSet);
+      }
+    });
     this.messages$ = this.messagesService.getMessages(this.threadId).pipe(
       tap(() => {
         setTimeout(() => {
@@ -464,13 +509,22 @@ export class ChatWindow implements OnChanges {
 
     this.menuOpen = false;
 
+    // Close participant menu
+    if (this.selectedParticipantMenu) {
+      // Find the participant menu element
+      const menuEl = document.getElementById(`participant-menu-${this.selectedParticipantMenu}`);
+      if (!menuEl?.contains(target)) {
+        this.selectedParticipantMenu = null;
+      }
+    }
+
+    // Close emoji picker
     const clickedInsideEmojiContainer =
-      this.emojiPickerContainer?.nativeElement.contains(target);
+    this.emojiPickerContainer?.nativeElement.contains(target);
+    const clickedInsidePicker = target.closest('emoji-mart') !== null;
+    const clickedDetailsButton = this.detailsButton?.nativeElement.contains(target);
 
-    const clickedInsidePicker =
-      target.closest('emoji-mart') !== null;
-
-    if (!clickedInsideEmojiContainer && !clickedInsidePicker) {
+    if (!clickedInsideEmojiContainer && !clickedInsidePicker && !clickedDetailsButton) {
       this.showEmojiPicker = false;
     }
   }
@@ -485,6 +539,10 @@ export class ChatWindow implements OnChanges {
   toggleMenu(event: Event) {
     event.stopPropagation();
     this.menuOpen = !this.menuOpen;
+
+    if (this.menuOpen) {
+      this.showEmojiPicker = false;
+    }
   }
 
   onDeleteThread(event: Event) {
@@ -507,5 +565,170 @@ export class ChatWindow implements OnChanges {
 
   cancelDeleteThread() {
     this.showDeleteModal = false;
+  }
+
+  openDetails(event: Event) {
+    event.stopPropagation();
+    this.menuOpen = false;
+    this.showDetailsModal = true;
+    this.editedGroupName = this.groupName || '';
+    this.showEmojiPicker = false;
+  }
+
+  toggleParticipantMenu(uid: string, event: Event) {
+    event.stopPropagation();
+    this.selectedParticipantMenu =
+      this.selectedParticipantMenu === uid ? null : uid;
+  }
+
+  editGroupName() {
+    this.editedGroupName = this.groupName || '';
+    this.editingGroupName = true;
+  }
+
+  async saveGroupName() {
+    if (!this.threadId) return;
+
+    await this.messagesService.updateGroupName(this.threadId, this.editedGroupName);
+    this.groupName = this.editedGroupName;
+    this.editingGroupName = false;
+  }
+
+  closeGroupName() {
+    this.editedGroupName = '';
+    this.editingGroupName = false;
+  }
+
+  async removeFromGroup(uid: string) {
+    if (!this.threadId) return;
+
+    await this.messagesService.removeParticipant(this.threadId, uid);
+    this.selectedParticipantMenu = null;
+  }
+
+  async leaveGroup() {
+    const currentUid = this.auth.currentUser?.uid;
+    if (!this.threadId || !currentUid) return;
+
+    await this.messagesService.removeParticipant(this.threadId, currentUid);
+    this.showDetailsModal = false;
+    this.threadDeleted.emit();
+  }
+
+  async closeModal() {
+    this.editedGroupName = '';
+    this.editingGroupName = false;
+    this.showDetailsModal = false;
+  }
+
+  openAddPeople() {
+    this.showAddPeopleModal = true;
+    this.selectedToAdd.clear();
+    this.addPeopleSearchText = '';
+    this.addPeopleSearch$.next('');
+    this.initAddPeopleStream();
+  }
+
+  initAddPeopleStream() {
+    const existingUids = new Set([
+      this.currentUserId,
+      ...this.otherParticipants.map(p => p.uid)
+    ]);
+
+    this.filteredAddPeople$ = this.getFollowingUsers().pipe(
+      switchMap(users =>
+        this.addPeopleSearch$.pipe(
+          map(search =>
+            users
+              // 🚫 remove existing participants
+              .filter(u => u.uid && !existingUids.has(u.uid))
+              // 🔍 search filter
+              .filter(u =>
+                (u.displayName || u.username || '')
+                  .toLowerCase()
+                  .includes(search.toLowerCase())
+              )
+          )
+        )
+      )
+    );
+  }
+
+  getFollowingUsers(): Observable<User[]> {
+    const currentUser = this.auth.currentUser;
+    if (!currentUser?.uid) return of([]);
+  
+    return this.followService.getFollowing(currentUser.uid).pipe(
+      switchMap(following => {
+        if (!following.length) return of([]);
+        const users$ = following.map(f =>
+          this.userService.getUserByUid(f.uid).pipe(catchError(() => of(null)))
+        );
+        // Use combineLatest + default empty array to avoid forkJoin blocking
+        return combineLatest(users$).pipe(
+          map(users => users.filter(Boolean) as User[])
+        );
+      })
+    );
+  }
+
+  toggleAddUser(user: User) {
+    if (!user.uid) return;
+
+    this.selectedToAdd.has(user.uid)
+      ? this.selectedToAdd.delete(user.uid)
+      : this.selectedToAdd.add(user.uid);
+  }
+
+  async addSelectedUsers() {
+    if (!this.threadId || this.selectedToAdd.size === 0) return;
+
+    await this.messagesService.addParticipants(
+      this.threadId,
+      Array.from(this.selectedToAdd)
+    );
+
+    this.selectedToAdd.clear();
+    this.showAddPeopleModal = false;
+  }
+
+  async toggleFollow(uid: string, isFollowing: boolean) {
+    if (!this.currentUserId || !uid) return;
+
+    // Close menu immediately
+    this.selectedParticipantMenu = null;
+
+    // Get current state
+    const currentSet = new Set(this.followingMapSubject.value);
+
+    // Optimistic update
+    if (isFollowing) {
+      currentSet.delete(uid);
+    } else {
+      currentSet.add(uid);
+    }
+
+    // Instant UI update
+    this.followingMapSubject.next(currentSet);
+
+    try {
+      if (isFollowing) {
+        await this.followService.unfollowUser(this.currentUserId, uid);
+      } else {
+        await this.followService.followUser(this.currentUserId, uid);
+      }
+    } catch (err) {
+      // Rollback if failed
+      const rollbackSet = new Set(this.followingMapSubject.value);
+
+      if (isFollowing) {
+        rollbackSet.add(uid);
+      } else {
+        rollbackSet.delete(uid);
+      }
+
+      this.followingMapSubject.next(rollbackSet);
+      console.error(err);
+    }
   }
 }

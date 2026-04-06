@@ -95,6 +95,12 @@ export class NotificationItem implements OnChanges {
           });
         break;
 
+      case 'thread_added':
+        if (n.threadId) {
+          this.router.navigate(['/messages'], { queryParams: { threadId: n.threadId } });
+        }
+        break;
+
       default:
         console.warn('[Notification] Unhandled type:', n.type);
     }

@@ -383,7 +383,7 @@ export class ThreadList {
 
   getAvatarPositionClass(thread: ThreadDisplay, index: number): string {
     const count = this.getThreadAvatars(thread).length;
-    console.log("Thread id: ", thread.id, " count: ", count);
+
     // 2 avatars
     if (count === 2) {
       return index === 0

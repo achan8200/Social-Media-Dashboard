@@ -41,6 +41,10 @@
             <b>{{ formatActorsText(actors) }}</b> started following you
           </span>
 
+          <span *ngSwitchCase="'thread_added'">
+            <b>{{ formatActorsText(actors) }}</b> added you to a thread
+          </span>
+
           <span *ngSwitchDefault>
             <b>{{ actors[0]?.username }}</b> sent a notification
           </span>

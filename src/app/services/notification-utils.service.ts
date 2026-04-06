@@ -30,6 +30,9 @@ export class NotificationUtilsService {
         case 'follow':
           key = 'follow';
           break;
+        case 'thread_added':
+          key = 'thread_added';
+          break;
       }
 
       // Find existing group

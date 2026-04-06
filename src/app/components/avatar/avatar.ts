@@ -24,7 +24,9 @@ import { getInitial, getAvatarColor } from '../../utils/avatar';
           'w-8 h-8 text-sm': size === 'sm',
           'w-10 h-10 text-base': size === 'md',
           'w-12 h-12 text-lg': size === 'lg',
-          'w-[1.28rem] h-[1.28rem] text-[0.6rem]': size === 'group'
+          'w-14 h-14 text-2xl': size === '2xl',
+          'w-[1.28rem] h-[1.28rem] text-[11px]': size === 'group',
+          'w-[27.5px] h-[27.5px] text-sm': size === 'group2'
         }"
         [style.backgroundColor]="!imageUrl ? getAvatarColor(username) : null"
         (click)="avatarClick()"
@@ -53,7 +55,7 @@ export class Avatar {
   @Input() userId?: string | null;
 
   // Avatar size system
-  @Input() size: 'xs' | 'sm' | 'md' | 'lg' | 'group' = 'sm';
+  @Input() size: 'xs' | 'sm' | 'md' | 'lg' | '2xl' | 'group' | 'group2' = 'sm';
 
   @Output() clicked = new EventEmitter<string | null>();
 

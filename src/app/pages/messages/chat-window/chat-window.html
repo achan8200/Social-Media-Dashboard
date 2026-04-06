@@ -57,7 +57,12 @@
 
 			<!-- Dropdown -->
 			<div *ngIf="menuOpen"
-					class="absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg z-50">
+				class="absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg z-50">
+				<button #detailsButton
+					(click)="openDetails($event)"
+					class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+					Details
+				</button>
 				<button
 					(click)="onDeleteThread($event)"
 					class="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">
@@ -199,3 +204,209 @@
   (confirmed)="confirmDeleteThread()"
   (cancelled)="cancelDeleteThread()">
 </app-confirm-modal>
+
+<!-- Details Modal -->
+<div *ngIf="showDetailsModal" @overlayFade
+     class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+
+  <div @modalTransition class="bg-white w-[420px] max-h-[80vh] rounded-xl shadow-lg flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <div class="p-4 border-b flex justify-between items-center">
+      <span class="font-semibold text-lg">Details</span>
+      <button (click)="closeModal()">✕</button>
+    </div>
+
+    <!-- Content -->
+    <div class="p-4 overflow-y-auto space-y-4">
+
+      <!-- Avatar -->
+      <div class="flex justify-center">
+        <div class="relative w-14 h-14">
+          <ng-container *ngIf="otherParticipants.length === 1; else groupAvatarBig">
+            <app-avatar
+              [imageUrl]="otherParticipants[0].profilePicture"
+              [username]="otherParticipants[0].username"
+              size="2xl">
+            </app-avatar>
+          </ng-container>
+
+          <ng-template #groupAvatarBig>
+            <ng-container *ngFor="let p of getThreadAvatars(); let i = index">
+              <app-avatar
+                [imageUrl]="p.profilePicture"
+                [username]="p.username"
+                [size]="getThreadAvatars().length === 2 ? 'sm' : 'group2'"
+								class="absolute rounded-full scale-105"
+								[ngClass]="getAvatarPositionClass(i)">
+              </app-avatar>
+            </ng-container>
+          </ng-template>
+        </div>
+      </div>
+
+      <!-- Group Name -->
+      <div class="text-center">
+        <ng-container *ngIf="!editingGroupName; else editName">
+          <span class="font-medium text-lg truncate">{{ groupName || participantsDisplayNames }}</span>
+          <button *ngIf="otherParticipants.length > 1"
+						class="ml-2 text-lg text-gray-500 hover:bg-gray-50 rounded transition-colors duration-150"
+            (click)="editGroupName()">✎</button>
+        </ng-container>
+
+        <ng-template #editName>
+					<div class="flex items-center gap-2">
+						<!-- Input -->
+						<input 
+							[(ngModel)]="editedGroupName"
+							placeholder="Group name (optional)"
+							class="flex-1 border px-3 py-2 rounded text-left focus:outline-none focus:ring-2 focus:ring-blue-400" 
+						/>
+
+						<!-- Buttons -->
+						<button
+							(click)="saveGroupName()"
+							class="bg-blue-500 text-white text-sm px-3 py-1 rounded hover:bg-blue-600 transition-colors duration-150">
+							Save
+						</button>
+						<button
+							(click)="closeGroupName()"
+							class="bg-gray-200 text-gray-700 text-sm px-3 py-1 rounded hover:bg-gray-300 transition-colors duration-150">
+							Cancel
+						</button>
+					</div>
+				</ng-template>
+      </div>
+
+      <div class="flex flex-col space-y-1">
+				<!-- Add People -->
+				<button
+					(click)="openAddPeople()"
+					class="w-full flex items-center gap-2 p-2 hover:bg-gray-100 rounded transition-colors duration-150">
+					<span class="flex items-center justify-center w-8 h-8 border border-gray-400 rounded-full text-gray-400 text-2xl font-semibold">
+						<span class="relative -top-[1.2px] -right-[0.5px]">+</span>
+					</span>
+					<span class="font-medium text-gray-800">Add people</span>
+				</button>
+
+				<!-- Participants -->
+				<div *ngFor="let p of otherParticipants" class="flex items-center justify-between p-2 hover:bg-gray-100 rounded  transition-colors duration-150">
+					<div class="flex items-center gap-2">
+						<app-avatar [imageUrl]="p.profilePicture" [username]="p.username" [userId]="p.userId" size="sm"></app-avatar>
+
+						<span class="flex items-center gap-2 truncate">
+							{{ p.username }}
+							<ng-container *ngIf="followingMap$ | async as followingSet">
+								<span *ngIf="followingSet.has(p.uid)" 
+											class="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+									Following
+								</span>
+							</ng-container>
+						</span>
+					</div>
+					<div class="relative">
+						<button (click)="toggleParticipantMenu(p.uid, $event)">⋯</button>
+						<div *ngIf="selectedParticipantMenu === p.uid" class="absolute right-0 mt-1 bg-white border rounded shadow w-40 z-50 text-sm">
+							<div *ngIf="followingMap$ | async as followingSet">
+								<button (click)="toggleFollow(p.uid, followingSet.has(p.uid))" class="block w-full text-left px-3 py-2 hover:bg-gray-100">
+									{{ followingSet.has(p.uid) ? 'Unfollow' : 'Follow' }}
+								</button>
+							</div>
+							<button class="block w-full text-left px-3 py-2 text-red-500 hover:bg-gray-100" (click)="removeFromGroup(p.uid)">
+								Remove from group
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="p-3 border-t flex justify-end gap-2">
+      <button class="text-gray-500 hover:bg-gray-100 px-3 py-1 rounded transition-colors duration-150"
+              (click)="leaveGroup()">Leave group</button>
+
+      <button class="bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded transition-colors duration-150"
+              (click)="closeModal()">Close</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Add People Modal -->
+<div *ngIf="showAddPeopleModal" @overlayFade
+     class="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+
+  <div @modalTransition class="bg-white w-[400px] max-h-[70vh] rounded-xl shadow-lg flex flex-col">
+
+    <!-- Header -->
+    <div class="p-4 border-b flex justify-between items-center">
+      <span class="font-semibold">Add People</span>
+      <button (click)="showAddPeopleModal = false">✕</button>
+    </div>
+
+    <!-- Search -->
+    <div class="p-3 border-b">
+      <input
+        [(ngModel)]="addPeopleSearchText"
+        (ngModelChange)="addPeopleSearch$.next($event)"
+        placeholder="Search users..."
+        class="w-full border px-3 py-2 rounded" />
+    </div>
+
+    <!-- User List -->
+    <div class="flex-1 overflow-y-auto p-2">
+			<ng-container *ngIf="(filteredAddPeople$ | async) as users">
+
+				<!-- Users exist -->
+				<div *ngIf="users.length > 0; else emptyState" class="space-y-1">
+					<div *ngFor="let user of users"
+							(click)="toggleAddUser(user)"
+							class="flex items-center gap-3 p-2 hover:bg-gray-100 rounded cursor-pointer transition-colors duration-150">
+
+						<app-avatar
+							[username]="user.displayName || user.username"
+							[imageUrl]="user.profilePicture"
+							size="sm">
+						</app-avatar>
+
+						<span class="flex-1 truncate">
+							{{ user.displayName || user.username }}
+						</span>
+
+						<span *ngIf="user.uid && selectedToAdd.has(user.uid)"
+									class="text-green-500 font-bold">
+							✓
+						</span>
+					</div>
+				</div>
+
+				<!-- Empty state -->
+				<ng-template #emptyState>
+					<div class="h-full flex items-center justify-center text-gray-500 text-sm">
+						No users available
+					</div>
+				</ng-template>
+
+			</ng-container>
+		</div>
+
+    <!-- Footer -->
+    <div class="p-3 border-t flex justify-end gap-2">
+      <button
+        (click)="showAddPeopleModal = false"
+        class="text-gray-500 hover:bg-gray-100 px-3 py-1 rounded transition-colors duration-150">
+        Cancel
+      </button>
+
+      <button
+        (click)="addSelectedUsers()"
+        [disabled]="selectedToAdd.size === 0"
+        class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded disabled:opacity-50 transition-colors duration-150">
+        Add
+      </button>
+    </div>
+
+  </div>
+</div>

@@ -4,12 +4,17 @@ import { Auth, authState } from '@angular/fire/auth';
 import { Observable, from, map, switchMap, of } from 'rxjs';
 import { Thread, Message } from '../models/messages.model';
 import { User } from './user.service';
+import { NotificationsService } from './notifications.service';
 
 @Injectable({ providedIn: 'root' })
 export class MessagesService {
   private usersCache$?: Observable<User[]>;
 
-  constructor(private firestore: Firestore, private auth: Auth) {}
+  constructor(
+    private firestore: Firestore, 
+    private auth: Auth,
+    private notificationsService: NotificationsService
+  ) {}
 
   /** Wait for auth token before Firestore query */
   private withAuth<T>(fn: (uid: string) => Observable<T>): Observable<T> {
@@ -279,4 +284,58 @@ export class MessagesService {
     // Delete thread document
     await deleteDoc(threadRef);
   }
+
+  async updateGroupName(threadId: string, name: string) {
+    const ref = doc(this.firestore, `threads/${threadId}`);
+    await updateDoc(ref, { groupName: name || null });
+  }
+
+  async removeParticipant(threadId: string, uid: string) {
+    const ref = doc(this.firestore, `threads/${threadId}`);
+    const snap = await getDoc(ref);
+    const data = snap.data();
+
+    const participants = (data?.['participants'] || []).filter((p: string) => p !== uid);
+
+    await updateDoc(ref, {
+      participants
+    });
+  }
+
+  async addParticipants(threadId: string, newUids: string[]) {
+    const ref = doc(this.firestore, `threads/${threadId}`);
+    const snap = await getDoc(ref);
+    const data = snap.data();
+
+    const existing: string[] = data?.['participants'] || [];
+
+    const updated = Array.from(new Set([...existing, ...newUids]));
+
+    // also update unreadByUser
+    const unreadByUser = data?.['unreadByUser'] || {};
+    newUids.forEach(uid => {
+      unreadByUser[uid] = 0;
+    });
+
+    await updateDoc(ref, {
+      participants: updated,
+      unreadByUser
+    });
+
+    // --- Add notifications ---
+    const actorUid = this.auth.currentUser?.uid;
+    if (!actorUid) return;
+
+    for (const recipientUid of newUids) {
+      // Skip self-notification
+      if (recipientUid === actorUid) continue;
+
+      await this.notificationsService.createNotification({
+        recipientUid,
+        actorUid,
+        type: 'thread_added',
+        threadId
+      });
+    }
+    }
 }
