@@ -86,8 +86,8 @@ export class MessagesService {
 
     const uid = currentUser.uid;
 
-    if (!participantIds || participantIds.length < 2) {
-      throw new Error('Cannot create a group with 2 or less participants');
+    if (!participantIds || participantIds.length < 1) {
+      throw new Error('Cannot create a group with only 1 participant');
     }
 
     // Ensure current user is included
@@ -118,6 +118,40 @@ export class MessagesService {
       groupName: groupName || null,
       lastMessageAt: serverTimestamp(),
       unreadByUser: participants.reduce((acc, uid) => ({ ...acc, [uid]: 0 }), {})
+    });
+
+    return docRef.id;
+  }
+
+  async createGroupFromThread(
+    existingParticipantIds: string[],
+    newParticipantIds: string[],
+    groupName?: string
+  ): Promise<string> {
+    const currentUser = this.auth.currentUser;
+    if (!currentUser?.uid) throw new Error('Not authenticated');
+
+    const uid = currentUser.uid;
+
+    // Merge all participants
+    const participants = Array.from(
+      new Set([
+        uid,
+        ...existingParticipantIds,
+        ...newParticipantIds
+      ])
+    );
+
+    const ref = collection(this.firestore, 'threads');
+
+    const docRef = await addDoc(ref, {
+      participants,
+      groupName: groupName || null,
+      lastMessageAt: serverTimestamp(),
+      unreadByUser: participants.reduce(
+        (acc, uid) => ({ ...acc, [uid]: 0 }),
+        {}
+      )
     });
 
     return docRef.id;

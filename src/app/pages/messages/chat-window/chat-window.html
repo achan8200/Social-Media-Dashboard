@@ -284,9 +284,10 @@
 					(click)="openAddPeople()"
 					class="w-full flex items-center gap-2 p-2 hover:bg-gray-100 rounded transition-colors duration-150">
 					<span class="flex items-center justify-center w-8 h-8 border border-gray-400 rounded-full text-gray-400 text-2xl font-semibold">
-						<span class="relative -top-[1.2px] -right-[0.5px]">+</span>
+						<span class="relative -top-[2.5px] -right-[0.2px]">+</span>
 					</span>
-					<span class="font-medium text-gray-800">Add people</span>
+					<span *ngIf="otherParticipants.length === 1" class="font-medium text-gray-800">Create group chat</span>
+					<span *ngIf="otherParticipants.length > 1" class="font-medium text-gray-800">Add people</span>
 				</button>
 
 				<!-- Participants -->
@@ -342,12 +343,16 @@
 
     <!-- Header -->
     <div class="p-4 border-b flex justify-between items-center">
-      <span class="font-semibold">Add People</span>
+			<span *ngIf="otherParticipants.length === 1" class="font-semibold">Create Group Chat</span>
+			<span *ngIf="otherParticipants.length > 1" class="font-semibold">Add People</span>
       <button (click)="showAddPeopleModal = false">✕</button>
     </div>
 
     <!-- Search -->
     <div class="p-3 border-b">
+			<div *ngIf="otherParticipants.length === 1">
+				<input type="text" [(ngModel)]="editedGroupName" placeholder="Group name (optional)" class="w-full px-3 py-2 border rounded mb-2" />
+			</div>
       <input
         [(ngModel)]="addPeopleSearchText"
         (ngModelChange)="addPeopleSearch$.next($event)"

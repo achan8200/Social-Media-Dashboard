@@ -13,7 +13,8 @@
     <app-chat-window 
       class="flex-1 flex flex-col min-h-0"
       [threadId]="selectedThreadId"
-      (threadDeleted)="selectedThreadId = null">
+      (threadDeleted)="selectedThreadId = null"
+      (threadChanged)="onSelectThread($event)">
     </app-chat-window>
 
   </div>

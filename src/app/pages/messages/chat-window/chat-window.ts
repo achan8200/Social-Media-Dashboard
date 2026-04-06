@@ -38,6 +38,7 @@ import { Observable, tap, combineLatest, map, switchMap, of, BehaviorSubject, ca
 export class ChatWindow implements OnChanges {
   @Input() threadId: string | null = null;
   @Output() threadDeleted = new EventEmitter<void>();
+  @Output() threadChanged = new EventEmitter<string>();
   
   @ViewChild('messageInput') messageInput!: ElementRef<HTMLTextAreaElement>;
   @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLDivElement>;
@@ -683,13 +684,32 @@ export class ChatWindow implements OnChanges {
   async addSelectedUsers() {
     if (!this.threadId || this.selectedToAdd.size === 0) return;
 
-    await this.messagesService.addParticipants(
-      this.threadId,
-      Array.from(this.selectedToAdd)
-    );
+    const isOneOnOne = this.otherParticipants.length === 1;
+
+    if (isOneOnOne) {
+      // Create new group thread
+      const existingIds = this.otherParticipants.map(p => p.uid);
+
+      const newThreadId = await this.messagesService.createGroupFromThread(
+        existingIds,
+        Array.from(this.selectedToAdd),
+        this.editedGroupName || ''
+      );
+
+      // Switch to new thread
+      this.threadChanged.emit(newThreadId);
+      this.showDetailsModal = false;
+    } else {
+      // Normal group: just add people
+      await this.messagesService.addParticipants(
+        this.threadId,
+        Array.from(this.selectedToAdd)
+      );
+    }
 
     this.selectedToAdd.clear();
     this.showAddPeopleModal = false;
+    this.editedGroupName = '';
   }
 
   async toggleFollow(uid: string, isFollowing: boolean) {
