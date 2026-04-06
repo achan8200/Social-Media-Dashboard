@@ -329,10 +329,19 @@ export class MessagesService {
     const snap = await getDoc(ref);
     const data = snap.data();
 
-    const participants = (data?.['participants'] || []).filter((p: string) => p !== uid);
+    if (!data) return;
+
+    const participants: string[] = (data['participants'] || []).filter((p: string) => p !== uid);
+
+    // Automatically nullify groupName if 2 or less participants
+    let groupName: string | null = data['groupName'] || null;
+    if (participants.length <= 2 && groupName) {
+      groupName = null;
+    }
 
     await updateDoc(ref, {
-      participants
+      participants,
+      groupName
     });
   }
 
