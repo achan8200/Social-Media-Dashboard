@@ -48,7 +48,11 @@
             (click)="togglePasswordVisibility()"
             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
           >
-            {{ showPassword ? '👁️‍🗨️' : '👁️' }}
+            <img 
+              [src]="showPassword ? 'assets/icons/hide.svg' : 'assets/icons/show.svg'" 
+              alt="Toggle password visibility"
+              class="w-5 h-5"
+            />
           </button>
         </div>
 
