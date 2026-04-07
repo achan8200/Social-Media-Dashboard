@@ -309,17 +309,39 @@ export class MessagesService {
   }
 
   async deleteThread(threadId: string) {
+    const currentUser = this.auth.currentUser;
+    if (!currentUser?.uid) throw new Error('Not authenticated');
+
     const threadRef = doc(this.firestore, `threads/${threadId}`);
     const messagesRef = collection(this.firestore, `threads/${threadId}/messages`);
 
     // Delete all messages
     const snapshot = await getDocs(messagesRef);
-
-    const deletePromises = snapshot.docs.map(docSnap =>
-      deleteDoc(docSnap.ref)
-    );
-
+    const deletePromises = snapshot.docs.map(docSnap => deleteDoc(docSnap.ref));
     await Promise.all(deletePromises);
+
+    // Delete thread_added notifications for this thread that current user can delete
+    try {
+      const notifQuery = query(
+        collection(this.firestore, 'notifications'),
+        where('type', '==', 'thread_added'),
+        where('threadId', '==', threadId)
+      );
+
+      const notifSnap = await getDocs(notifQuery);
+
+      // Filter to only notifications current user is allowed to delete
+      const deletableDocs = notifSnap.docs.filter(docSnap => {
+        const n = docSnap.data();
+        return n['actorUid'] === currentUser.uid || n['recipientUid'] === currentUser.uid;
+      });
+
+      await Promise.all(
+        deletableDocs.map(docSnap => deleteDoc(doc(this.firestore, `notifications/${docSnap.id}`)))
+      );
+    } catch (err) {
+      console.warn('No deletable thread_added notifications or failed to delete:', err);
+    }
 
     // Delete thread document
     await deleteDoc(threadRef);
@@ -385,6 +407,30 @@ export class MessagesService {
     }
 
     await updateDoc(ref, { participants, groupName });
+
+    // Delete any thread_added notifications for this user for this thread
+    try {
+      const notifQuery = query(
+        collection(this.firestore, 'notifications'),
+        where('recipientUid', '==', uid),
+        where('type', '==', 'thread_added'),
+        where('threadId', '==', threadId)
+      );
+
+      const notifSnap = await getDocs(notifQuery);
+      
+      // Filter notifications to only those the current user is allowed to delete
+      const deletableDocs = notifSnap.docs.filter(docSnap => {
+        const n = docSnap.data();
+        return n['actorUid'] === currentUser.uid || n['recipientUid'] === currentUser.uid;
+      });
+
+      await Promise.all(
+        deletableDocs.map(docSnap => deleteDoc(doc(this.firestore, `notifications/${docSnap.id}`)))
+      );
+    } catch (err) {
+      console.warn('Failed to delete thread_added notification:', err);
+    }
   }
 
   async addParticipants(threadId: string, newUids: string[]) {

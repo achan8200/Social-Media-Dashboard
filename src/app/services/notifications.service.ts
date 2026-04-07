@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, collection, collectionData, query, where, orderBy, doc, updateDoc, serverTimestamp, setDoc } from '@angular/fire/firestore'; 
+import { Firestore, collection, collectionData, query, where, orderBy, doc, updateDoc, serverTimestamp, setDoc, deleteDoc } from '@angular/fire/firestore'; 
 import { Notification } from '../models/notification.model';
 import { Observable } from 'rxjs';
 
@@ -79,5 +79,31 @@ export class NotificationsService {
         return updateDoc(ref, { read: true });
       })
     );
+  }
+
+  async deleteNotification(notification: Partial<Notification>) {
+    const { recipientUid, actorUid, type, postId, commentId, threadId } = notification;
+
+    if (!recipientUid || !actorUid || !type) {
+      console.warn('deleteNotification: missing required fields', notification);
+      return;
+    }
+
+    try {
+      // Build same deterministic ID
+      let id = `${recipientUid}_${type}_${actorUid}`;
+
+      if (postId) id += `_${postId}`;
+      if (commentId) id += `_${commentId}`;
+      if (threadId) id += `_${threadId}`;
+
+      const ref = doc(this.firestore, `notifications/${id}`);
+
+      await deleteDoc(ref);
+
+      console.log('Notification deleted:', id);
+    } catch (err) {
+      console.error('Failed to delete notification:', err);
+    }
   }
 }

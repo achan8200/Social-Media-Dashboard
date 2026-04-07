@@ -37,6 +37,13 @@ export class FollowService {
       deleteDoc(followerRef),
       deleteDoc(followingRef)
     ]);
+
+    // Delete the follow notification
+    await this.notificationsService.deleteNotification({
+      recipientUid: targetUserId, // the user being unfollowed
+      actorUid: currentUserId,    // the user who unfollowed
+      type: 'follow'
+    });
   }
 
   async removeFollower(currentUserId: string, followerUid: string): Promise<void> {
@@ -44,13 +51,18 @@ export class FollowService {
     const followingRef = doc(this.firestore, `users/${followerUid}/following/${currentUserId}`);
 
     try {
-      // Remove follower and their corresponding following doc simultaneously
+      // Remove follower and their corresponding following doc
       await Promise.all([
         deleteDoc(followerRef),
         deleteDoc(followingRef)
       ]);
 
-      console.log(`Removed follower ${followerUid} from ${currentUserId}`);
+      // Delete the follow notification
+      await this.notificationsService.deleteNotification({
+        recipientUid: currentUserId, // current user had received a notification about this follower
+        actorUid: followerUid,       // the follower being removed
+        type: 'follow'
+      });
     } catch (error) {
       console.error('Failed to remove follower fast:', error);
       throw error;
