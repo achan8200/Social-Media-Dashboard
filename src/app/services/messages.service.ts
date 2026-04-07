@@ -9,6 +9,7 @@ import { NotificationsService } from './notifications.service';
 @Injectable({ providedIn: 'root' })
 export class MessagesService {
   private usersCache$?: Observable<User[]>;
+  private displayNameCache = new Map<string, string>();
 
   constructor(
     private firestore: Firestore, 
@@ -179,9 +180,13 @@ export class MessagesService {
   }
 
   /** Send a message */
-  async sendMessage(threadId: string, text: string) {
+  async sendMessage(threadId: string, text: string, type: string = "text") {
     const currentUser = this.auth.currentUser;
     if (!currentUser?.uid) throw new Error('User not authenticated');
+
+    const userRef = doc(this.firestore, `users/${currentUser.uid}`);
+    const userSnap = await getDoc(userRef);
+    const userData = userSnap.data();
 
     const threadDocRef = doc(this.firestore, `threads/${threadId}`);
     const threadDocSnap = await getDoc(threadDocRef);
@@ -201,6 +206,7 @@ export class MessagesService {
       text,
       createdAt,
       readBy: [currentUser.uid], // sender has read
+      type
     });
 
     // Compute unreadCount per participant
@@ -214,7 +220,7 @@ export class MessagesService {
       lastMessage: {
         text,
         senderId: currentUser.uid,
-        senderName: currentUser.displayName,
+        senderName: userData?.['displayName'],
         createdAt,
       },
       lastMessageAt: createdAt,
@@ -320,41 +326,79 @@ export class MessagesService {
   }
 
   async updateGroupName(threadId: string, name: string) {
-    const ref = doc(this.firestore, `threads/${threadId}`);
-    await updateDoc(ref, { groupName: name || null });
-  }
+    const currentUser = this.auth.currentUser;
+    if (!currentUser?.uid) throw new Error('Not authenticated');
 
-  async removeParticipant(threadId: string, uid: string) {
     const ref = doc(this.firestore, `threads/${threadId}`);
     const snap = await getDoc(ref);
     const data = snap.data();
 
+    const oldName = data?.['groupName'] || null;
+    const newName = name || null;
+
+    // Guard
+    if (oldName === newName) return;
+
+    // Update group name
+    await updateDoc(ref, { groupName: newName });
+
+    // System message
+    const actorName = await this.getDisplayName(currentUser.uid);
+
+    await this.sendSystemMessage(threadId, 'rename', {
+      actorUid: currentUser.uid,
+      actorName,
+      newName
+    });
+  }
+
+  async removeParticipant(threadId: string, uid: string) {
+    const currentUser = this.auth.currentUser;
+    if (!currentUser?.uid) throw new Error('Not authenticated');
+
+    const ref = doc(this.firestore, `threads/${threadId}`);
+    const snap = await getDoc(ref);
+    const data = snap.data();
     if (!data) return;
 
     const participants: string[] = (data['participants'] || []).filter((p: string) => p !== uid);
 
-    // Automatically nullify groupName if 2 or less participants
     let groupName: string | null = data['groupName'] || null;
     if (participants.length <= 2 && groupName) {
       groupName = null;
     }
 
-    await updateDoc(ref, {
-      participants,
-      groupName
-    });
+    // System message
+    const actorName = await this.getDisplayName(currentUser.uid);
+
+    if (currentUser.uid === uid) {
+      await this.sendSystemMessage(threadId, 'leave', {
+        actorUid: currentUser.uid,
+        actorName
+      });
+    } else {
+      await this.sendSystemMessage(threadId, 'remove', {
+        actorUid: currentUser.uid,
+        actorName,
+        targetUid: uid
+      });
+    }
+
+    await updateDoc(ref, { participants, groupName });
   }
 
   async addParticipants(threadId: string, newUids: string[]) {
+    if (!newUids.length) return;
+    const currentUser = this.auth.currentUser;
+    if (!currentUser?.uid) throw new Error('Not authenticated');
+
     const ref = doc(this.firestore, `threads/${threadId}`);
     const snap = await getDoc(ref);
     const data = snap.data();
 
     const existing: string[] = data?.['participants'] || [];
-
     const updated = Array.from(new Set([...existing, ...newUids]));
 
-    // also update unreadByUser
     const unreadByUser = data?.['unreadByUser'] || {};
     newUids.forEach(uid => {
       unreadByUser[uid] = 0;
@@ -365,20 +409,100 @@ export class MessagesService {
       unreadByUser
     });
 
-    // --- Add notifications ---
-    const actorUid = this.auth.currentUser?.uid;
-    if (!actorUid) return;
+    // Notifications
+    const actorUid = currentUser.uid;
+    await Promise.all(
+      newUids
+        .filter(uid => uid !== actorUid)
+        .map(recipientUid =>
+          this.notificationsService.createNotification({
+            recipientUid,
+            actorUid,
+            type: 'thread_added',
+            threadId
+          })
+        )
+    );
 
-    for (const recipientUid of newUids) {
-      // Skip self-notification
-      if (recipientUid === actorUid) continue;
+    // System message
+    const actorName = await this.getDisplayName(currentUser.uid);
 
-      await this.notificationsService.createNotification({
-        recipientUid,
-        actorUid,
-        type: 'thread_added',
-        threadId
-      });
+    await this.sendSystemMessage(threadId, 'add', {
+      actorUid: currentUser.uid,
+      actorName,
+      targetUids: newUids
+    });
+  }
+
+  private async sendSystemMessage(
+    threadId: string,
+    type: 'rename' | 'remove' | 'leave' | 'add',
+    payload: {
+      actorUid: string;
+      actorName?: string;
+      targetUid?: string;
+      targetUids?: string[];
+      newName?: string | null;
     }
+  ) {
+    const { actorUid, targetUid, targetUids, newName } = payload;
+    const actorName = payload.actorName ?? await this.getDisplayName(actorUid);
+    const [ targetName, targetNames ] = await Promise.all([
+      targetUid ? this.getDisplayName(targetUid) : Promise.resolve(null),
+      targetUids
+        ? Promise.all(targetUids.map(uid => this.getDisplayName(uid)))
+        : Promise.resolve([])
+    ]);
+
+    const formatNames = (names: string[]) => {
+      if (names.length === 1) return names[0];
+      if (names.length === 2) return `${names[0]} and ${names[1]}`;
+      return `${names[0]} and ${names.length - 1} others`;
+    };
+
+    let text = '';
+
+    switch (type) {
+      case 'rename':
+        text = newName
+          ? `${actorName} renamed the group to ${newName}`
+          : `${actorName} removed the group name`;
+        break;
+
+      case 'remove':
+        text = `${actorName} removed ${targetName || 'someone'} from this group`;
+        break;
+
+      case 'leave':
+        text = `${actorName} left the group`;
+        break;
+
+      case 'add':
+        text = `${actorName} added ${formatNames(targetNames)} to this group`;
+        break;
     }
+
+    await this.sendMessage(threadId, text, 'system');
+  }
+
+  private async getDisplayName(uid: string): Promise<string> {
+    // Return from cache if available
+    if (this.displayNameCache.has(uid)) {
+      return this.displayNameCache.get(uid)!;
+    }
+
+    // Otherwise fetch
+    const snap = await getDoc(doc(this.firestore, `users/${uid}`));
+    const data = snap.data();
+
+    const name =
+    data?.['displayName'] ||
+    data?.['username'] ||
+    'Someone';
+
+    // Store in cache
+    this.displayNameCache.set(uid, name);
+
+    return name;
+  }
 }

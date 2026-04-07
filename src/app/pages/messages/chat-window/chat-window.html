@@ -94,8 +94,13 @@
 						</div>
 					</div>
 
-					<!-- Message -->
-					<div [ngClass]="msg.senderId === currentUserId ? 'text-right' : 'text-left'">
+					<!-- System Message -->
+					<div *ngIf="msg.type === 'system'" class="text-center text-gray-500 text-sm my-2">
+						{{ msg.text }}
+					</div>
+
+					<!-- User Message -->
+					<div *ngIf="msg.type === 'text'" [ngClass]="msg.senderId === currentUserId ? 'text-right' : 'text-left'">
 						
 						<!-- Bubble -->
 						<div [ngClass]="getBubbleClasses(msg, messages, i)">

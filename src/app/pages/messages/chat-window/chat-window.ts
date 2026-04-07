@@ -590,9 +590,9 @@ export class ChatWindow implements OnChanges {
   async saveGroupName() {
     if (!this.threadId) return;
 
-    await this.messagesService.updateGroupName(this.threadId, this.editedGroupName);
     this.groupName = this.editedGroupName;
     this.editingGroupName = false;
+    await this.messagesService.updateGroupName(this.threadId, this.editedGroupName);
   }
 
   closeGroupName() {
@@ -641,9 +641,9 @@ export class ChatWindow implements OnChanges {
         this.addPeopleSearch$.pipe(
           map(search =>
             users
-              // 🚫 remove existing participants
+              // remove existing participants
               .filter(u => u.uid && !existingUids.has(u.uid))
-              // 🔍 search filter
+              // search filter
               .filter(u =>
                 (u.displayName || u.username || '')
                   .toLowerCase()
@@ -684,6 +684,8 @@ export class ChatWindow implements OnChanges {
   async addSelectedUsers() {
     if (!this.threadId || this.selectedToAdd.size === 0) return;
 
+    const newUsers = Array.from(this.selectedToAdd);
+
     const isOneOnOne = this.otherParticipants.length === 1;
 
     if (isOneOnOne) {
@@ -692,7 +694,7 @@ export class ChatWindow implements OnChanges {
 
       const newThreadId = await this.messagesService.createGroupFromThread(
         existingIds,
-        Array.from(this.selectedToAdd),
+        newUsers,
         this.editedGroupName || ''
       );
 
@@ -700,10 +702,10 @@ export class ChatWindow implements OnChanges {
       this.threadChanged.emit(newThreadId);
       this.showDetailsModal = false;
     } else {
-      // Normal group: just add people
+      // If normal group, just add people
       await this.messagesService.addParticipants(
         this.threadId,
-        Array.from(this.selectedToAdd)
+        newUsers
       );
     }
 
