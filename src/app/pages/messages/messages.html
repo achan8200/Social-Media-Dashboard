@@ -5,7 +5,7 @@
   <div class="flex flex-1 overflow-hidden min-h-0">
 
     <!-- LEFT: Threads -->
-    <div class="w-1/3 border-r overflow-y-auto min-h-0">
+    <div class="w-[325px] max-w-[33%] flex-shrink-0 border-r overflow-y-auto min-h-0">
       <app-thread-list [selectedThreadId]="selectedThreadId" (selectThread)="onSelectThread($event)"></app-thread-list>
     </div>
 

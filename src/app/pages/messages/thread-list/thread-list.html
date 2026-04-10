@@ -47,7 +47,7 @@
 			<div class="font-medium text-gray-800 truncate">
 				{{ getThreadDisplayName(thread) }}
 			</div>
-      <div class="text-sm truncate">
+      <div class="text-sm truncate w-full">
         <ng-container *ngIf="isOtherUserTyping(thread); else messageText">
           <span class="text-blue-500 italic flex items-center gap-1">
             {{ getTypingText(thread) }}
