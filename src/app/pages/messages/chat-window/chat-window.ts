@@ -13,6 +13,12 @@ import emojiRegex from 'emoji-regex';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { Observable, tap, combineLatest, map, switchMap, of, BehaviorSubject, catchError } from 'rxjs';
 
+interface MessageWithSender extends Message {
+  senderProfilePicture?: string;
+  senderUsername?: string;
+  senderUserId?: string;
+}
+
 @Component({
   selector: 'app-chat-window',
   standalone: true,
@@ -59,6 +65,7 @@ export class ChatWindow implements OnChanges {
   typing$!: Observable<{ [uid: string]: boolean }>;
   participants$!: Observable<{ uid: string; username: string }[]>;
   otherParticipants: { uid: string; username: string; userId: string; profilePicture: string }[] = [];
+  messagesWithSender: MessageWithSender[] = [];
   groupName: string | null = null;
 
   showDetailsModal = false;
@@ -76,6 +83,10 @@ export class ChatWindow implements OnChanges {
 
   private followingMapSubject = new BehaviorSubject<Set<string>>(new Set());
   followingMap$ = this.followingMapSubject.asObservable();
+
+  private scrollTrigger$ = new BehaviorSubject<void>(undefined);
+  private wasNearBottom = true;
+  private pendingScroll = false;
 
   constructor(
     private messagesService: MessagesService,
@@ -105,16 +116,14 @@ export class ChatWindow implements OnChanges {
     });
     this.messages$ = this.messagesService.getMessages(this.threadId).pipe(
       tap(() => {
-        setTimeout(() => {
-          if (this.isNearBottom()) {
-            this.scrollToBottom();
-            this.showNewMessageIndicator = false;
-          } else {
-            this.showNewMessageIndicator = true;
-          }
-        });
+        // Capture scroll state BEFORE DOM updates
+        this.wasNearBottom = this.isNearBottom();
+        this.pendingScroll = true;
       })
     );
+    combineLatest([this.messages$, this.participants$]).subscribe(([messages]) => {
+      this.messagesWithSender = this.processMessages(messages);
+    });
     this.participants$ = this.messagesService.getUserThreads().pipe(
       map(threads => threads.find(t => t.id === this.threadId)),
       switchMap(thread => {
@@ -151,12 +160,35 @@ export class ChatWindow implements OnChanges {
     });
   }
 
+  ngAfterViewInit() {
+    this.scrollTrigger$.subscribe(() => {
+      setTimeout(() => this.scrollToBottom());
+    });
+  }
+
+  ngAfterViewChecked() {
+    if (!this.pendingScroll) return;
+
+    this.pendingScroll = false;
+
+    if (this.wasNearBottom) {
+      this.scrollToBottom();
+      this.showNewMessageIndicator = false;
+    } else {
+      this.showNewMessageIndicator = true;
+    }
+  }
+
   async sendMessage() {
     if (!this.threadId || !this.newMessage.trim()) return;
 
     await this.messagesService.sendMessage(this.threadId, this.newMessage);
 
     this.newMessage = '';
+
+    const el = this.messageInput.nativeElement;
+    el.style.height = 'auto';
+    el.rows = 1;
 
     await this.messagesService.setTyping(this.threadId, false);
 
@@ -207,6 +239,59 @@ export class ChatWindow implements OnChanges {
     }
 
     return '';
+  }
+
+  processMessages(messages: Message[]): MessageWithSender[] {
+    return messages.map(msg => {
+      const participant = this.otherParticipants.find(p => p.uid === msg.senderId);
+      return {
+        ...msg,
+        senderProfilePicture: participant?.profilePicture,
+        senderUsername: participant?.username,
+        senderUserId: participant?.userId
+      };
+    });
+  }
+
+  // Returns true if this is the last message from another participant
+  isLastFromOther(messages: Message[], index: number): boolean {
+    const msg = messages[index];
+    if (!msg || msg.senderId === this.currentUserId) return false;
+
+    const next = messages[index + 1];
+    if (!next) return true; // last message in thread
+
+    // If next message is from same sender → not last
+    return next.senderId !== msg.senderId;
+  }
+
+  shouldShowSenderName(messages: Message[], index: number): boolean {
+    // Only show for group threads
+    if (this.otherParticipants.length <= 1) return false;
+
+    const current = messages[index];
+    
+    // Only show for messages from other users
+    if (current.senderId === this.currentUserId) return false;
+
+    if (index === 0) return true; // always show for first message
+
+    const prev = messages[index - 1];
+
+    if (!prev) return true;
+
+    // Show name if previous message was from a different sender
+    if (prev.senderId !== current.senderId) return true;
+
+    const currentTime = current.createdAt?.toDate().getTime() || 0;
+    const prevTime = prev.createdAt?.toDate().getTime() || 0;
+    const diffMinutes = (currentTime - prevTime) / (1000 * 60);
+
+    return diffMinutes > 30;
+  }
+
+  getSenderName(msg: Message): string {
+    return msg.senderName || 'Someone'; // fallback if senderName not present
   }
 
   shouldShowTimestamp(messages: Message[], index: number): boolean {
@@ -342,13 +427,21 @@ export class ChatWindow implements OnChanges {
 
   isNearBottom(): boolean {
     const el = this.scrollContainer.nativeElement;
-    return el.scrollTop + el.clientHeight >= el.scrollHeight - 50;
+
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 80;
   }
 
   onScroll() {
-    if (this.isNearBottom()) {
+    this.wasNearBottom = this.isNearBottom();
+
+    if (this.wasNearBottom) {
       this.showNewMessageIndicator = false;
     }
+  }
+
+  scrollToBottomAndClearIndicator() {
+    this.scrollToBottom();
+    this.showNewMessageIndicator = false;
   }
 
   // Determines if the current message should visually group with the previous message
@@ -424,6 +517,26 @@ export class ChatWindow implements OnChanges {
     }
 
     return classes;
+  }
+
+  getMessageSpacing(messages: any[], i: number): string {
+    if (i === 0) return 'mt-3';
+
+    const current = messages[i];
+    const prev = messages[i - 1];
+
+    const sameSender = current.senderId === prev.senderId;
+
+    const diff =
+      current.createdAt?.toMillis() - prev.createdAt?.toMillis();
+
+    const withinWindow = diff < 30 * 60 * 1000;
+
+    if (sameSender && withinWindow) {
+      return 'mt-[2px]'; // tight grouping
+    }
+
+    return 'mt-3'; // new group
   }
 
   isOtherUserTyping(typing: { [uid: string]: boolean } | null): boolean {

@@ -203,6 +203,7 @@ export class MessagesService {
     // Add the new message
     await addDoc(messageRef, {
       senderId: currentUser.uid,
+      senderName: userData?.['displayName'],
       text,
       createdAt,
       readBy: [currentUser.uid], // sender has read
