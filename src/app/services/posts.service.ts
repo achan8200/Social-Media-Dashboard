@@ -647,10 +647,6 @@ export class PostsService {
     const postData = postSnap.exists() ? postSnap.data() : null;
 
     if (postData?.['uid'] && postData['uid'] !== user.uid) {
-      console.log(postData['uid']);
-      console.log(user.uid);
-      console.log(postId);
-      console.log(commentId);
       await this.notificationsService.deleteNotification({
         recipientUid: postData['uid'], // post author
         actorUid: user.uid,            // comment author (who deleted)

@@ -30,11 +30,17 @@ export class NotificationsService {
 
     try {
       // Build deterministic id
-      let id = `${recipientUid}_${type}_${actorUid}`;
+      let id = `${recipientUid}_${type}`;
 
-      if (postId) id += `_${postId}`;
-      if (commentId) id += `_${commentId}`;
-      if (threadId) id += `_${threadId}`;
+      // Special case for thread_added
+      if (type === 'thread_added' && threadId) {
+        id = `${recipientUid}_${type}_${threadId}`;
+      } else {
+        id += `_${actorUid}`;
+        if (postId) id += `_${postId}`;
+        if (commentId) id += `_${commentId}`;
+        if (threadId) id += `_${threadId}`;
+      }
 
       const ref = doc(this.firestore, `notifications/${id}`);
 
@@ -50,15 +56,13 @@ export class NotificationsService {
       if (commentId) payload.commentId = commentId;
       if (threadId) payload.threadId = threadId;
 
-      console.log('Creating/updating notification:', id, payload);
+      console.log('Creating notification:', id, payload);
 
       // merge: true prevents overwriting important fields unintentionally
       await setDoc(ref, {
         ...payload,
         createdAt: serverTimestamp()
       }, { merge: true });
-
-      console.log('Notification upsert successful');
 
     } catch (err) {
       console.error('Failed to create notification:', err);
@@ -84,18 +88,23 @@ export class NotificationsService {
   async deleteNotification(notification: Partial<Notification>) {
     const { recipientUid, actorUid, type, postId, commentId, threadId } = notification;
 
-    if (!recipientUid || !actorUid || !type) {
+    if (!recipientUid || !type) {
       console.warn('deleteNotification: missing required fields', notification);
       return;
     }
 
     try {
       // Build same deterministic ID
-      let id = `${recipientUid}_${type}_${actorUid}`;
+      let id = `${recipientUid}_${type}`;
 
-      if (postId) id += `_${postId}`;
-      if (commentId) id += `_${commentId}`;
-      if (threadId) id += `_${threadId}`;
+      if (type === 'thread_added' && threadId) {
+        id = `${recipientUid}_${type}_${threadId}`;
+      } else {
+        id += `_${actorUid}`;
+        if (postId) id += `_${postId}`;
+        if (commentId) id += `_${commentId}`;
+        if (threadId) id += `_${threadId}`;
+      }
 
       const ref = doc(this.firestore, `notifications/${id}`);
 
