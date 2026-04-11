@@ -19,6 +19,13 @@ interface MessageWithSender extends Message {
   senderUserId?: string;
 }
 
+interface Participant {
+  uid: string;
+  username: string;
+  userId: string;
+  profilePicture: string;
+}
+
 @Component({
   selector: 'app-chat-window',
   standalone: true,
@@ -63,9 +70,9 @@ export class ChatWindow implements OnChanges {
 
   private typingTimeout: any;
   typing$!: Observable<{ [uid: string]: boolean }>;
-  participants$!: Observable<{ uid: string; username: string }[]>;
-  otherParticipants: { uid: string; username: string; userId: string; profilePicture: string }[] = [];
-  messagesWithSender: MessageWithSender[] = [];
+  participants$!: Observable<Participant[]>;
+  otherParticipants: Participant[] = [];
+  messagesWithSender$!: Observable<MessageWithSender[]>;
   groupName: string | null = null;
 
   showDetailsModal = false;
@@ -121,9 +128,6 @@ export class ChatWindow implements OnChanges {
         this.pendingScroll = true;
       })
     );
-    combineLatest([this.messages$, this.participants$]).subscribe(([messages]) => {
-      this.messagesWithSender = this.processMessages(messages);
-    });
     this.participants$ = this.messagesService.getUserThreads().pipe(
       map(threads => threads.find(t => t.id === this.threadId)),
       switchMap(thread => {
@@ -150,6 +154,23 @@ export class ChatWindow implements OnChanges {
           })
         );
       })
+    );
+    this.messagesWithSender$ = combineLatest([
+      this.messages$,
+      this.participants$
+    ]).pipe(
+      map(([messages, participants]) =>
+        messages.map(msg => {
+          const participant = participants.find(p => p.uid === msg.senderId);
+
+          return {
+            ...msg,
+            senderProfilePicture: participant?.profilePicture,
+            senderUsername: participant?.username,
+            senderUserId: participant?.userId
+          };
+        })
+      )
     );
     this.typing$ = this.messagesService.getTyping(this.threadId);
     this.messagesService.markMessagesAsRead(this.threadId);
