@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core';
-import { Firestore, collection, query, where, orderBy, getDocs, addDoc, serverTimestamp, updateDoc, doc, collectionData, getDoc, docData, deleteDoc } from '@angular/fire/firestore';
+import { Firestore, collection, query, where, orderBy, getDocs, 
+  addDoc, serverTimestamp, updateDoc, doc, collectionData, getDoc, 
+  docData, deleteDoc, writeBatch } from '@angular/fire/firestore';
 import { Auth, authState } from '@angular/fire/auth';
 import { Observable, from, map, switchMap, of } from 'rxjs';
 import { Thread, Message } from '../models/messages.model';
@@ -314,33 +316,35 @@ export class MessagesService {
     const threadRef = doc(this.firestore, `threads/${threadId}`);
     const messagesRef = collection(this.firestore, `threads/${threadId}/messages`);
 
-    // Delete all messages
-    const snapshot = await getDocs(messagesRef);
-    const deletePromises = snapshot.docs.map(docSnap => deleteDoc(docSnap.ref));
-    await Promise.all(deletePromises);
+    // Get thread first
+    const threadSnap = await getDoc(threadRef);
+    const threadData = threadSnap.data();
+    const participants: string[] = threadData?.['participants'] || [];
 
-    // Delete thread_added notifications for this thread
-    try {
-      // Get thread participants before deleting thread
-      const threadSnap = await getDoc(threadRef);
-      const threadData = threadSnap.data();
-      const participants: string[] = threadData?.['participants'] || [];
-
-      // Delete notifications per participant using deterministic IDs
-      await Promise.all(
-        participants.map(uid =>
-          this.notificationsService.deleteNotification({
+    // Delete notifications
+    await Promise.all(
+      participants.map(async (uid) => {
+        try {
+          await this.notificationsService.deleteNotification({
             recipientUid: uid,
             type: 'thread_added',
             threadId
-          }).catch(() => null) // ignore failures per user
-        )
-      );
-    } catch (err) {
-      console.error('No deletable thread_added notifications or failed to delete:', err);
-    }
+          });
+        } catch {}
+      })
+    );
 
-    // Delete thread document
+    // Batch delete messages
+    const snapshot = await getDocs(messagesRef);
+    const batch = writeBatch(this.firestore);
+
+    snapshot.docs.forEach(docSnap => {
+      batch.delete(docSnap.ref);
+    });
+
+    await batch.commit();
+
+    // Delete thread
     await deleteDoc(threadRef);
   }
 
