@@ -287,25 +287,21 @@ export class ChatWindow implements OnChanges {
   }
 
   shouldShowSenderName(messages: Message[], index: number): boolean {
-    // Only show for group threads
     if (this.otherParticipants.length <= 1) return false;
 
     const current = messages[index];
-    
-    // Only show for messages from other users
+    if (current.type === 'system') return false;
     if (current.senderId === this.currentUserId) return false;
 
-    if (index === 0) return true; // always show for first message
-
-    const prev = messages[index - 1];
+    const prev = this.getPrevUserMessage(messages, index);
 
     if (!prev) return true;
 
-    // Show name if previous message was from a different sender
     if (prev.senderId !== current.senderId) return true;
 
     const currentTime = current.createdAt?.toDate().getTime() || 0;
     const prevTime = prev.createdAt?.toDate().getTime() || 0;
+
     const diffMinutes = (currentTime - prevTime) / (1000 * 60);
 
     return diffMinutes > 30;
@@ -399,6 +395,24 @@ export class ChatWindow implements OnChanges {
     return `${fullDate} • ${timeString}`;
   }
 
+  getPrevUserMessage(messages: Message[], index: number): Message | null {
+    for (let i = index - 1; i >= 0; i--) {
+      if (messages[i].type !== 'system') {
+        return messages[i];
+      }
+    }
+    return null;
+  }
+
+  getNextUserMessage(messages: Message[], index: number): Message | null {
+    for (let i = index + 1; i < messages.length; i++) {
+      if (messages[i].type !== 'system') {
+        return messages[i];
+      }
+    }
+    return null;
+  }
+
   handleEnter(event: Event) {
     const keyboardEvent = event as KeyboardEvent;
 
@@ -467,42 +481,38 @@ export class ChatWindow implements OnChanges {
 
   // Determines if the current message should visually group with the previous message
   shouldGroupWithPrevious(messages: Message[], index: number): boolean {
-    if (index === 0) return false;
-
-    const prev = messages[index - 1];
     const current = messages[index];
+    if (index === 0 || current.type === 'system') return false;
 
-    if (!prev?.createdAt || !current?.createdAt) return false;
+    const prev = this.getPrevUserMessage(messages, index);
+    if (!prev) return false;
 
     const sameSender = prev.senderId === current.senderId;
 
-    // Calculate time difference in minutes
     const prevTime = prev.createdAt.toDate().getTime();
     const currentTime = current.createdAt.toDate().getTime();
+
     const diffMinutes = (currentTime - prevTime) / (1000 * 60);
 
-    const maxGap = 30; // maximum minutes to consider grouping
-    return sameSender && diffMinutes <= maxGap;
+    return sameSender && diffMinutes <= 30;
   }
 
   // Determines if the bottom of the message bubble should be rounded
   shouldRoundBottom(messages: Message[], index: number): boolean {
-    if (index === messages.length - 1) return true; // last message in thread
-
-    const next = messages[index + 1];
     const current = messages[index];
+    if (current.type === 'system') return true;
 
-    if (!next?.createdAt || !current?.createdAt) return true;
+    const next = this.getNextUserMessage(messages, index);
+    if (!next) return true;
 
     const sameSender = next.senderId === current.senderId;
 
-    // Calculate time difference in minutes
     const currentTime = current.createdAt.toDate().getTime();
     const nextTime = next.createdAt.toDate().getTime();
+
     const diffMinutes = (nextTime - currentTime) / (1000 * 60);
 
-    const maxGap = 30; // maximum minutes to keep bubble connected
-    return !sameSender || diffMinutes > maxGap ? true : false;
+    return !sameSender || diffMinutes > 30;
   }
 
   getBubbleClasses(msg: Message, messages: Message[], i: number): string {
