@@ -1,21 +1,28 @@
 import { Injectable, inject } from '@angular/core';
 import { Firestore, collection, collectionData, query, where, orderBy, doc, updateDoc, serverTimestamp, setDoc, deleteDoc } from '@angular/fire/firestore'; 
 import { Notification } from '../models/notification.model';
-import { Observable, of } from 'rxjs';
+import { Observable, of, switchMap } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class NotificationsService {
   private firestore = inject(Firestore);
   
-  getNotifications(uid: string): Observable<Notification[]> {
+  getNotifications(uid: string | null | undefined): Observable<Notification[]> {
     if (!uid) return of([]);
-    const ref = collection(this.firestore, 'notifications');
-    const q = query(
-      ref,
-      where('recipientUid', '==', uid),
-      orderBy('createdAt', 'desc')
+
+    return of(uid).pipe(
+      switchMap(validUid => {
+        const ref = collection(this.firestore, 'notifications');
+
+        const q = query(
+          ref,
+          where('recipientUid', '==', validUid),
+          orderBy('createdAt', 'desc')
+        );
+
+        return collectionData(q, { idField: 'id' }) as Observable<Notification[]>;
+      })
     );
-    return collectionData(q, { idField: 'id' }) as Observable<Notification[]>;
   }
 
   async createNotification(notification: Partial<Notification>) {

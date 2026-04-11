@@ -96,6 +96,7 @@ export class AuthService {
   // Logout
   async logout() {
     await signOut(this.auth);
+    this.userSubject.next(null);
   }
 
   // Helper: get current user once

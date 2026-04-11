@@ -7,7 +7,7 @@ import { NotificationUtilsService } from '../../services/notification-utils.serv
 import { Notification } from '../../models/notification.model';
 import { NotificationItem } from '../notification-item/notification-item';
 import { UserService } from '../../services/user.service';
-import { Observable, filter, firstValueFrom, map, shareReplay, switchMap, tap } from 'rxjs';
+import { Observable, filter, firstValueFrom, map, of, shareReplay, switchMap, tap } from 'rxjs';
 import { trigger, transition, style, animate } from '@angular/animations';
 
 type DayKey = 'Today' | 'Yesterday' | 'Earlier';
@@ -51,20 +51,22 @@ export class Navbar {
 
   ngOnInit() {
     const raw$ = this.authService.authReady$.pipe(
-      filter(Boolean),
-      switchMap(() => this.authService.user$),
-      filter(Boolean),
-      switchMap(user => this.notificationsService.getNotifications(user!.uid)),
-      tap(list => {
-        this.latestNotifications = list;
+    filter(Boolean),
+    switchMap(() => this.authService.user$),
+    switchMap(user => {
+      if (!user) return of([]);
+      return this.notificationsService.getNotifications(user.uid);
+    }),
+    tap(list => {
+      this.latestNotifications = list;
 
-        if (list.some(n => !n.read)) {
-          this.newNotification = true;
-          setTimeout(() => (this.newNotification = false), 300);
-        }
-      }),
-      shareReplay(1)
-    );
+      if (list.some(n => !n.read)) {
+        this.newNotification = true;
+        setTimeout(() => (this.newNotification = false), 300);
+      }
+    }),
+    shareReplay(1)
+  );
 
     this.notifications$ = raw$;
 
