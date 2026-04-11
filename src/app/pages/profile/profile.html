@@ -14,9 +14,9 @@
 
       <!-- Default avatar -->
       <ng-template #defaultAvatar>
-        <div class="w-32 h-32 rounded-full flex items-center justify-center text-white text-6xl font-normal select-none"
+        <div class="w-32 h-32 rounded-full flex items-center justify-center text-white text-[64px] font-normal select-none"
              [ngStyle]="{ 'background-color': getAvatarColor(profile.username) }">
-          {{ getInitial(profile.username) }}
+          <span class="relative -top-[1px] -right-[0.5px]">{{ getInitial(profile.username) }}</span>
         </div>
       </ng-template>
 

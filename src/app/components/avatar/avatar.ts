@@ -22,9 +22,9 @@ import { getInitial, getAvatarColor } from '../../utils/avatar';
         [ngClass]="{
           'w-6 h-6 text-xs': size === 'xs',
           'w-8 h-8 text-sm': size === 'sm',
-          'w-10 h-10 text-base': size === 'md',
+          'w-10 h-10 text-[20px]': size === 'md',
           'w-12 h-12 text-lg': size === 'lg',
-          'w-14 h-14 text-2xl': size === '2xl',
+          'w-14 h-14 text-[30px]': size === '2xl',
           'w-[1.28rem] h-[1.28rem] text-[11px]': size === 'group',
           'w-[27.5px] h-[27.5px] text-sm': size === 'group2'
         }"

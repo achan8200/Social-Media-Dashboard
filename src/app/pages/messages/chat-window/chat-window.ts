@@ -95,6 +95,7 @@ export class ChatWindow implements OnChanges {
   private scrollTrigger$ = new BehaviorSubject<void>(undefined);
   private wasNearBottom = true;
   private pendingScroll = false;
+  private justSentMessage = false;
 
   private destroy$ = new Subject<void>();
 
@@ -131,10 +132,14 @@ export class ChatWindow implements OnChanges {
       }
     });
     this.messages$ = this.messagesService.getMessages(this.threadId).pipe(
-      tap(() => {
-        // Capture scroll state BEFORE DOM updates
+      tap((messages: any[]) => {
+        const last = messages[messages.length - 1];
         this.wasNearBottom = this.isNearBottom();
         this.pendingScroll = true;
+
+        if (last?.senderId === this.currentUserId) {
+          this.justSentMessage = true;
+        }
       })
     );
     this.participants$ = this.messagesService.getUserThreads().pipe(
@@ -160,11 +165,21 @@ export class ChatWindow implements OnChanges {
     this.otherParticipants$ = this.participants$.pipe(
       map(list => list.filter(p => p.uid !== this.currentUserId))
     );
+
     this.otherParticipants$
       .pipe(takeUntil(this.destroy$))
       .subscribe(participants => {
         this.otherParticipants = participants;
     });
+
+    this.messagesService.getUserThreads().pipe(
+      map(threads => threads.find(t => t.id === this.threadId)),
+      map(thread => thread?.groupName || null),
+      takeUntil(this.destroy$)
+    ).subscribe(name => {
+      this.groupName = name;
+    });
+
     this.messagesWithSender$ = combineLatest([
       this.messages$,
       this.participants$
@@ -188,7 +203,7 @@ export class ChatWindow implements OnChanges {
     setTimeout(() => {
       requestAnimationFrame(() => {
         this.messageInput?.nativeElement.focus();
-        this.scrollToBottom();
+        this.scrollToBottom(false);
       });
     });
   }
@@ -197,7 +212,7 @@ export class ChatWindow implements OnChanges {
     this.scrollTrigger$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
-      setTimeout(() => this.scrollToBottom());
+      setTimeout(() => this.scrollToBottom(false));
     });
   }
 
@@ -206,7 +221,7 @@ export class ChatWindow implements OnChanges {
 
     this.pendingScroll = false;
 
-    if (this.wasNearBottom) {
+    if (this.wasNearBottom || this.justSentMessage) {
       this.scrollToBottom();
       this.showNewMessageIndicator = false;
     } else {
@@ -232,7 +247,10 @@ export class ChatWindow implements OnChanges {
 
     await this.messagesService.setTyping(this.threadId, false);
 
-    setTimeout(() => this.scrollToBottom());
+    setTimeout(() => {
+      this.scrollToBottom();
+      this.justSentMessage = false;
+    });
   }
 
   get headerTitle(): string {
@@ -469,12 +487,12 @@ export class ChatWindow implements OnChanges {
     el.style.height = el.scrollHeight + 'px';
   }
 
-  scrollToBottom() {
+  scrollToBottom(force = true) {
     try {
       const el = this.scrollContainer.nativeElement;
       el.scrollTo({
         top: el.scrollHeight,
-        behavior: 'smooth'
+        behavior: force ? 'smooth' : 'auto'
       });
     } catch {}
   }
@@ -494,7 +512,7 @@ export class ChatWindow implements OnChanges {
   }
 
   scrollToBottomAndClearIndicator() {
-    this.scrollToBottom();
+    this.scrollToBottom(true);
     this.showNewMessageIndicator = false;
   }
 

@@ -78,7 +78,7 @@
   </div>
 
   <!-- Messages -->
-  <div *ngIf="threadId" class="flex flex-col flex-1 min-h-0">
+  <div *ngIf="threadId" class="flex flex-col flex-1 min-h-0 relative">
 
     <!-- Message List -->
 		<div #scrollContainer
@@ -155,7 +155,7 @@
 		<button
 			*ngIf="showNewMessageIndicator"
 			(click)="scrollToBottomAndClearIndicator()"
-			class="absolute bottom-18 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-3 py-1 rounded-full shadow hover:bg-blue-600 transition z-30">
+			class="absolute bottom-20 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-3 py-1 rounded-full shadow hover:bg-blue-600 transition z-30">
 			New messages ↓
 		</button>
 
