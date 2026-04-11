@@ -13,7 +13,7 @@ import { Avatar } from '../avatar/avatar';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { PickerComponent } from '@ctrl/ngx-emoji-mart';
 import { formatPostTimestamp } from '../../utils/date';
-import { BehaviorSubject, combineLatest, map, Observable, of, switchMap } from 'rxjs';
+import { BehaviorSubject, map, Observable, of } from 'rxjs';
 
 @Component({
   selector: 'app-post-modal',
@@ -68,7 +68,7 @@ export class PostModal implements AfterViewInit {
   menuOpen = false;
   copied = false;
   openCommentMenuId: string | null = null;
-  commentMenuAbove: Record<string, boolean> = {}; // Track if a comment menu should open upwards
+  commentMenuDirection: Record<string, 'up' | 'down'> = {};
   showNewCommentsButton = false;
   showEmojiPicker = false;
 
@@ -511,33 +511,19 @@ export class PostModal implements AfterViewInit {
     this.openCommentMenuId = null;
   }
 
-  toggleCommentMenu(commentId: string) {
-    if (this.openCommentMenuId === commentId) {
-      this.openCommentMenuId = null;
-    } else {
-      this.openCommentMenuId = commentId;
+  toggleCommentMenu(commentId: string, event: Event) {
+    event.stopPropagation();
 
-      // Determine if the menu should open upward
-      setTimeout(() => {
-        const menuButton = document.querySelector(
-          `.comment-menu-toggle[data-id='${commentId}']`
-        ) as HTMLElement;
+    const buttonEl = event.currentTarget as HTMLElement;
 
-        if (!menuButton) return;
+    // Determine direction before opening
+    const shouldOpenUp = this.isNearBottomOfModal(buttonEl);
 
-        const rect = menuButton.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
+    this.commentMenuDirection[commentId] = shouldOpenUp ? 'up' : 'down';
 
-        // Approximate menu height: 70px (Edit + Delete)
-        const menuHeight = 70;
-
-        if (rect.bottom + menuHeight > viewportHeight) {
-          this.commentMenuAbove[commentId] = true;
-        } else {
-          this.commentMenuAbove[commentId] = false;
-        }
-      });
-    }
+    // Toggle open state
+    this.openCommentMenuId =
+      this.openCommentMenuId === commentId ? null : commentId;
   }
 
   isCommentMenuOpen(commentId: string): boolean {
@@ -797,5 +783,17 @@ export class PostModal implements AfterViewInit {
 
   formatPostTimestamp(timestamp: any): string {
     return formatPostTimestamp(timestamp);
+  }
+
+  isNearBottomOfModal(element: HTMLElement): boolean {
+    const modal = element.closest('.overflow-y-auto'); // scroll container
+    if (!modal) return false;
+
+    const rect = element.getBoundingClientRect();
+    const modalRect = modal.getBoundingClientRect();
+
+    const spaceBelow = modalRect.bottom - rect.bottom;
+
+    return spaceBelow < 60; // threshold (adjust if needed)
   }
 }

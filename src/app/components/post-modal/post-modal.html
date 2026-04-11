@@ -106,7 +106,7 @@
                     class="text-gray-600 text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 hover:text-black transition">
               <span class="relative -top-[1px]">⋯</span>
             </button>
-            <div *ngIf="menuOpen" class="absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg z-50">
+            <div *ngIf="menuOpen" class="absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg z-50 animate-slide-down">
               <button (click)="onEdit($event)" class="block w-full text-left px-4 py-2 hover:bg-gray-100">Edit Post</button>
               <button (click)="onDelete($event)" class="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">Delete Post</button>
             </div>
@@ -188,7 +188,7 @@
               <!-- Author Controls Dropdown for Comment -->
               <div *ngIf="comment.uid === auth.currentUser?.uid" class="relative">
                 <!-- Trigger button -->
-                <button (click)="toggleCommentMenu(comment.id!)"
+                <button (click)="toggleCommentMenu(comment.id!, $event)"
                         [class.bg-gray-300]="isCommentMenuOpen(comment.id!)"
                         class="comment-menu-toggle text-gray-500 text-sm w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 hover:text-black transition">
                   <span class="relative -top-[1px]">⋯</span>
@@ -196,7 +196,8 @@
 
                 <!-- Dropdown menu -->
                 <div *ngIf="isCommentMenuOpen(comment.id!)"
-                    class="comment-menu absolute right-0 mt-1 w-28 bg-white border rounded shadow-lg z-50 text-sm">
+                    class="comment-menu absolute right-0 w-28 bg-white border rounded shadow-lg z-50 text-sm"
+                    [ngClass]="commentMenuDirection[comment.id!] === 'up' ? 'bottom-full mb-1 animate-slide-up' : 'top-full mt-1 animate-slide-down'">
                   <button (click)="startEdit(comment)" class="block w-full text-left px-3 py-1 hover:bg-gray-100">Edit</button>
                   <button (click)="deleteComment(comment)" class="block w-full text-left px-3 py-1 text-red-600 hover:bg-gray-100">Delete</button>
                 </div>
@@ -279,7 +280,7 @@
             </button>
 
             <div *ngIf="menuOpen"
-                class="absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg z-50">
+                class="absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg z-50 animate-slide-down">
               <button (click)="onEdit($event)" class="block w-full text-left px-4 py-2 hover:bg-gray-100">Edit Post</button>
               <button (click)="onDelete($event)" class="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">Delete Post</button>
             </div>
@@ -361,7 +362,7 @@
             <!-- Author Controls Dropdown for Comment -->
             <div *ngIf="comment.uid === auth.currentUser?.uid" class="relative">
               <!-- Trigger button -->
-              <button (click)="toggleCommentMenu(comment.id!)"
+              <button (click)="toggleCommentMenu(comment.id!, $event)"
                 [class.bg-gray-300]="isCommentMenuOpen(comment.id!)"
                 class="comment-menu-toggle text-gray-500 text-sm w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 hover:text-black transition">
                 <span class="relative -top-[1px]">⋯</span>
@@ -369,7 +370,8 @@
 
               <!-- Dropdown menu -->
               <div *ngIf="isCommentMenuOpen(comment.id!)"
-                class="comment-menu absolute right-0 mt-1 w-28 bg-white border rounded shadow-lg z-50 text-sm">
+                class="comment-menu absolute right-0 w-28 bg-white border rounded shadow-lg z-50 text-sm"
+                [ngClass]="commentMenuDirection[comment.id!] === 'up' ? 'bottom-full mb-1 animate-slide-up' : 'top-full mt-1 animate-slide-down'">
                 <button (click)="startEdit(comment)" class="block w-full text-left px-3 py-1 hover:bg-gray-100">Edit</button>
                 <button (click)="deleteComment(comment)" class="block w-full text-left px-3 py-1 text-red-600 hover:bg-gray-100">Delete</button>
               </div>
