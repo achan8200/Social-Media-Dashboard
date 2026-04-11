@@ -11,7 +11,7 @@ import { ConfirmModal } from '../../../components/confirm-modal/confirm-modal';
 import { PickerComponent } from '@ctrl/ngx-emoji-mart';
 import emojiRegex from 'emoji-regex';
 import { trigger, transition, style, animate } from '@angular/animations';
-import { Observable, tap, combineLatest, map, switchMap, of, BehaviorSubject, catchError } from 'rxjs';
+import { Observable, tap, combineLatest, map, switchMap, of, BehaviorSubject, catchError, Subject, takeUntil } from 'rxjs';
 
 interface MessageWithSender extends Message {
   senderProfilePicture?: string;
@@ -71,6 +71,7 @@ export class ChatWindow implements OnChanges {
   private typingTimeout: any;
   typing$!: Observable<{ [uid: string]: boolean }>;
   participants$!: Observable<Participant[]>;
+  otherParticipants$!: Observable<Participant[]>;
   otherParticipants: Participant[] = [];
   messagesWithSender$!: Observable<MessageWithSender[]>;
   groupName: string | null = null;
@@ -95,6 +96,8 @@ export class ChatWindow implements OnChanges {
   private wasNearBottom = true;
   private pendingScroll = false;
 
+  private destroy$ = new Subject<void>();
+
   constructor(
     private messagesService: MessagesService,
     private auth: Auth,
@@ -103,6 +106,12 @@ export class ChatWindow implements OnChanges {
   ) {}
 
   ngOnChanges() {
+    this.menuOpen = false;
+    this.showEmojiPicker = false;
+    this.selectedParticipantMenu = null;
+    this.showDetailsModal = false;
+    this.showAddPeopleModal = false;
+
     if (!this.threadId) {
       this.messages$ = of([]);
       this.participants$ = of([]);
@@ -131,11 +140,7 @@ export class ChatWindow implements OnChanges {
     this.participants$ = this.messagesService.getUserThreads().pipe(
       map(threads => threads.find(t => t.id === this.threadId)),
       switchMap(thread => {
-        if (!thread) return of([]);
-
-        this.groupName = thread.groupName || null;
-
-        if (!thread.participants) return of([]);
+        if (!thread?.participants) return of([]);
 
         const observables = thread.participants.map(uid =>
           this.userService.getUserByUid(uid).pipe(
@@ -148,13 +153,18 @@ export class ChatWindow implements OnChanges {
           )
         );
 
-        return combineLatest(observables).pipe(
-          tap(participants => {
-            this.otherParticipants = participants.filter(p => p.uid !== this.currentUserId);
-          })
-        );
+        return combineLatest(observables);
       })
     );
+
+    this.otherParticipants$ = this.participants$.pipe(
+      map(list => list.filter(p => p.uid !== this.currentUserId))
+    );
+    this.otherParticipants$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(participants => {
+        this.otherParticipants = participants;
+    });
     this.messagesWithSender$ = combineLatest([
       this.messages$,
       this.participants$
@@ -176,13 +186,17 @@ export class ChatWindow implements OnChanges {
     this.messagesService.markMessagesAsRead(this.threadId);
 
     setTimeout(() => {
-      this.messageInput?.nativeElement.focus();
-      this.scrollToBottom();
+      requestAnimationFrame(() => {
+        this.messageInput?.nativeElement.focus();
+        this.scrollToBottom();
+      });
     });
   }
 
   ngAfterViewInit() {
-    this.scrollTrigger$.subscribe(() => {
+    this.scrollTrigger$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
       setTimeout(() => this.scrollToBottom());
     });
   }
@@ -198,6 +212,11 @@ export class ChatWindow implements OnChanges {
     } else {
       this.showNewMessageIndicator = true;
     }
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   async sendMessage() {

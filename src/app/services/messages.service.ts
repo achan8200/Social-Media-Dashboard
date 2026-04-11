@@ -21,10 +21,8 @@ export class MessagesService {
   private withAuth<T>(fn: (uid: string) => Observable<T>): Observable<T> {
     return authState(this.auth).pipe(
       switchMap(user => {
-        if (!user?.uid) return of([] as unknown as T); // safe empty array
-        return from(user.getIdToken()).pipe(
-          switchMap(() => fn(user.uid))
-        );
+        if (!user?.uid) return of(null as unknown as T);
+        return fn(user.uid);
       })
     );
   }
