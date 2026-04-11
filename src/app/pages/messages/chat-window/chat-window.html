@@ -350,7 +350,9 @@
 									{{ followingSet.has(p.uid) ? 'Unfollow' : 'Follow' }}
 								</button>
 							</div>
-							<button class="block w-full text-left px-3 py-2 text-red-500 hover:bg-gray-100" (click)="removeFromGroup(p.uid)">
+							<button *ngIf="otherParticipants.length > 1"
+								class="block w-full text-left px-3 py-2 text-red-500 hover:bg-gray-100"
+								(click)="removeFromGroup(p.uid)">
 								Remove from group
 							</button>
 						</div>
