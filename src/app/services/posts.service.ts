@@ -427,7 +427,7 @@ export class PostsService {
       return false;
     } else {
       // Like: create the like doc
-      await setDoc(likeRef, { createdAt: serverTimestamp() });
+      await setDoc(likeRef, { uid, createdAt: serverTimestamp() });
 
       // Get post info
       const postSnap = await getDoc(doc(this.firestore, `posts/${postId}`));
@@ -438,6 +438,7 @@ export class PostsService {
           await this.notificationsService.createNotification({
             recipientUid: post['uid'],
             actorUid: uid,
+            postOwnerUid: post['uid'],
             type: 'like_post',
             postId: postId
           });
@@ -527,6 +528,15 @@ export class PostsService {
       map(comments => {
         const result: CommentWithLikes[] = [];
 
+        const currentIds = new Set(comments.map(c => c.id));
+
+        // Remove deleted comments from map
+        for (const key of commentMap.keys()) {
+          if (!currentIds.has(key)) {
+            commentMap.delete(key);
+          }
+        }
+
         comments.forEach(comment => {
           let existing = commentMap.get(comment.id!);
 
@@ -544,7 +554,6 @@ export class PostsService {
             existing = { ...comment, username$, userAvatar$, liked$ } as CommentWithLikes;
             commentMap.set(comment.id!, existing);
           } else {
-            // update mutable fields only
             existing.text = comment['text'];
             existing.likesCount = comment['likesCount'] || 0;
             existing.updatedAt = comment['updatedAt'] || existing.updatedAt;
@@ -590,6 +599,7 @@ export class PostsService {
         await this.notificationsService.createNotification({
           recipientUid: post['uid'],
           actorUid: user.uid,
+          postOwnerUid: post['uid'],
           type: 'comment_post',
           postId: postId,
           commentId
@@ -624,22 +634,22 @@ export class PostsService {
     // Delete all likes on this comment and their notifications
     const commentLikesSnap = await getDocs(collection(this.firestore, `posts/${postId}/comments/${commentId}/likes`));
     for (const likeDoc of commentLikesSnap.docs) {
-      const likeData = likeDoc.data();
-      await deleteDoc(likeDoc.ref);
+      const likerUid = likeDoc.id;
 
-      if (likeData?.['uid'] && commentData?.['uid']) {
+      try {
         await this.notificationsService.deleteNotification({
-          recipientUid: commentData['uid'], // comment author
-          actorUid: likeData['uid'],        // who liked
+          recipientUid: commentData['uid'],
+          actorUid: likerUid,
           type: 'like_comment',
           postId,
           commentId
         });
+      } catch (err) {
+        console.warn('Failed to delete notification', err);
       }
-    }
 
-    // Delete the comment itself
-    await deleteDoc(commentRef);
+      await deleteDoc(likeDoc.ref);
+    }
 
     // Remove 'comment_post' notification sent to post author
     const postRef = doc(this.firestore, `posts/${postId}`);
@@ -647,14 +657,21 @@ export class PostsService {
     const postData = postSnap.exists() ? postSnap.data() : null;
 
     if (postData?.['uid'] && postData['uid'] !== user.uid) {
-      await this.notificationsService.deleteNotification({
-        recipientUid: postData['uid'], // post author
-        actorUid: user.uid,            // comment author (who deleted)
-        type: 'comment_post',
-        postId,
-        commentId
-      });
+      try {
+        await this.notificationsService.deleteNotification({
+          recipientUid: postData['uid'], // post author
+          actorUid: commentData['uid'],            // comment author (who deleted)
+          type: 'comment_post',
+          postId,
+          commentId
+        });
+      } catch (err) {
+        console.warn('Failed to delete notification', err);
+      }
     }
+
+    // Delete the comment itself
+    await deleteDoc(commentRef);
 
     // Update post comment counter
     await updateDoc(postRef, {
@@ -718,25 +735,33 @@ export class PostsService {
       if (commentSnap.exists()) {
         const comment = commentSnap.data();
         if (comment['uid'] !== uid) {
-          await this.notificationsService.deleteNotification({
-            recipientUid: comment['uid'], // author of the comment
-            actorUid: uid,               // the user who unliked
-            type: 'like_comment',
-            postId,
-            commentId
-          });
+          try {
+            await this.notificationsService.deleteNotification({
+              recipientUid: comment['uid'], // author of the comment
+              actorUid: uid,               // the user who unliked
+              type: 'like_comment',
+              postId,
+              commentId
+            });
+          } catch (err) {
+            console.warn('Failed to delete notification', err);
+          }
         }
       }
     } else {
       // Like
-      await setDoc(likeRef, { createdAt: serverTimestamp() });
+      await setDoc(likeRef, { uid, createdAt: serverTimestamp() });
       await updateDoc(commentRef, { likesCount: increment(1) });
       subj.next(true);
+
+      // Fetch post to determine owner
+      const postSnap = await getDoc(doc(this.firestore, `posts/${postId}`));
 
       // Fetch comment to determine author
       const commentSnap = await getDoc(commentRef);
 
-      if (commentSnap.exists()) {
+      if (commentSnap.exists() && postSnap.exists()) {
+        const post = postSnap.data();
         const comment = commentSnap.data();
 
         // Prevent self-notifications
@@ -744,6 +769,7 @@ export class PostsService {
           await this.notificationsService.createNotification({
             recipientUid: comment['uid'],
             actorUid: uid,
+            postOwnerUid: post['uid'],
             type: 'like_comment',
             postId: postId,
             commentId: commentId
@@ -810,16 +836,21 @@ export class PostsService {
     const likesSnap = await getDocs(collection(this.firestore, `posts/${postId}/likes`));
     for (const likeDoc of likesSnap.docs) {
       const likeData = likeDoc.data();
-      await deleteDoc(likeDoc.ref);
 
       if (likeData?.['uid'] && postOwnerUid) {
-        await this.notificationsService.deleteNotification({
-          recipientUid: postOwnerUid,    // post owner
-          actorUid: likeData['uid'],     // user who liked
-          type: 'like_post',
-          postId
-        });
+        try {
+          await this.notificationsService.deleteNotification({
+            recipientUid: postOwnerUid,    // post owner
+            actorUid: likeData['uid'],     // user who liked
+            type: 'like_post',
+            postId
+          });
+        } catch (err) {
+          console.warn('Failed to delete like_post notification', err);
+        }
       }
+
+      await deleteDoc(likeDoc.ref);
     }
 
     // Delete comments and comment likes
@@ -832,29 +863,36 @@ export class PostsService {
       // Delete likes on this comment and their notifications
       const commentLikesSnap = await getDocs(collection(this.firestore, `posts/${postId}/comments/${commentId}/likes`));
       for (const likeDoc of commentLikesSnap.docs) {
-        const likeData = likeDoc.data();
-        await deleteDoc(likeDoc.ref);
+        const likerUid = likeDoc.id;
 
-        if (likeData?.['uid'] && commentAuthorUid) {
+        try {
           await this.notificationsService.deleteNotification({
-            recipientUid: commentAuthorUid, // comment author
-            actorUid: likeData['uid'],      // user who liked
+            recipientUid: commentData['uid'],
+            actorUid: likerUid,
             type: 'like_comment',
             postId,
             commentId
           });
+        } catch (err) {
+          console.warn('Failed to delete notification', err);
         }
+
+        await deleteDoc(likeDoc.ref);
       }
 
       // Delete comment notifications (sent to post owner)
       if (commentAuthorUid && postOwnerUid && postOwnerUid !== commentAuthorUid) {
-        await this.notificationsService.deleteNotification({
-          recipientUid: postOwnerUid,    // post owner
-          actorUid: commentAuthorUid,    // comment author
-          type: 'comment_post',
-          postId,
-          commentId
-        });
+        try {
+          await this.notificationsService.deleteNotification({
+            recipientUid: postOwnerUid,    // post owner
+            actorUid: commentAuthorUid,    // comment author
+            type: 'comment_post',
+            postId,
+            commentId
+          });
+        } catch (err) {
+          console.warn('Failed to delete notification', err);
+        }
       }
 
       // Delete the comment itself

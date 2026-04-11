@@ -13,7 +13,7 @@ import { Avatar } from '../avatar/avatar';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { PickerComponent } from '@ctrl/ngx-emoji-mart';
 import { formatPostTimestamp } from '../../utils/date';
-import { combineLatest, map, Observable, of, switchMap } from 'rxjs';
+import { BehaviorSubject, combineLatest, map, Observable, of, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-post-modal',
@@ -54,7 +54,8 @@ export class PostModal implements AfterViewInit {
   likesCount$!: Observable<number>;
   commentsCount$!: Observable<number>;
 
-  comments$!: Observable<CommentWithLikes[]>;
+  commentsSubject = new BehaviorSubject<CommentWithLikes[]>([]);
+  comments$ = this.commentsSubject.asObservable();
   newComment = '';
   editingCommentId: string | null = null;
   editingText = '';
@@ -108,29 +109,6 @@ export class PostModal implements AfterViewInit {
       this.displayName$ = user$.pipe(map(u => u?.displayName || 'Unknown'));
       this.userAvatar$ = user$.pipe(map(u => u?.profilePicture || null));
       this.userId$ = user$.pipe(map(u => u?.userId || ''));
-      this.comments$ = this.postsService.getComments(this.post.id).pipe(
-        switchMap(comments => {
-          return combineLatest(
-            comments.map(comment => {
-              // Get the Observable for the user
-              const user$ = this.userService.getUserByUid(comment.uid);
-
-              // Get Observable for whether the comment is liked
-              const liked$ = this.postsService.getCommentLike(this.post!.id, comment.id!);
-
-              // Combine them to produce a comment with reactive user info
-              return combineLatest([user$, liked$]).pipe(
-                map(([user, liked]) => ({
-                  ...comment,
-                  username$: of(user?.username ?? 'Unknown'),      // wrap plain values in of()
-                  userAvatar$: of(user?.profilePicture ?? null),
-                  liked$,
-                }))
-              );
-            })
-          );
-        })
-      );
       this.timestamp$ = of(this.post).pipe(
         map(post => this.formatPostTimestamp(post?.createdAt))
       );
@@ -143,6 +121,10 @@ export class PostModal implements AfterViewInit {
           return this.formatCaption(this.rawCaption);
         })
       );
+    }
+
+    if (this.post) {
+      this.setupComments();
     }
 
     const media = this.post?.media;
@@ -323,23 +305,21 @@ export class PostModal implements AfterViewInit {
 
   async deleteComment(comment: CommentWithLikes) {
     if (!this.post) return;
+
+    // Instant UI update
+    const updated = this.commentsSubject.value.filter(
+      c => c.id !== comment.id
+    );
+    this.commentsSubject.next(updated);
+    this.cdr.markForCheck();
+
     try {
       await this.postsService.deleteComment(this.post.id, comment.id!);
     } catch (err) {
       console.error(err);
-      // Optional rollback: refetch comments
-      this.comments$ = this.postsService.getComments(this.post.id).pipe(
-        switchMap(comments => {
-          const uid = this.auth.currentUser?.uid;
-          if (!uid) return of(comments.map(c => ({ ...c, liked$: of(false) })));
-          const commentsWithLikes$ = comments.map(c =>
-            this.postsService.getCommentLike(this.post!.id, c.id!).pipe(
-              map(liked => ({ ...c, liked$: of(liked) }))
-            )
-          );
-          return combineLatest(commentsWithLikes$);
-        })
-      );
+
+      // rollback (optional)
+      this.setupComments();
     }
   }
 
@@ -356,6 +336,30 @@ export class PostModal implements AfterViewInit {
 
   trackByCommentId(index: number, comment: Comment) {
     return comment.id;
+  }
+
+  private setupComments() {
+    if (!this.post) return;
+
+    this.postsService.getComments(this.post.id).subscribe(comments => {
+      const enriched = comments.map(c => ({
+        ...c,
+        username$: this.userService.getUserByUid(c.uid).pipe(
+          map(u => u?.username ?? 'Unknown')
+        ),
+        userAvatar$: this.userService.getUserByUid(c.uid).pipe(
+          map(u => u?.profilePicture ?? null)
+        ),
+        liked$: this.postsService.getCommentLike(this.post!.id, c.id!)
+      }));
+
+      this.commentsSubject.next(enriched);
+      this.cdr.markForCheck(); // IMPORTANT for OnPush
+    });
+
+    this.commentsCount$ = this.comments$.pipe(
+      map(comments => comments.length)
+    );
   }
 
   onClose() {

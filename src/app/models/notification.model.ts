@@ -3,6 +3,7 @@ export interface Notification {
 
   recipientUid: string;
   actorUid: string;
+  postOwnerUid?: string;
   
   type:
     | 'like_post'

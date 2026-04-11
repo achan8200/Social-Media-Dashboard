@@ -20,4 +20,6 @@ export interface Comment {
   userAvatar?: string | null;
 
   likesCount?: number;
+
+  postOwnerUid: string;
 }

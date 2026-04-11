@@ -1,13 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 import { Firestore, collection, collectionData, query, where, orderBy, doc, updateDoc, serverTimestamp, setDoc, deleteDoc } from '@angular/fire/firestore'; 
 import { Notification } from '../models/notification.model';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class NotificationsService {
   private firestore = inject(Firestore);
   
   getNotifications(uid: string): Observable<Notification[]> {
+    if (!uid) return of([]);
     const ref = collection(this.firestore, 'notifications');
     const q = query(
       ref,
@@ -18,7 +19,7 @@ export class NotificationsService {
   }
 
   async createNotification(notification: Partial<Notification>) {
-    const { recipientUid, actorUid, type, postId, commentId, threadId } = notification;
+    const { recipientUid, actorUid, postOwnerUid, type, postId, commentId, threadId } = notification;
 
     if (!recipientUid || !actorUid || !type) {
       console.warn('createNotification: missing required fields', notification);
@@ -52,17 +53,29 @@ export class NotificationsService {
         updatedAt: serverTimestamp()
       };
 
-      if (postId) payload.postId = postId;
-      if (commentId) payload.commentId = commentId;
-      if (threadId) payload.threadId = threadId;
+      switch (type) {
+        case 'like_post':
+        case 'comment_post':
+          payload.postId = postId;
+          payload.postOwnerUid = postOwnerUid;
+          break;
+
+        case 'like_comment':
+          payload.postId = postId;
+          payload.commentId = commentId;
+          break;
+
+        case 'thread_added':
+          payload.threadId = threadId;
+          break;
+      }
 
       console.log('Creating notification:', id, payload);
 
-      // merge: true prevents overwriting important fields unintentionally
       await setDoc(ref, {
         ...payload,
         createdAt: serverTimestamp()
-      }, { merge: true });
+      });
 
     } catch (err) {
       console.error('Failed to create notification:', err);
