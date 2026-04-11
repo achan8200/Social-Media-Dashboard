@@ -83,72 +83,72 @@
     <!-- Message List -->
 		<div #scrollContainer
 			(scroll)="onScroll()"
-			class="flex-1 overflow-y-auto px-4 py-2 min-h-0">
-			<div class="flex flex-col min-h-full">
-			<div *ngIf="messagesWithSender$ | async as messages" class="flex flex-col">
-				<ng-container *ngFor="let msg of messages; let i = index">
-					<div [ngClass]="getMessageSpacing(messages, i)">
+			class="flex-1 overflow-y-auto px-4 py-2 min-h-0 flex flex-col">
+			<div class="flex flex-col flex-1 justify-end">
+				<div *ngIf="messagesWithSender$ | async as messages" class="flex flex-col">
+					<ng-container *ngFor="let msg of messages; let i = index">
+						<div [ngClass]="getMessageSpacing(messages, i)">
 
-					<!-- Date Separator -->
-					<div *ngIf="shouldShowDateSeparator(messages, i)"
-							class="flex justify-center my-3 sticky top-0 z-10 transition-opacity duration-300 ease-in-out">
-						<div class="text-gray-600 text-xs px-3 py-1 rounded-full">
-							{{ formatDateSeparator(msg.createdAt) }}
-						</div>
-					</div>
-
-					<!-- System Message -->
-					<div *ngIf="msg.type === 'system'" class="text-center text-gray-500 text-sm my-2">
-						{{ msg.text }}
-					</div>
-
-					<!-- User Message -->
-					<div *ngIf="msg.type === 'text'">
-
-						<!-- Sender name -->
-						<div *ngIf="shouldShowSenderName(messages, i)" 
-							class="text-gray-500 text-xs mb-1 ml-12">
-							{{ getSenderName(msg) }}
-						</div>
-
-						<!-- Row: avatar and bubble only -->
-						<div 
-							[ngClass]="msg.senderId === currentUserId ? 'justify-end' : 'justify-start'"
-							class="flex items-end gap-2">
-
-							<!-- Avatar (only for last in group) -->
-							<div class="w-8" *ngIf="msg.senderId !== currentUserId">
-								<ng-container *ngIf="msg.senderId !== currentUserId && shouldRoundBottom(messages, i)">
-									<app-avatar 
-										[imageUrl]="msg.senderProfilePicture"
-										[username]="msg.senderUsername"
-										[userId]="msg.senderUserId"
-										size="sm"
-										class="flex-shrink-0 self-end">
-									</app-avatar>
-								</ng-container>
-							</div>
-
-							<!-- Bubble ONLY -->
-							<div [ngClass]="getBubbleClasses(msg, messages, i)"
-								class="max-w-[60%] break-words">
-							<span class="whitespace-pre-wrap break-words">{{ msg.text }}</span>
+						<!-- Date Separator -->
+						<div *ngIf="shouldShowDateSeparator(messages, i)"
+								class="flex justify-center my-3 sticky top-0 z-10 transition-opacity duration-300 ease-in-out">
+							<div class="text-gray-600 bg-white text-xs px-3 py-1 rounded-full">
+								{{ formatDateSeparator(msg.createdAt) }}
 							</div>
 						</div>
 
-						<!-- Timestamp OUTSIDE the flex row -->
-						<div 
-							*ngIf="shouldShowTimestamp(messages, i)"
-							[ngClass]="msg.senderId === currentUserId ? 'text-right pr-2' : 'text-left ml-12'"
-							class="text-[0.65rem] text-gray-400 mt-[2px]">
-							{{ msg.createdAt?.toDate() | date:'shortTime' }}
+						<!-- System Message -->
+						<div *ngIf="msg.type === 'system'" class="text-center text-gray-500 text-sm my-2">
+							{{ msg.text }}
 						</div>
 
-					</div>
+						<!-- User Message -->
+						<div *ngIf="msg.type === 'text'">
 
-					</div>
-				</ng-container>
-			</div>
+							<!-- Sender name -->
+							<div *ngIf="shouldShowSenderName(messages, i)" 
+								class="text-gray-500 text-xs mb-1 ml-12">
+								{{ getSenderName(msg) }}
+							</div>
+
+							<!-- Row: avatar and bubble only -->
+							<div 
+								[ngClass]="msg.senderId === currentUserId ? 'justify-end' : 'justify-start'"
+								class="flex items-end gap-2">
+
+								<!-- Avatar (only for last in group) -->
+								<div class="w-8" *ngIf="msg.senderId !== currentUserId">
+									<ng-container *ngIf="msg.senderId !== currentUserId && shouldRoundBottom(messages, i)">
+										<app-avatar 
+											[imageUrl]="msg.senderProfilePicture"
+											[username]="msg.senderUsername"
+											[userId]="msg.senderUserId"
+											size="sm"
+											class="flex-shrink-0 self-end">
+										</app-avatar>
+									</ng-container>
+								</div>
+
+								<!-- Bubble ONLY -->
+								<div [ngClass]="getBubbleClasses(msg, messages, i)"
+									class="max-w-[60%] break-words">
+								<span class="whitespace-pre-wrap break-words">{{ msg.text }}</span>
+								</div>
+							</div>
+
+							<!-- Timestamp OUTSIDE the flex row -->
+							<div 
+								*ngIf="shouldShowTimestamp(messages, i)"
+								[ngClass]="msg.senderId === currentUserId ? 'text-right pr-2' : 'text-left ml-12'"
+								class="text-[0.65rem] text-gray-400 mt-[2px]">
+								{{ msg.createdAt?.toDate() | date:'shortTime' }}
+							</div>
+
+						</div>
+
+						</div>
+					</ng-container>
+				</div>
 			</div>
 		</div>
 
