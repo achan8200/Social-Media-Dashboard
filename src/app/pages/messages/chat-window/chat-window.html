@@ -323,7 +323,7 @@
 				</button>
 
 				<!-- Participants -->
-				<div *ngFor="let p of otherParticipants" class="flex items-center justify-between p-2 hover:bg-gray-100 rounded  transition-colors duration-150">
+				<div *ngFor="let p of otherParticipants" class="flex items-center justify-between p-2 rounded  transition-colors duration-150">
 					<div class="flex items-center gap-2">
 						<app-avatar [imageUrl]="p.profilePicture" [username]="p.username" [userId]="p.userId" size="sm"></app-avatar>
 
@@ -338,7 +338,12 @@
 						</span>
 					</div>
 					<div class="relative">
-						<button (click)="toggleParticipantMenu(p.uid, $event)">⋯</button>
+						<button 
+							(click)="toggleParticipantMenu(p.uid, $event)"
+							[class.bg-gray-300]="selectedParticipantMenu === p.uid"
+							class="w-6 h-6 rounded-full hover:bg-gray-200">
+							<span class="relative -top-[1px]">⋯</span>
+						</button>
 						<div *ngIf="selectedParticipantMenu === p.uid" class="absolute right-0 mt-1 bg-white border rounded shadow w-40 z-50 text-sm">
 							<div *ngIf="followingMap$ | async as followingSet">
 								<button (click)="toggleFollow(p.uid, followingSet.has(p.uid))" class="block w-full text-left px-3 py-2 hover:bg-gray-100">
