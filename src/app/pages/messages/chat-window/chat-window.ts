@@ -31,6 +31,7 @@ interface Participant {
   standalone: true,
   imports: [CommonModule, FormsModule, Avatar, ConfirmModal, PickerComponent],
   templateUrl: './chat-window.html',
+  styleUrls: ['./chat-window.css'],
   animations: [
     // Overlay fade
     trigger('overlayFade', [
@@ -83,6 +84,7 @@ export class ChatWindow implements OnChanges {
   editedGroupName = '';
 
   selectedParticipantMenu: string | null = null;
+  participantMenuDirection: { [uid: string]: 'up' | 'down' } = {};
 
   filteredAddPeople$!: Observable<User[]>;
   addPeopleSearch$ = new BehaviorSubject<string>('');
@@ -759,6 +761,14 @@ export class ChatWindow implements OnChanges {
 
   toggleParticipantMenu(uid: string, event: Event) {
     event.stopPropagation();
+
+    const buttonEl = event.currentTarget as HTMLElement;
+
+    // Determine direction before opening
+    const shouldOpenUp = this.isNearBottomOfModal(buttonEl);
+
+    this.participantMenuDirection[uid] = shouldOpenUp ? 'up' : 'down';
+
     this.selectedParticipantMenu =
       this.selectedParticipantMenu === uid ? null : uid;
   }
@@ -933,5 +943,17 @@ export class ChatWindow implements OnChanges {
       this.followingMapSubject.next(rollbackSet);
       console.error(err);
     }
+  }
+
+  isNearBottomOfModal(element: HTMLElement): boolean {
+    const modal = element.closest('.overflow-y-auto'); // scroll container
+    if (!modal) return false;
+
+    const rect = element.getBoundingClientRect();
+    const modalRect = modal.getBoundingClientRect();
+
+    const spaceBelow = modalRect.bottom - rect.bottom;
+
+    return spaceBelow < 80; // threshold (adjust if needed)
   }
 }
