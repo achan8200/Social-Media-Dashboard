@@ -38,7 +38,7 @@
           <div class="flex h-full"
               [style.transform]="'translateX(' + currentTranslate + 'px)'"
               [style.transition]="isDragging ? 'none' : 'transform 300ms ease-in-out'">
-            <div *ngFor="let media of post.media"
+            <div *ngFor="let media of post.media; trackBy: trackByMedia"
                 class="w-full flex-shrink-0 flex items-center justify-center bg-black">
               <img *ngIf="media.type === 'image'" [src]="media.url"
                 class="max-w-full max-h-full object-cover"/>

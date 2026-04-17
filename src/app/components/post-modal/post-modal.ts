@@ -796,4 +796,8 @@ export class PostModal implements AfterViewInit {
 
     return spaceBelow < 60; // threshold (adjust if needed)
   }
+
+  trackByMedia(index: number, media: PostMedia) {
+    return media.url;
+  }
 }
