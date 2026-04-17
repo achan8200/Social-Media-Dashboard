@@ -28,9 +28,9 @@
         <div *ngIf="isAuthor" class="relative">
           <button 
             (click)="toggleMenu($event)"
-            [class.bg-gray-300]="menuOpen"
-            class="text-gray-600 text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 hover:text-black transition relative">
-            <span class="relative -top-[1px]">⋯</span>
+            [class.bg-gray-200]="menuOpen"
+            class="text-gray-600 text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 hover:text-black transition relative">
+            <span class="relative -top-[1.5px]">⋯</span>
           </button>
 
           <div *ngIf="menuOpen"

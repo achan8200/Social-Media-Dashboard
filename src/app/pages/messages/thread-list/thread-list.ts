@@ -5,20 +5,25 @@ import { Auth, authState  } from '@angular/fire/auth';
 import { MessagesService } from '../../../services/messages.service';
 import { User, UserService } from '../../../services/user.service';
 import { FollowService } from '../../../services/follow.service';
-import { Thread } from '../../../models/messages.model';
 import { Avatar } from "../../../components/avatar/avatar";
 import { trigger, transition, style, animate } from '@angular/animations';
 import { Observable, map, of, switchMap, BehaviorSubject, combineLatest, catchError } from 'rxjs';
+import { Thread } from '../../../models/messages.model';
 
 interface ThreadDisplay {
   id: string;
   userId: string;
   username: string;
   avatarUrl?: string | null;
-  lastMessage?: string;
-  lastMessageSenderId?: string;
-  lastMessageSenderName?: string;
-  lastMessageTime?: any;
+  lastMessage?: {
+    id?: string;
+    text: string;
+    senderId: string;
+    senderName: string;
+    createdAt: any;
+    isEdited?: boolean;
+    isDeleted?: boolean;
+  } | null;
   unreadCount?: number;
   participants?: { uid: string; userId: string; avatarUrl: string; username: string }[];
   typing?: { [uid: string]: boolean };
@@ -119,14 +124,20 @@ export class ThreadList {
                     username: otherUser?.username || 'Unknown',
                     avatarUrl: otherUser?.avatarUrl || null,
 
-                    lastMessage: thread.lastMessage?.text || '',
-                    lastMessageSenderId: thread.lastMessage?.senderId || '',
-                    lastMessageSenderName: thread.lastMessage?.senderName || '',
-                    lastMessageTime: thread.lastMessage?.createdAt?.toDate?.() || null,
+                    lastMessage: thread.lastMessage
+                      ? {
+                          id: thread.lastMessage.id,
+                          text: thread.lastMessage.text,
+                          senderId: thread.lastMessage.senderId,
+                          senderName: thread.lastMessage.senderName,
+                          createdAt: thread.lastMessage.createdAt,
+                          isEdited: thread.lastMessage.isEdited,
+                          isDeleted: thread.lastMessage.isDeleted
+                        }
+                      : null,
 
                     unreadCount: thread.unreadCount || 0,
                     typing: thread.typing || {},
-
                     participants,
                     groupName: (thread.groupName ?? '').trim()
                   } as ThreadDisplay;
@@ -300,24 +311,34 @@ export class ThreadList {
 
     if (!thread.lastMessage) return '';
 
-    const isCurrentUser = thread.lastMessageSenderId === currentUid;
+    const msg = thread.lastMessage;
+
+    const isCurrentUser = msg.senderId === currentUid;
     const isGroup = (thread.participants?.length || 0) > 2;
 
-    // 1-on-1 chat → keep existing behavior
-    if (!isGroup) {
+    // Deleted message
+    if (msg.isDeleted) {
       return isCurrentUser
-        ? `You: ${thread.lastMessage}`
-        : thread.lastMessage;
+        ? 'You deleted a message'
+        : `${msg.senderName || 'Someone'} deleted a message`;
     }
 
-    // Group chat
-    if (isCurrentUser) {
-      return `You: ${thread.lastMessage}`;
+    let text = msg.text;
+
+    // Edited message
+    if (msg.isEdited) {
+      text += ' (edited)';
     }
 
-    // Someone else in group
-    const senderName = thread.lastMessageSenderName || 'Someone';
-    return `${senderName}: ${thread.lastMessage}`;
+    // 1-on-1
+    if (!isGroup) {
+      return isCurrentUser ? `You: ${text}` : text;
+    }
+
+    // Group
+    if (isCurrentUser) return `You: ${text}`;
+
+    return `${msg.senderName || 'Someone'}: ${text}`;
   }
 
   isOtherUserTyping(thread: ThreadDisplay): boolean {

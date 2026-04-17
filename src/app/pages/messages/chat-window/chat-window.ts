@@ -55,12 +55,17 @@ export class ChatWindow implements OnChanges {
   @Output() threadChanged = new EventEmitter<string>();
   
   @ViewChild('messageInput') messageInput!: ElementRef<HTMLTextAreaElement>;
+  @ViewChild('editBox') editBox!: ElementRef<HTMLTextAreaElement>;
   @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('detailsButton', { static: false }) detailsButton!: ElementRef;
   @ViewChild('emojiPickerContainer', { static: false }) emojiPickerContainer!: ElementRef;
 
   messages$!: Observable<Message[]>;
   newMessage = '';
+  editingMessageId: string | null = null;
+  editingText = '';
+  openMessageMenuId: string | null = null;
+  messageMenuDirection: { [uid: string]: 'up' | 'down' } = {};
   currentUserId!: string;
   menuOpen = false;
   showDeleteModal = false;
@@ -85,6 +90,9 @@ export class ChatWindow implements OnChanges {
 
   selectedParticipantMenu: string | null = null;
   participantMenuDirection: { [uid: string]: 'up' | 'down' } = {};
+  menuPosition: { top: number; left: number } | null = null;
+  showDeleteMessageModal = false;
+  messageToDelete: any = null;
 
   filteredAddPeople$!: Observable<User[]>;
   addPeopleSearch$ = new BehaviorSubject<string>('');
@@ -711,6 +719,12 @@ export class ChatWindow implements OnChanges {
     if (!clickedInsideEmojiContainer && !clickedInsidePicker && !clickedDetailsButton) {
       this.showEmojiPicker = false;
     }
+
+    const clickedInsideMessageMenu = target.closest('.message-menu');
+
+    if (!clickedInsideMessageMenu) {
+      this.openMessageMenuId = null;
+    }
   }
 
   get participantsDisplayNames(): string {
@@ -955,5 +969,131 @@ export class ChatWindow implements OnChanges {
     const spaceBelow = modalRect.bottom - rect.bottom;
 
     return spaceBelow < 80; // threshold (adjust if needed)
+  }
+
+  startEdit(message: any) {
+    this.openMessageMenuId = null;
+    this.editingMessageId = message.id;
+    this.editingText = message.text;
+
+    setTimeout(() => {
+      const el = this.editBox?.nativeElement;
+      if (!el) return;
+
+      el.style.height = 'auto';
+
+      requestAnimationFrame(() => {
+        el.style.height = `${el.scrollHeight}px`;
+        el.focus();
+        el.setSelectionRange(el.value.length, el.value.length);
+      });
+    });
+  }
+
+  saveEdit(threadId: string, message: any) {
+    this.messagesService.editMessage(threadId, message.id, this.editingText);
+    this.editingMessageId = null;
+  }
+
+  cancelEdit() {
+    this.editingMessageId = null;
+    this.editingText = '';
+  }
+
+  autoResizeEdit(event: Event) {
+    const el = event.target as HTMLTextAreaElement;
+
+    requestAnimationFrame(() => {
+      el.style.height = 'auto';
+      el.style.height = `${el.scrollHeight}px`;
+    });
+  }
+
+  getEditedLabelClass(msg: any): string {
+    if (msg.isDeleted) return '';
+
+    const { isEmojiOnly } = this.getEmojiInfo(msg.text);
+
+    // Emoji-only messages: always subtle gray (no dependency on background)
+    if (isEmojiOnly) {
+      return 'text-gray-500 text-[0.65rem] ml-1';
+    }
+
+    // Normal messages
+    return msg.senderId === this.currentUserId
+      ? 'text-white/80 text-[0.65rem] ml-1'
+      : 'text-gray-500 text-[0.65rem] ml-1';
+  }
+
+  confirmDelete(message: any) {
+    this.openMessageMenuId = null;
+    this.messageToDelete = message;
+    this.showDeleteMessageModal = true;
+  }
+
+  confirmDeleteMessage() {
+    if (!this.threadId || !this.messageToDelete) return;
+
+    this.messagesService.deleteMessage(
+      this.threadId,
+      this.messageToDelete.id
+    );
+
+    this.messageToDelete = null;
+    this.showDeleteMessageModal = false;
+  }
+
+  cancelDeleteMessage() {
+    this.messageToDelete = null;
+    this.showDeleteMessageModal = false;
+  }
+
+  truncateMessage(text: string, maxLength = 50): string {
+    if (!text) return '';
+
+    return text.length > maxLength
+      ? text.slice(0, maxLength) + '…'
+      : text;
+  }
+
+  getDeleteMessageText(): string {
+    const text = this.truncateMessage(this.messageToDelete?.text || '');
+
+    const preview = text ? `"${text}"` : 'This message';
+
+    return `${preview}\n\nThis can't be undone.`;
+  }
+
+  getDeletePreview(msg: string) {
+    if (!msg) return { isEmojiOnly: false, text: '', count: 0 };
+
+    const info = this.getEmojiInfo(msg);
+
+    return {
+      isEmojiOnly: info.isEmojiOnly,
+      count: info.count,
+      text: msg
+    };
+  }
+
+  getEmojiSizeClass(text: string): string {
+    const emojis = Array.from(text.trim()); // better Unicode handling
+    const count = emojis.length;
+
+    if (count <= 2) return 'text-4xl';
+    if (count <= 4) return 'text-3xl';
+    return 'text-2xl';
+  }
+
+  toggleMessageMenu(id: string, event: Event) {
+    event.stopPropagation();
+
+    const buttonEl = event.currentTarget as HTMLElement;
+
+    // Determine direction before opening
+    const shouldOpenUp = this.isNearBottomOfModal(buttonEl);
+
+    this.messageMenuDirection[id] = shouldOpenUp ? 'up' : 'down';
+    this.openMessageMenuId = this.openMessageMenuId === id ? null : id;
   }
 }

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, AfterContentInit, ContentChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { trigger, transition, style, animate } from '@angular/animations';
 
@@ -47,6 +47,14 @@ export class ConfirmModal {
   isOpen = true;
 
   private action: 'confirm' | 'cancel' | null = null;
+
+  @ContentChild(ElementRef) projectedContent!: ElementRef;
+
+  hasProjectedContent = false;
+
+  ngAfterContentInit() {
+    this.hasProjectedContent = !!this.projectedContent;
+  }
 
   onConfirm() {
     this.action = 'confirm';

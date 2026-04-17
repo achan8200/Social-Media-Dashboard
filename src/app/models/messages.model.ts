@@ -6,6 +6,8 @@ export interface Message {
   createdAt: any;
   readBy: string[]; // Array of user IDs who have read this message
   type: 'text' | 'system';
+  isEdited?: boolean;
+  isDeleted?: boolean;
 }
 
 export interface Thread {

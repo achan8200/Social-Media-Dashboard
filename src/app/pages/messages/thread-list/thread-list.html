@@ -63,7 +63,7 @@
         </ng-template>
       </div>
 
-      <div class="absolute top-0 right-0 text-xs text-gray-400">{{ formatTimestamp(thread.lastMessageTime) }}</div>
+      <div class="absolute top-0 right-0 text-xs text-gray-400">{{ formatTimestamp(thread.lastMessage?.createdAt?.toDate?.() || null) }}</div>
 
       <span *ngIf="thread.unreadCount && thread.unreadCount > 0"
             class="absolute bottom-1 right-1 translate-x-1/4 translate-y-1/4 bg-gray-500 text-white text-xs font-semibold rounded-full w-5 h-5 flex items-center justify-center shadow-sm">
@@ -92,7 +92,7 @@
         <h3 class="font-semibold text-lg">Start New Chat</h3>
         <button class="text-gray-500 hover:text-gray-800" (click)="closeModal()">✕</button>
       </div>
-      <input type="text" [(ngModel)]="searchText" (ngModelChange)="search$.next($event)" placeholder="Search users..." class="w-full p-2 border rounded mb-2" />
+      <input type="text" [(ngModel)]="searchText" (ngModelChange)="search$.next($event)" placeholder="Search users" class="w-full p-2 border rounded mb-2" />
       <div *ngFor="let user of filteredNewChatUsers$ | async; trackBy: trackByUid"
         (click)="selectUser(user)"
         class="flex items-center gap-3 p-2 cursor-pointer hover:bg-gray-100 rounded transition-colors duration-250">
@@ -127,7 +127,7 @@
         </button>
       </div>
       <input type="text" [(ngModel)]="groupName" placeholder="Group name (optional)" class="w-full p-2 border rounded mb-2" />
-      <input type="text" [(ngModel)]="groupSearchText" (ngModelChange)="groupSearch$.next($event)" placeholder="Search users..." class="w-full p-2 border rounded mb-2" />
+      <input type="text" [(ngModel)]="groupSearchText" (ngModelChange)="groupSearch$.next($event)" placeholder="Search users" class="w-full p-2 border rounded mb-2" />
       <div *ngFor="let user of filteredGroupUsers$ | async; trackBy: trackByUid"
         (click)="toggleUserSelection(user)"
         class="flex items-center gap-3 p-2 cursor-pointer hover:bg-gray-100 rounded transition-colors duration-200">

@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Firestore, collection, query, where, orderBy, getDocs, 
   addDoc, serverTimestamp, updateDoc, doc, collectionData, getDoc, 
-  docData, deleteDoc, writeBatch } from '@angular/fire/firestore';
+  docData, deleteDoc, writeBatch, 
+  limit} from '@angular/fire/firestore';
 import { Auth, authState } from '@angular/fire/auth';
 import { Observable, from, map, switchMap, of } from 'rxjs';
 import { Thread, Message } from '../models/messages.model';
@@ -50,7 +51,17 @@ export class MessagesService {
         threads.map(t => ({
           id: t.id,
           participants: t.participants || [],
-          lastMessage: t.lastMessage || null,
+          lastMessage: t.lastMessage && typeof t.lastMessage === 'object'
+            ? {
+                id: t.lastMessage.id,
+                text: t.lastMessage.text,
+                senderId: t.lastMessage.senderId,
+                senderName: t.lastMessage.senderName,
+                createdAt: t.lastMessage.createdAt,
+                isEdited: t.lastMessage.isEdited,
+                isDeleted: t.lastMessage.isDeleted
+              }
+            : null,
           lastMessageAt: t.lastMessageAt || null,
           unreadCount: (t.unreadByUser?.[uid]) || 0, // use per-user count
           typing: t.typing || {},
@@ -201,12 +212,12 @@ export class MessagesService {
     const createdAt = serverTimestamp();
     
     // Add the new message
-    await addDoc(messageRef, {
+    const newMsgRef = await addDoc(messageRef, {
       senderId: currentUser.uid,
       senderName: userData?.['displayName'],
       text,
       createdAt,
-      readBy: [currentUser.uid], // sender has read
+      readBy: [currentUser.uid],
       type
     });
 
@@ -219,10 +230,12 @@ export class MessagesService {
     // Update thread atomically
     await updateDoc(threadDocRef, {
       lastMessage: {
+        id: newMsgRef.id,
         text,
         senderId: currentUser.uid,
         senderName: userData?.['displayName'],
         createdAt,
+        type
       },
       lastMessageAt: createdAt,
       unreadByUser: unreadCounts
@@ -538,5 +551,53 @@ export class MessagesService {
     this.displayNameCache.set(uid, name);
 
     return name;
+  }
+
+  async editMessage(threadId: string, messageId: string, newText: string) {
+    const messageRef = doc(this.firestore, `threads/${threadId}/messages/${messageId}`);
+    const threadRef = doc(this.firestore, `threads/${threadId}`);
+
+    // Update message
+    await updateDoc(messageRef, {
+      text: newText,
+      isEdited: true
+    });
+
+    // Get thread to check lastMessage
+    const threadSnap = await getDoc(threadRef);
+    const threadData = threadSnap.data();
+
+    if (threadData?.['lastMessage']?.id === messageId) {
+      await updateDoc(threadRef, {
+        'lastMessage.text': newText,
+        'lastMessage.isEdited': true
+      });
+    }
+  }
+
+  async deleteMessage(threadId: string, messageId: string) {
+    const messageRef = doc(this.firestore, `threads/${threadId}/messages/${messageId}`);
+    const threadRef = doc(this.firestore, `threads/${threadId}`);
+
+    const threadSnap = await getDoc(threadRef);
+    const threadData = threadSnap.data();
+
+    const lastMessage = threadData?.['lastMessage'];
+    const isLastMessage = lastMessage?.id === messageId;
+
+    // Soft delete message
+    await updateDoc(messageRef, {
+      text: '',
+      isDeleted: true
+    });
+
+    // If not last message, nothing else to do
+    if (!isLastMessage) return;
+
+    // If it is last message, just update its state in thread
+    await updateDoc(threadRef, {
+      'lastMessage.text': '',
+      'lastMessage.isDeleted': true
+    });
   }
 }
