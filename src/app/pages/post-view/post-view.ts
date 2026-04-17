@@ -59,6 +59,7 @@ export class PostView implements AfterViewInit {
   commentMenuDirection: Record<string, 'up' | 'down'> = {};
   showNewCommentsButton = false;
   showEmojiPicker = false;
+  emojiPickerPosition = { top: 0, left: 0 };
 
   private touchStartX = 0;
   private touchEndX = 0;
@@ -786,6 +787,19 @@ export class PostView implements AfterViewInit {
 
   toggleEmojiPicker(event: Event) {
     event.stopPropagation(); // Prevent document click
+
+    if (!this.showEmojiPicker) {
+      const rect = this.emojiButton.nativeElement.getBoundingClientRect();
+
+      const pickerHeight = 435; // place above button (adjust as needed)
+      const pickerWidth = 330; // align right edge (adjust width)
+
+      this.emojiPickerPosition = {
+        top: Math.max(10, rect.top - pickerHeight),
+        left: Math.max(10, rect.right - pickerWidth)
+      };
+    }
+
     this.showEmojiPicker = !this.showEmojiPicker;
 
     this.newCommentInput.nativeElement.focus({ preventScroll: true });

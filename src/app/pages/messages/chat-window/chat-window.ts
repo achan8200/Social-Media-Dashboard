@@ -58,6 +58,7 @@ export class ChatWindow implements OnChanges {
   @ViewChild('editBox') editBox!: ElementRef<HTMLTextAreaElement>;
   @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('detailsButton', { static: false }) detailsButton!: ElementRef;
+  @ViewChild('emojiButton', { static: false }) emojiButton!: ElementRef;
   @ViewChild('emojiPickerContainer', { static: false }) emojiPickerContainer!: ElementRef;
 
   messages$!: Observable<Message[]>;
@@ -72,6 +73,7 @@ export class ChatWindow implements OnChanges {
   isDeleting = false;
   showNewMessageIndicator = false;
   showEmojiPicker = false;
+  emojiPickerPosition = { top: 0, left: 0 };
   emojiOnlyRegex = emojiRegex();
 
   private typingTimeout: any;
@@ -690,6 +692,19 @@ export class ChatWindow implements OnChanges {
 
   toggleEmojiPicker(event: Event) {
     event.stopPropagation();
+
+    if (!this.showEmojiPicker) {
+      const rect = this.emojiButton.nativeElement.getBoundingClientRect();
+
+      const pickerHeight = 435; // place above button (adjust as needed)
+      const pickerWidth = 330; // align right edge (adjust width)
+
+      this.emojiPickerPosition = {
+        top: Math.max(10, rect.top - pickerHeight),
+        left: Math.max(10, rect.right - pickerWidth)
+      };
+    }
+
     this.showEmojiPicker = !this.showEmojiPicker;
 
     this.messageInput.nativeElement.focus({ preventScroll: true });

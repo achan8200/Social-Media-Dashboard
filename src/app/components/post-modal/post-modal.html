@@ -11,6 +11,18 @@
   <!-- Overlay -->
   <div class="absolute inset-0 bg-black/60"></div>
 
+  <!-- Emoji Picker -->
+  <div *ngIf="showEmojiPicker" 
+    class="fixed z-[100] shadow-lg"
+    [style.top.px]="emojiPickerPosition.top"
+    [style.left.px]="emojiPickerPosition.left">
+    <emoji-mart
+      [perLine]="9"
+      [emojiSize]="24"
+      (emojiSelect)="addEmoji($event)">
+      </emoji-mart>
+  </div>
+
   <!-- Modal Card -->
   <div
     @modalScale
@@ -234,16 +246,6 @@
                 class="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:scale-105">
                 <img src="assets/icons/emoji-1.svg" alt="Emoji" class="w-5 h-5" style="filter: invert(0.6);"/>
               </button>
-
-              <!-- Emoji Picker -->
-              <div *ngIf="showEmojiPicker" 
-                  class="absolute bottom-full mb-2 right-0 z-50 shadow-lg">
-                <emoji-mart
-                  [perLine]="9"
-                  [emojiSize]="24"
-                  (emojiSelect)="addEmoji($event)">
-                </emoji-mart>
-              </div>
             </div>
           </div>
           <button (click)="submitComment()" 
@@ -406,16 +408,6 @@
                 class="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:scale-105">
                 <img src="assets/icons/emoji-1.svg" alt="Emoji" class="w-5 h-5" style="filter: invert(0.6);"/>
               </button>
-
-              <!-- Emoji Picker -->
-              <div *ngIf="showEmojiPicker" 
-                  class="absolute bottom-full mb-2 right-0 z-50 shadow-lg">
-                <emoji-mart
-                  [perLine]="9"
-                  [emojiSize]="24"
-                  (emojiSelect)="addEmoji($event)">
-                </emoji-mart>
-              </div>
             </div>
           </div>
           <button (click)="submitComment()" 
