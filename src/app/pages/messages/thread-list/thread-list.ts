@@ -6,9 +6,9 @@ import { MessagesService } from '../../../services/messages.service';
 import { User, UserService } from '../../../services/user.service';
 import { FollowService } from '../../../services/follow.service';
 import { Avatar } from "../../../components/avatar/avatar";
+import { Thread } from '../../../models/messages.model';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { Observable, map, of, switchMap, BehaviorSubject, combineLatest, catchError } from 'rxjs';
-import { Thread } from '../../../models/messages.model';
 
 interface ThreadDisplay {
   id: string;

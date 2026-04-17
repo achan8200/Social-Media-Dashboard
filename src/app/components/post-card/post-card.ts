@@ -60,13 +60,6 @@ export class PostCard {
     @Inject(PLATFORM_ID) private platformId: Object
   ) {}
 
-  ngAfterViewInit() {
-    if (!isPlatformBrowser(this.platformId)) return;
-    if (this.feedVideo?.nativeElement) {
-      this.setupObserver();
-    }
-  }
-
   ngOnChanges() {
     if (!this.post) return;
 
@@ -113,6 +106,10 @@ export class PostCard {
         );
       }
     });
+
+    if (this.feedPaused && this.feedVideo?.nativeElement) {
+      this.feedVideo.nativeElement.pause();
+    }
   }
 
   ngOnDestroy() {
@@ -166,28 +163,36 @@ export class PostCard {
     return this.post?.media?.[0] ?? null;
   }
 
-  private setupObserver() {
-    if (!this.feedVideo?.nativeElement) return;
-
-    // Only run in browser
+  @ViewChild('feedVideo')
+  set videoRef(ref: ElementRef<HTMLVideoElement> | undefined) {
+    if (!ref) return;
     if (!isPlatformBrowser(this.platformId)) return;
-    const video = this.feedVideo.nativeElement;
+
+    const video = ref.nativeElement;
 
     video.muted = true;
     video.defaultMuted = true;
+    video.playsInline = true;
     video.volume = 0;
 
+    this.setupObserver(video);
+  }
+
+  private setupObserver(video: HTMLVideoElement) {
     this.observer?.disconnect();
+
+    if (!this.postRef?.nativeElement) return;
 
     this.observer = new IntersectionObserver(
       (entries) => {
         entries.forEach(entry => {
           if (this.feedPaused) {
-            video.pause(); // pause if feed is paused
+            video.pause();
             return;
           }
+
           if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-            video.play().catch(err => console.warn('Video autoplay prevented:', err));
+            video.play().catch(() => {});
           } else {
             video.pause();
           }
@@ -196,21 +201,20 @@ export class PostCard {
       { threshold: [0, 0.5, 1] }
     );
 
-    this.observer.observe(video);
+    this.observer.observe(this.postRef.nativeElement);
   }
 
   public pauseAutoplay(): void {
-    if (!this.feedVideo?.nativeElement) return;
-
-    this.feedVideo.nativeElement.pause();
-    this.observer?.disconnect(); // stop observing while modal is open
+    if (this.feedVideo?.nativeElement) {
+      this.feedVideo.nativeElement.pause();
+    }
+    this.observer?.disconnect();
   }
 
   public resumeAutoplay(): void {
-    // Only reconnect observer if video exists
     if (!this.feedVideo?.nativeElement) return;
-    
-    this.setupObserver(); // Re-initialize the IntersectionObserver
+
+    this.setupObserver(this.feedVideo.nativeElement);
   }
 
   get isAuthor(): boolean {
