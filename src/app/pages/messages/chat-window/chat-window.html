@@ -340,7 +340,10 @@
 				<div *ngIf="preview.isEmojiOnly"
 						class="text-end w-full"
 						[ngClass]="getEmojiSizeClass(msg.text)">
-					{{ msg.text }}
+					<span>{{ msg.text }}</span>
+					<!-- Edited label -->
+					<span *ngIf="msg.isEdited && !msg.isDeleted"
+						[class]="getEditedLabelClass(msg)">(edited)</span>
 				</div>
 
 				<!-- Normal preview -->
@@ -349,8 +352,10 @@
 					[ngClass]="msg.senderId === currentUserId
 						? 'bg-blue-500 text-white'
 						: 'bg-gray-200 text-gray-800'">
-
-					{{ truncateMessage(msg.text) }}
+					<span>{{ truncateMessage(msg.text) }}</span>
+					<!-- Edited label -->
+					<span *ngIf="msg.isEdited && !msg.isDeleted"
+						[class]="getEditedLabelClass(msg)">(edited)</span>
 				</div>
 
 			</ng-container>
