@@ -83,11 +83,21 @@ export class Profile {
     profilePicture: ['']
   });
 
-   // Crop state
+  // Crop state
   cropImageSrc: string | null = null;
-  cropX = 0;
-  cropY = 0;
-  cropScale = 1;
+  crop = {
+    x: 0,
+    y: 0,
+    scale: 1
+  };
+
+  // Track image natural size
+  imageNaturalWidth = 0;
+  imageNaturalHeight = 0;
+
+  // Display size (normalized)
+  imageDisplayWidth = 0;
+  imageDisplayHeight = 0;
 
   @ViewChild('cropCircle') cropCircle!: ElementRef<HTMLDivElement>;
 
@@ -366,12 +376,35 @@ export class Profile {
 
     const reader = new FileReader();
     reader.onload = () => {
-      this.cropImageSrc = reader.result as string;
-      this.cropX = 0;
-      this.cropY = 0;
-      this.cropScale = 1;
-      input.value = '';
-      this.cdr.detectChanges();
+      const img = new Image();
+      img.src = reader.result as string;
+
+      img.onload = () => {
+        this.cropImageSrc = img.src;
+
+        this.imageNaturalWidth = img.width;
+        this.imageNaturalHeight = img.height;
+
+        // Normalize large images
+        const maxDim = 512;
+        const scale = Math.min(
+          maxDim / img.width,
+          maxDim / img.height,
+          1
+        );
+
+        this.imageDisplayWidth = img.width * scale;
+        this.imageDisplayHeight = img.height * scale;
+
+        this.crop = {
+          x: 0,
+          y: 0,
+          scale: 1
+        };
+
+        input.value = '';
+        this.cdr.detectChanges();
+      };
     };
     reader.readAsDataURL(file);
   }
@@ -379,54 +412,57 @@ export class Profile {
   // Drag and zoom handlers
   startDrag(event: MouseEvent | TouchEvent) {
     if (event instanceof TouchEvent && event.touches.length === 2) {
-      // Pinch start
       this.isPinching = true;
+
       const dx = event.touches[0].clientX - event.touches[1].clientX;
       const dy = event.touches[0].clientY - event.touches[1].clientY;
+
       this.initialPinchDistance = Math.sqrt(dx * dx + dy * dy);
-      this.initialScale = this.cropScale;
+      this.initialScale = this.crop.scale;
       return;
     }
 
     this.isDragging = true;
-    if (event instanceof MouseEvent) {
-      this.lastMouseX = event.clientX;
-      this.lastMouseY = event.clientY;
-    } else {
-      this.lastMouseX = event.touches[0].clientX;
-      this.lastMouseY = event.touches[0].clientY;
-    }
+
+    const point = event instanceof MouseEvent
+      ? event
+      : event.touches[0];
+
+    this.lastMouseX = point.clientX;
+    this.lastMouseY = point.clientY;
   }
 
 
   drag(event: MouseEvent | TouchEvent) {
     if (this.isPinching && event instanceof TouchEvent && event.touches.length === 2) {
-      // Pinch-to-zoom
       const dx = event.touches[0].clientX - event.touches[1].clientX;
       const dy = event.touches[0].clientY - event.touches[1].clientY;
+
       const distance = Math.sqrt(dx * dx + dy * dy);
       const scaleChange = distance / this.initialPinchDistance;
-      this.cropScale = Math.max(0.5, Math.min(3, this.initialScale * scaleChange));
+
+      this.crop.scale = Math.max(0.5, Math.min(3, this.initialScale * scaleChange));
+
+      this.clampPosition();
       return;
     }
 
     if (!this.isDragging) return;
 
-    let clientX = 0;
-    let clientY = 0;
-    if (event instanceof MouseEvent) {
-      clientX = event.clientX;
-      clientY = event.clientY;
-    } else {
-      clientX = event.touches[0].clientX;
-      clientY = event.touches[0].clientY;
-    }
+    const point = event instanceof MouseEvent
+      ? event
+      : event.touches[0];
 
-    this.cropX += clientX - this.lastMouseX;
-    this.cropY += clientY - this.lastMouseY;
+    const dx = point.clientX - this.lastMouseX;
+    const dy = point.clientY - this.lastMouseY;
 
-    this.lastMouseX = clientX;
-    this.lastMouseY = clientY;
+    this.crop.x += dx;
+    this.crop.y += dy;
+
+    this.lastMouseX = point.clientX;
+    this.lastMouseY = point.clientY;
+
+    this.clampPosition();
   }
 
   endDrag() {
@@ -435,7 +471,21 @@ export class Profile {
   }
 
   zoom(delta: number) {
-    this.cropScale = Math.max(0.5, Math.min(3, this.cropScale + delta));
+    this.crop.scale = Math.max(0.5, Math.min(3, this.crop.scale + delta));
+    this.clampPosition();
+  }
+
+  clampPosition() {
+    const circleSize = 256;
+
+    const scaledWidth = this.imageDisplayWidth * this.crop.scale;
+    const scaledHeight = this.imageDisplayHeight * this.crop.scale;
+
+    const maxX = Math.max(0, (scaledWidth - circleSize) / 2);
+    const maxY = Math.max(0, (scaledHeight - circleSize) / 2);
+
+    this.crop.x = Math.max(-maxX, Math.min(maxX, this.crop.x));
+    this.crop.y = Math.max(-maxY, Math.min(maxY, this.crop.y));
   }
 
   // Save cropped image
@@ -443,14 +493,14 @@ export class Profile {
     const currentUser = await this.authService.getCurrentUser().toPromise();
     if (!currentUser || !this.cropImageSrc) return;
 
-    const avatarSize = 528;
+    const avatarSize = 256;
 
     const croppedBase64 = await this.cropAndResize(
       this.cropImageSrc,
       avatarSize,
-      this.cropX,
-      this.cropY,
-      this.cropScale
+      this.crop.x,
+      this.crop.y,
+      this.crop.scale
     );
 
     // Save to Firestore
@@ -472,23 +522,27 @@ export class Profile {
     return new Promise((resolve) => {
       const img = new Image();
       img.src = src;
+
       img.onload = () => {
         const canvas = document.createElement('canvas');
         canvas.width = size;
         canvas.height = size;
+
         const ctx = canvas.getContext('2d')!;
 
-        // Move origin to center of canvas (same as circular preview center)
+        // Move origin to center
         ctx.translate(size / 2, size / 2);
 
-        // Apply scaling (same as CSS transform scale)
+        // Apply scale
         ctx.scale(scale, scale);
 
-        // Draw image using same offset logic as modal
+        // Draw image centered with offset
         ctx.drawImage(
           img,
-          offsetX - img.width / 2,
-          offsetY - img.height / 2
+          -this.imageDisplayWidth / 2 + offsetX,
+          -this.imageDisplayHeight / 2 + offsetY,
+          this.imageDisplayWidth,
+          this.imageDisplayHeight
         );
 
         resolve(canvas.toDataURL('image/jpeg', 0.9));
