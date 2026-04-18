@@ -533,14 +533,17 @@ export class Profile {
         // Move origin to center
         ctx.translate(size / 2, size / 2);
 
+        // Apply offset
+        ctx.translate(offsetX, offsetY);
+
         // Apply scale
         ctx.scale(scale, scale);
 
         // Draw image centered with offset
         ctx.drawImage(
           img,
-          -this.imageDisplayWidth / 2 + offsetX,
-          -this.imageDisplayHeight / 2 + offsetY,
+          -this.imageDisplayWidth / 2,
+          -this.imageDisplayHeight / 2,
           this.imageDisplayWidth,
           this.imageDisplayHeight
         );
