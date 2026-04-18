@@ -109,6 +109,7 @@ export class Profile {
   private isPinching = false;
   private initialPinchDistance = 0;
   private initialScale = 1;
+  minScale = 1;
 
   constructor(private postsService: PostsService) {
     this.loadProfileFromRoute();
@@ -396,10 +397,17 @@ export class Profile {
         this.imageDisplayWidth = img.width * scale;
         this.imageDisplayHeight = img.height * scale;
 
+        const circleSize = 256;
+
+        this.minScale = Math.max(
+          circleSize / this.imageDisplayWidth,
+          circleSize / this.imageDisplayHeight
+        );
+
         this.crop = {
           x: 0,
           y: 0,
-          scale: 1
+          scale: this.minScale
         };
 
         input.value = '';
@@ -441,7 +449,8 @@ export class Profile {
       const distance = Math.sqrt(dx * dx + dy * dy);
       const scaleChange = distance / this.initialPinchDistance;
 
-      this.crop.scale = Math.max(0.5, Math.min(3, this.initialScale * scaleChange));
+      const newScale = this.initialScale * scaleChange;
+      this.crop.scale = Math.max(this.minScale, Math.min(3, newScale));
 
       this.clampPosition();
       return;
@@ -456,8 +465,8 @@ export class Profile {
     const dx = point.clientX - this.lastMouseX;
     const dy = point.clientY - this.lastMouseY;
 
-    this.crop.x += dx;
-    this.crop.y += dy;
+    this.crop.x += dx / this.crop.scale;
+    this.crop.y += dy / this.crop.scale;
 
     this.lastMouseX = point.clientX;
     this.lastMouseY = point.clientY;
@@ -471,7 +480,8 @@ export class Profile {
   }
 
   zoom(delta: number) {
-    this.crop.scale = Math.max(0.5, Math.min(3, this.crop.scale + delta));
+    const newScale = this.crop.scale + delta;
+    this.crop.scale = Math.max(this.minScale, Math.min(3, newScale));
     this.clampPosition();
   }
 
@@ -486,6 +496,12 @@ export class Profile {
 
     this.crop.x = Math.max(-maxX, Math.min(maxX, this.crop.x));
     this.crop.y = Math.max(-maxY, Math.min(maxY, this.crop.y));
+  }
+
+  onSliderChange(event: Event) {
+    const value = (event.target as HTMLInputElement).valueAsNumber;
+    this.crop.scale = Math.max(this.minScale, Math.min(3, value));
+    this.clampPosition();
   }
 
   // Save cropped image
