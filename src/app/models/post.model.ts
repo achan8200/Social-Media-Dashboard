@@ -38,4 +38,6 @@ export interface Post {
   pending?: boolean;
 
   comments?: Comment[];
+
+  groupId?: string
 }
