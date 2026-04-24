@@ -498,7 +498,7 @@
     <!-- Footer -->
     <div class="p-3 border-t flex justify-end gap-2">
       <button *ngIf="otherParticipants.length > 1" 
-				class="text-gray-500 hover:bg-gray-100 px-3 py-1 rounded transition-colors duration-150"
+				class="text-gray-500 hover:text-gray-800 px-3 py-1 transition-colors duration-150"
         (click)="leaveGroup()">Leave group</button>
 
       <button class="bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded transition-colors duration-150"
@@ -515,7 +515,7 @@
   <div @modalTransition class="bg-white w-[400px] max-h-[70vh] rounded-xl shadow-lg flex flex-col">
 
     <!-- Header -->
-    <div class="p-4 border-b flex justify-between items-center">
+    <div class="p-4 border-b flex justify-between items-center text-gray-500 hover:text-gray-800 transition-colors duration-150">
 			<span *ngIf="otherParticipants.length === 1" class="font-semibold">Create Group Chat</span>
 			<span *ngIf="otherParticipants.length > 1" class="font-semibold">Add People</span>
       <button (click)="showAddPeopleModal = false">✕</button>

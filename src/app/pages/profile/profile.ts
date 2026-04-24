@@ -262,10 +262,15 @@ export class Profile {
     this.groupsCount$ = this.profile$.pipe(
       switchMap(profile => {
         if (!profile) return of(0);
-        const groupsRef = collection(this.firestore, `groups`);
-        const q = query(groupsRef, where('members', 'array-contains', profile.uid));
-        return from(getCountFromServer(q)).pipe(
-          map(snapshot => snapshot.data().count ?? 0)
+
+        const groupsRef = collection(
+          this.firestore,
+          `users/${profile.uid}/groups`
+        );
+
+        return collectionData(groupsRef, { idField: 'id' }).pipe(
+          map(groups => groups.length),
+          shareReplay(1)
         );
       })
     );

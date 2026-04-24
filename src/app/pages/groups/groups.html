@@ -1,4 +1,122 @@
-<div class="flex-1 p-4">
-  <h1 class="text-2xl font-bold mb-4">🗺️ Groups</h1>
-  <p>This is the groups page.</p>
+<div class="flex-1 p-4 max-w-5xl mx-auto">
+
+  <!-- Header -->
+  <div class="flex justify-between items-center mb-4">
+    <h1 class="text-2xl font-semibold">Groups</h1>
+
+    <button
+      (click)="showCreateModal = true"
+      class="px-3 py-1 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-colors duration-150">
+      <span class="relative -top-[0.5px]">+ Create Group</span>
+    </button>
+  </div>
+
+  <!-- Tabs -->
+  <ng-container *ngIf="tab$ | async as activeTab">
+    <div class="flex gap-2 mb-4">
+
+      <button
+        (click)="setTab('my')"
+        class="px-4 py-2 rounded-lg transition"
+        [ngClass]="activeTab === 'my'
+          ? 'bg-gray-900 text-white'
+          : 'bg-gray-200 hover:bg-gray-300'">
+        My Groups
+      </button>
+
+      <button
+        (click)="setTab('discover')"
+        class="px-4 py-2 rounded-lg transition"
+        [ngClass]="activeTab === 'discover'
+          ? 'bg-gray-900 text-white'
+          : 'bg-gray-200 hover:bg-gray-300'">
+        Discover
+      </button>
+
+    </div>
+  </ng-container>
+
+  <!-- Search -->
+  <input
+    type="text"
+    placeholder="Search groups"
+    class="w-full border rounded-lg p-2 mb-4"
+    (input)="onSearch($any($event.target).value)"
+  />
+
+  <!-- Groups -->
+  <ng-container *ngIf="groups$ | async as groups">
+
+    <ng-container *ngIf="groups.length > 0; else noGroups">
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+
+        <div
+          *ngFor="let group of groups"
+          (click)="goToGroup(group.id!)"
+          class="bg-white rounded-xl shadow p-4 cursor-pointer hover:shadow-md transition">
+
+          <!-- Avatar -->
+          <div class="w-12 h-12 rounded-full bg-gray-200 mb-3 flex items-center justify-center text-lg font-bold">
+            {{ group.name.charAt(0).toUpperCase() }}
+          </div>
+
+          <!-- Name -->
+          <h2 class="font-semibold text-lg truncate">
+            {{ group.name }}
+          </h2>
+
+          <!-- Bio -->
+          <p class="text-sm text-gray-500 line-clamp-2 mt-1">
+            {{ group.bio || 'No description' }}
+          </p>
+
+        </div>
+
+      </div>
+
+    </ng-container>
+
+  </ng-container>
+
+  <!-- Empty State -->
+  <ng-template #noGroups>
+    <p class="text-gray-500 text-center mt-10">
+      No groups found.
+    </p>
+  </ng-template>
+
+</div>
+
+<!-- Create Group Modal -->
+<div *ngIf="showCreateModal" @overlayFade
+     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+
+  <div @modalTransition class="bg-white p-6 rounded-lg w-full max-w-sm space-y-4">
+
+    <h2 class="text-lg font-bold">Create Group</h2>
+
+    <input #nameInput
+           type="text"
+           placeholder="Group name"
+           class="w-full border rounded p-2"/>
+
+    <textarea #bioInput
+              placeholder="Group bio (optional)"
+              class="w-full border rounded p-2"></textarea>
+
+    <div class="flex justify-end gap-2">
+      <button (click)="showCreateModal = false"
+              class="px-4 py-2 text-gray-500 hover:text-gray-800">
+        Cancel
+      </button>
+
+      <button
+        (click)="createGroup(nameInput.value, bioInput.value)"
+        class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+        Create
+      </button>
+    </div>
+
+  </div>
 </div>

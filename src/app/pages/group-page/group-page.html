@@ -1,0 +1,245 @@
+<ng-container *ngIf="vm$ | async as vm">
+  <div class="max-w-4xl mx-auto space-y-6">
+
+    <!-- Group Card -->
+    <div class="bg-white rounded-xl shadow p-6 flex flex-col sm:flex-row items-center sm:items-start gap-6">
+
+      <!-- Avatar -->
+      <div class="relative w-32 h-32">
+
+        <!-- Avatar (future-proof for image support) -->
+        <ng-container *ngIf="vm.group?.avatar; else defaultAvatar">
+          <img
+            [src]="vm.group?.avatar"
+            class="w-32 h-32 rounded-full object-cover border"
+          />
+        </ng-container>
+
+        <!-- Default avatar -->
+        <ng-template #defaultAvatar>
+          <div class="w-32 h-32 rounded-full flex items-center justify-center text-white text-[64px] font-normal select-none bg-gray-400">
+            <span class="relative -top-[1px]">
+              {{ vm.group?.name?.charAt(0)?.toUpperCase() }}
+            </span>
+          </div>
+        </ng-template>
+
+      </div>
+
+      <!-- Group Info -->
+      <div class="flex-1 text-center sm:text-left space-y-2">
+
+        <!-- Name -->
+        <h1 class="text-2xl font-semibold">
+          {{ vm.group?.name }}
+        </h1>
+
+        <!-- Bio -->
+        <p class="text-gray-700 max-w-xl break-words whitespace-pre-wrap">
+          {{ vm.group?.bio || 'No description' }}
+        </p>
+
+      </div>
+
+      <!-- Join / Leave Button -->
+      <div class="self-center sm:self-start">
+
+          <button
+            *ngIf="vm.group?.ownerId !== vm.user?.uid"
+            (click)="toggleMembership(vm.isMember)"
+            class="px-4 py-2 rounded-lg text-white transition-colors duration-200"
+            [ngClass]="{
+              'bg-blue-600 hover:bg-blue-700': !vm.isMember,
+              'bg-gray-400 hover:bg-gray-500': vm.isMember
+            }">
+
+            {{ vm.isMember ? 'Leave' : 'Join' }}
+
+          </button>
+
+      </div>
+
+    </div>
+
+    <!-- (Future) Stats Section -->
+    <div class="grid grid-cols-2 gap-4 text-center">
+
+      <div class="bg-white rounded-lg shadow p-4">
+        <p class="text-xl font-bold">--</p>
+        <p class="text-gray-500 text-sm">Posts</p>
+      </div>
+
+      <div
+        class="bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-md"
+        (click)="showMembersModal = true">
+
+        <p class="text-xl font-bold">
+          {{ vm.memberCount }}
+        </p>
+        <p class="text-gray-500 text-sm">Members</p>
+
+      </div>
+
+    </div>
+
+    <!-- Debug -->
+    <p class="text-sm text-gray-400">
+      Group ID: {{ groupId }}
+    </p>
+
+  </div>
+</ng-container>
+
+<ng-container *ngIf="vm$ | async as vm">
+  <div
+    *ngIf="showMembersModal" @overlayFade
+    class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div @modalTransition class="bg-white w-full max-w-md rounded-xl shadow-lg p-6 space-y-4">
+
+      <!-- Header -->
+      <div class="flex justify-between items-center">
+        <h2 class="text-lg font-semibold">Members</h2>
+        <button (click)="showMembersModal = false">✕</button>
+      </div>
+
+      <!-- Member List -->
+      <div class="max-h-80 min-h-[50vh] overflow-y-auto space-y-2">
+        <div
+          *ngFor="let member of vm.members"
+          class="flex items-center justify-between px-3 py-2 rounded-lg">
+
+          <!-- Left: User -->
+          <div class="flex items-center gap-3">
+            <app-avatar
+              [userId]="member.user?.userId"
+              [username]="member.user?.displayName"
+              [imageUrl]="member.user?.profilePicture"
+              size="sm">
+            </app-avatar>
+
+            <span class="text-base font-medium truncate">
+              {{ member.user?.displayName || member.user?.username }}
+
+              <span *ngIf="member.uid === vm.user?.uid" class="text-xs text-gray-500 ml-1">
+                (You)
+              </span>
+            </span>
+          </div>
+
+          <!-- Right -->
+          <div class="flex items-center gap-2">
+
+            <!-- Role Badge -->
+            <span
+              *ngIf="member.role !== 'member'"
+              class="text-xs px-2 py-1 rounded-full"
+              [ngClass]="{
+                'bg-yellow-100 text-yellow-700': member.role === 'owner',
+                'bg-blue-100 text-blue-700': member.role === 'moderator'
+              }">
+              {{ member.role === 'owner' ? 'Owner' : 'Moderator' }}
+            </span>
+
+            <!-- Actions -->
+            <ng-container *ngIf="(currentUserRole$ | async) as currentRole">
+              <div class="relative" #menuContainer>
+                <button
+                  *ngIf="canManageMember(currentRole, member, vm.user?.uid)"
+                  (click)="toggleMenu(member.uid, $event)"
+                  [class.bg-gray-200]="openMenuUid === member.uid"
+                  class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center">
+                  <span class="relative -top-[1.5px]">⋯</span>
+                </button>
+                <div class="dropdown-open absolute right-0 z-[1000]"
+                  [ngClass]="openMenuDirection[member.uid] === 'up' ? 'bottom-full mb-[7.5rem] animate-slide-up' : 'top-full mt-2 animate-slide-down'"
+                  *ngIf="openMenuUid === member.uid" 
+                  #menu 
+                  (click)="$event.stopPropagation()">
+
+                  <div class="absolute right-0 w-44 bg-white border rounded-lg shadow z-50">
+
+                    <!-- OWNER MENU -->
+                    <ng-container *ngIf="(currentUserRole$ | async) === 'owner'">
+
+                      <button (click)="openConfirm('remove', member)" class="dropdown-item">
+                        Remove user
+                      </button>
+
+                      <button
+                        *ngIf="member.role === 'member'"
+                        (click)="openConfirm('promote', member)"
+                        class="dropdown-item">
+                        Promote to moderator
+                      </button>
+
+                      <button
+                        *ngIf="member.role === 'moderator'"
+                        (click)="openConfirm('demote', member)"
+                        class="dropdown-item">
+                        Demote to member
+                      </button>
+
+                      <button
+                        *ngIf="member.role !== 'owner'"
+                        (click)="openConfirm('transfer', member)"
+                        class="dropdown-item text-red-600">
+                        Transfer ownership
+                      </button>
+
+                    </ng-container>
+
+                    <!-- MODERATOR MENU -->
+                    <ng-container *ngIf="(currentUserRole$ | async) === 'moderator'">
+                      <button (click)="openConfirm('remove', member)" class="dropdown-item">
+                        Remove user
+                      </button>
+                    </ng-container>
+
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+<ng-container *ngIf="vm$ | async as vm">
+  <div
+    *ngIf="confirmAction" @overlayFade
+    class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+
+    <div @modalTransition class="bg-white rounded-xl p-6 w-full max-w-sm space-y-4">
+
+      <h3 class="text-lg font-semibold capitalize">
+        {{ confirmAction.type }} {{ confirmAction.member.user?.username }}
+      </h3>
+
+      <p class="text-sm text-gray-600">
+        Type to confirm:
+      </p>
+
+      <input
+        [(ngModel)]="confirmInput"
+        class="w-full border rounded px-3 py-2"
+        [placeholder]="getConfirmPlaceholder(vm)"/>
+
+      <div class="flex justify-end gap-2">
+        <button class="px-4 py-2 text-gray-500 hover:text-gray-800" (click)="closeConfirm()">Cancel</button>
+
+        <button
+          [disabled]="!isConfirmValid(vm.user)"
+          (click)="executeAction(vm)"
+          class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded disabled:opacity-50">
+
+          Confirm
+        </button>
+      </div>
+
+    </div>
+  </div>
+</ng-container>

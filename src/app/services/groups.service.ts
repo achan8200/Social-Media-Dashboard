@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, collection, doc, setDoc, getDoc, getDocs, collectionData, query, where, serverTimestamp, deleteDoc, docData } from '@angular/fire/firestore';
+import { Firestore, collection, doc, setDoc, collectionData, serverTimestamp, deleteDoc, docData, writeBatch } from '@angular/fire/firestore';
 import { AuthService } from './auth.service';
-import { from, map, Observable, switchMap, of } from 'rxjs';
+import { map, Observable, switchMap, of, firstValueFrom, combineLatest, startWith } from 'rxjs';
 
 export interface Group {
   id?: string;
@@ -15,7 +15,7 @@ export interface Group {
 
 export interface GroupMember {
   uid: string;
-  role: 'owner' | 'member';
+  role: 'owner' | 'moderator' | 'member';
   joinedAt: any;
 }
 
@@ -28,14 +28,12 @@ export class GroupsService {
   // Create Group
   // ─────────────────────────────
   async createGroup(name: string, bio: string = ''): Promise<string> {
-    const user = await this.authService.getCurrentUser().toPromise();
+    const user = await firstValueFrom(this.authService.user$);
     if (!user) throw new Error('Not authenticated');
 
     const groupRef = doc(collection(this.firestore, 'groups'));
-
     const groupId = groupRef.id;
 
-    // Create group
     await setDoc(groupRef, {
       ownerId: user.uid,
       name,
@@ -43,20 +41,23 @@ export class GroupsService {
       createdAt: serverTimestamp()
     });
 
-    // Add creator as member (owner role)
     const memberRef = doc(this.firestore, `groups/${groupId}/members/${user.uid}`);
+    const userGroupRef = doc(this.firestore, `users/${user.uid}/groups/${groupId}`);
+
     await setDoc(memberRef, {
       uid: user.uid,
       role: 'owner',
       joinedAt: serverTimestamp()
     });
 
-    // Add group to user's groups list
-    const userGroupRef = doc(this.firestore, `users/${user.uid}/groups/${groupId}`);
-    await setDoc(userGroupRef, {
-      groupId,
-      joinedAt: serverTimestamp()
-    });
+    try {
+      await setDoc(userGroupRef, {
+        groupId,
+        joinedAt: serverTimestamp()
+      });
+    } catch (err) {
+      console.error('User group write FAILED:', err);
+    }
 
     return groupId;
   }
@@ -86,31 +87,75 @@ export class GroupsService {
     );
   }
 
+  getUserGroupsWithDetails(userId: string): Observable<Group[]> {
+    const userGroupsRef = collection(this.firestore, `users/${userId}/groups`);
+
+    return collectionData(userGroupsRef).pipe(
+      switchMap((memberships: any[]) => {
+        if (!memberships.length) return of([]);
+
+        const groupObservables = memberships.map(m =>
+          this.getGroup(m.groupId)
+        );
+
+        return combineLatest(groupObservables);
+      }),
+      map(groups => groups.filter((g): g is Group => g !== null))
+    );
+  }
+
   // ─────────────────────────────
   // Join Group
   // ─────────────────────────────
   async joinGroup(groupId: string): Promise<void> {
-    const user = await this.authService.getCurrentUser().toPromise();
+    const user = await firstValueFrom(this.authService.user$);
     if (!user) throw new Error('Not authenticated');
 
-    const ref = doc(this.firestore, `groups/${groupId}/members/${user.uid}`);
+    // Group side
+    const memberRef = doc(this.firestore, `groups/${groupId}/members/${user.uid}`);
 
-    await setDoc(ref, {
-      uid: user.uid,
-      role: 'member',
-      joinedAt: serverTimestamp()
-    });
+    // User side
+    const userGroupRef = doc(this.firestore, `users/${user.uid}/groups/${groupId}`);
+
+    await Promise.all([
+      setDoc(memberRef, {
+        uid: user.uid,
+        role: 'member',
+        joinedAt: serverTimestamp()
+      }),
+      setDoc(userGroupRef, {
+        groupId,
+        joinedAt: serverTimestamp()
+      })
+    ]);
   }
 
   // ─────────────────────────────
   // Leave Group
   // ─────────────────────────────
   async leaveGroup(groupId: string): Promise<void> {
-    const user = await this.authService.getCurrentUser().toPromise();
+    const user = await firstValueFrom(this.authService.user$);
     if (!user) throw new Error('Not authenticated');
 
-    const ref = doc(this.firestore, `groups/${groupId}/members/${user.uid}`);
-    await deleteDoc(ref);
+    const memberRef = doc(this.firestore, `groups/${groupId}/members/${user.uid}`);
+    const userGroupRef = doc(this.firestore, `users/${user.uid}/groups/${groupId}`);
+
+    await Promise.all([
+      deleteDoc(memberRef),
+      deleteDoc(userGroupRef)
+    ]);
+  }
+
+  async removeMember(groupId: string, uid: string) {
+    const batch = writeBatch(this.firestore);
+
+    const memberRef = doc(this.firestore, `groups/${groupId}/members/${uid}`);
+    const userGroupRef = doc(this.firestore, `users/${uid}/groups/${groupId}`);
+
+    batch.delete(userGroupRef);
+    batch.delete(memberRef);
+
+    await batch.commit();
   }
 
   // ─────────────────────────────
@@ -128,7 +173,8 @@ export class GroupsService {
     const ref = doc(this.firestore, `groups/${groupId}/members/${userId}`);
 
     return docData(ref).pipe(
-      map(doc => !!doc)
+      map(data => !!data),
+      startWith(false)
     );
   }
 
@@ -142,5 +188,25 @@ export class GroupsService {
         return this.isMember(groupId, user.uid);
       })
     );
+  }
+
+  async updateRole(groupId: string, uid: string, role: string) {
+    await setDoc(
+      doc(this.firestore, `groups/${groupId}/members/${uid}`),
+      { role },
+      { merge: true }
+    );
+  }
+
+  async transferOwnership(groupId: string, ownerUid: string, targetUid: string) {
+    const batch = writeBatch(this.firestore);
+
+    const ownerRef = doc(this.firestore, `groups/${groupId}/members/${ownerUid}`);
+    const targetRef = doc(this.firestore, `groups/${groupId}/members/${targetUid}`);
+
+    batch.set(ownerRef, { role: 'moderator' }, { merge: true });
+    batch.set(targetRef, { role: 'owner' }, { merge: true });
+
+    await batch.commit();
   }
 }
