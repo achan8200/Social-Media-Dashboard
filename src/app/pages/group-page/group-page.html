@@ -2,7 +2,7 @@
   <div class="max-w-4xl mx-auto space-y-6">
 
     <!-- Group Card -->
-    <div class="bg-white rounded-xl shadow p-6 flex flex-col sm:flex-row items-center sm:items-start gap-6">
+    <div class="bg-white rounded-xl shadow p-6 flex flex-col sm:flex-row items-center sm:items-start gap-6 relative">
 
       <!-- Avatar -->
       <div class="relative w-32 h-32">
@@ -17,9 +17,10 @@
 
         <!-- Default avatar -->
         <ng-template #defaultAvatar>
-          <div class="w-32 h-32 rounded-full flex items-center justify-center text-white text-[64px] font-normal select-none bg-gray-400">
+          <div class="w-32 h-32 rounded-full flex items-center justify-center text-white text-[64px] font-normal select-none bg-gray-400"
+            [ngStyle]="{ 'background-color': getAvatarColor(vm.group?.name) }">
             <span class="relative -top-[1px]">
-              {{ vm.group?.name?.charAt(0)?.toUpperCase() }}
+              {{ getInitial(vm.group?.name) }}
             </span>
           </div>
         </ng-template>
@@ -30,32 +31,56 @@
       <div class="flex-1 text-center sm:text-left space-y-2">
 
         <!-- Name -->
-        <h1 class="text-2xl font-semibold">
-          {{ vm.group?.name }}
-        </h1>
+        <div class="flex items-center justify-center sm:justify-start gap-2">
+          <h1 class="text-2xl font-semibold">
+            {{ vm.group?.name }}
+          </h1>
+
+          <!-- Current User Role Badge -->
+          <ng-container *ngIf="vm.isMember">
+            <span
+              *ngIf="(currentUserRole$ | async) as role"
+              class="text-xs px-2 py-1 rounded-full"
+              title="Your role in this group"
+              [ngClass]="{
+                'bg-yellow-100 text-yellow-700': role === 'owner',
+                'bg-blue-100 text-blue-700': role === 'moderator',
+                'bg-gray-200 text-gray-700': role === 'member'
+              }"
+            >
+              {{ role === 'owner' ? 'Owner' : role === 'moderator' ? 'Moderator' : 'Member' }}
+            </span>
+          </ng-container>
+        </div>
 
         <!-- Bio -->
-        <p class="text-gray-700 max-w-xl break-words whitespace-pre-wrap">
-          {{ vm.group?.bio || 'No description' }}
-        </p>
+        <p class="text-gray-700 max-w-xl break-words whitespace-pre-wrap max-h-[150px] overflow-y-auto">{{ vm.group?.bio || 'No description' }}</p>
 
       </div>
 
-      <!-- Join / Leave Button -->
-      <div class="self-center sm:self-start">
+      <div class="absolute top-4 right-4 flex items-center gap-2">
 
-          <button
-            *ngIf="vm.group?.ownerId !== vm.user?.uid"
-            (click)="toggleMembership(vm.isMember)"
-            class="px-4 py-2 rounded-lg text-white transition-colors duration-200"
-            [ngClass]="{
-              'bg-blue-600 hover:bg-blue-700': !vm.isMember,
-              'bg-gray-400 hover:bg-gray-500': vm.isMember
-            }">
+        <!-- Settings (owner/mod only) -->
+        <button
+          *ngIf="canEditGroup$ | async"
+          (click)="openSettings(); $event.stopPropagation()"
+          class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-gray-100 shadow transition-colors duration-200">
 
-            {{ vm.isMember ? 'Leave' : 'Join' }}
+          <img src="assets/icons/setting-lines.svg" class="w-5 h-5" />
 
-          </button>
+        </button>
+
+        <!-- Join / Leave -->
+        <button
+          *ngIf="vm.group?.ownerId !== vm.user?.uid"
+          (click)="toggleMembership(vm.isMember)"
+          class="px-4 py-2 rounded-lg text-white transition-colors duration-200"
+          [ngClass]="{
+            'bg-blue-600 hover:bg-blue-700': !vm.isMember,
+            'bg-gray-400 hover:bg-gray-500': vm.isMember
+          }">
+          {{ vm.isMember ? 'Leave' : 'Join' }}
+        </button>
 
       </div>
 
@@ -90,6 +115,7 @@
   </div>
 </ng-container>
 
+<!-- Member List Modal -->
 <ng-container *ngIf="vm$ | async as vm">
   <div
     *ngIf="showMembersModal" @overlayFade
@@ -131,13 +157,14 @@
 
             <!-- Role Badge -->
             <span
-              *ngIf="member.role !== 'member'"
+              *ngIf="member.role"
               class="text-xs px-2 py-1 rounded-full"
               [ngClass]="{
                 'bg-yellow-100 text-yellow-700': member.role === 'owner',
-                'bg-blue-100 text-blue-700': member.role === 'moderator'
+                'bg-blue-100 text-blue-700': member.role === 'moderator',
+                'bg-gray-200 text-gray-700': member.role === 'member'
               }">
-              {{ member.role === 'owner' ? 'Owner' : 'Moderator' }}
+              {{ member.role === 'owner' ? 'Owner' : member.role === 'moderator' ? 'Moderator' : 'Member' }}
             </span>
 
             <!-- Actions -->
@@ -208,6 +235,7 @@
   </div>
 </ng-container>
 
+<!-- Confirm Action Modal -->
 <ng-container *ngIf="vm$ | async as vm">
   <div
     *ngIf="confirmAction" @overlayFade
@@ -243,3 +271,152 @@
     </div>
   </div>
 </ng-container>
+
+<!-- Group Settings Modal -->
+<ng-container *ngIf="showSettingsModal && (group$ | async) as group">
+  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @overlayFade>
+
+    <div @modalTransition class="bg-white rounded-xl p-6 w-full max-w-md space-y-4">
+
+      <h2 class="text-lg font-semibold">Group Settings</h2>
+
+      <!-- Avatar -->
+      <div class="flex justify-center">
+        <div class="relative w-24 h-24">
+
+          <!-- Avatar image OR default -->
+          <ng-container *ngIf="groupForm.avatar; else defaultGroupAvatar">
+            <img
+              [src]="groupForm.avatar"
+              class="w-24 h-24 rounded-full object-cover border"
+            />
+          </ng-container>
+
+          <!-- Default avatar -->
+          <ng-template #defaultGroupAvatar>
+            <div
+              class="w-24 h-24 rounded-full flex items-center justify-center text-white text-[48px] select-none"
+              [ngStyle]="{ 'background-color': getAvatarColor(groupForm.name) }"
+            >
+              {{ getInitial(groupForm.name) }}
+            </div>
+          </ng-template>
+
+          <!-- Hidden file input -->
+          <input
+            type="file"
+            accept="image/*"
+            class="hidden"
+            #groupFileInput
+            (change)="onGroupAvatarSelected($event)"
+          />
+
+          <div *ngIf="canEditGroup$ | async" class="absolute bottom-0 right-0 flex flex-col items-center">
+
+            <!-- Remove button -->
+            <button *ngIf="groupForm.avatar"
+              type="button"
+              (click)="confirmRemoveProfilePicture()"
+              class="w-8 h-8 bg-red-600 text-white flex items-center justify-center rounded-full hover:bg-red-700 shadow -mb-1"
+              title="Remove profile picture">
+              <span class="relative -top-[1px]">✕</span>
+            </button>
+
+            <!-- Pencil / Change button -->
+            <button type="button"
+              (click)="groupFileInput.click()"
+              class="w-8 h-8 bg-gray-900 text-white flex items-center justify-center rounded-full hover:bg-gray-700 shadow">
+              <span class="relative -top-[1px]">✎</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Name -->
+      <div class="space-y-1">
+        <label class="text-sm font-medium text-gray-700">
+          Name
+        </label>
+        <input
+          [(ngModel)]="groupForm.name"
+          class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Group name"
+        />
+      </div>
+
+      <!-- Bio -->
+      <div class="space-y-1">
+        <label class="text-sm font-medium text-gray-700">
+          Bio
+        </label>
+        <textarea
+          [(ngModel)]="groupForm.bio"
+          class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Group bio"
+        ></textarea>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex justify-end gap-2">
+        <button (click)="closeSettings()" class="px-4 py-2 text-gray-500 hover:text-gray-700 transition-colors duration-150">Cancel</button>
+        <button (click)="saveGroupSettings()" class="bg-green-600 hover:bg-green-700 transition-colors duration-150 text-white px-4 py-2 rounded">
+          Save
+        </button>
+      </div>
+
+    </div>
+  </div>
+</ng-container>
+
+<!-- Crop Modal -->
+<div *ngIf="cropImageSrc && (canEditGroup$ | async)" @overlayFade
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+  <div @modalTransition class="bg-white p-4 rounded-lg relative w-full max-w-sm h-auto flex flex-col items-center">
+    <h2 class="text-lg font-bold mb-4">Adjust Group Picture</h2>
+    <div #cropCircle class="relative w-[264px] h-[264px] rounded-full overflow-hidden border-4 border-gray-200 shadow-inner touch-none"
+      (mousedown)="startDrag($event)" (mousemove)="drag($event)" (mouseup)="endDrag()" (mouseleave)="endDrag()"
+      (touchstart)="startDrag($event)" (touchmove)="drag($event)" (touchend)="endDrag()" (touchcancel)="endDrag()">
+      <img
+        [src]="cropImageSrc"
+          class="absolute top-1/2 left-1/2 will-change-transform max-w-none"
+          [style.width.px]="imageDisplayWidth"
+          [style.height.px]="imageDisplayHeight"
+          [style.transform]="
+            'translate(-50%, -50%) translate(' + crop.x + 'px,' + crop.y + 'px) scale(' + crop.scale + ')'
+          "
+          draggable="false"
+        />
+      </div>
+      <input
+        type="range"
+        [min]="minScale"
+        max="3"
+        step="0.01"
+        [value]="crop.scale"
+        (input)="onSliderChange($event)"
+        class="mt-4 w-64"
+      />
+      <div class="mt-4 flex gap-2">
+        <button (click)="saveCroppedGroupAvatar()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Finish</button>
+        <button (click)="cancelCrop()" class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500">Cancel</button>
+      </div>
+    </div>
+  </div>
+<!-- Remove Profile Picture Confirmation -->
+<div *ngIf="showRemoveConfirm && (canEditGroup$ | async)" @overlayFade
+  class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+  <div @modalTransition class="bg-white p-4 rounded-lg w-full max-w-sm flex flex-col items-center">
+    <h2 class="text-lg font-bold mb-4">Remove Group Picture?</h2>
+    <p class="text-gray-700 mb-4">This will revert the group picture to the default avatar.</p>
+    <div class="flex gap-2">
+      <button (click)="removeGroupPicture()"
+          class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+        Yes, Remove
+      </button>
+      <button (click)="cancelRemoveGroupPicture()"
+        class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500">
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>

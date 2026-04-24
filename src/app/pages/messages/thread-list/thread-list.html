@@ -90,7 +90,7 @@
     <ng-container *ngIf="currentModal === 'newChat'">
       <div class="flex justify-between items-center mb-2">
         <h3 class="font-semibold text-lg">Start New Chat</h3>
-        <button class="text-gray-500 hover:text-gray-800" (click)="closeModal()">✕</button>
+        <button (click)="closeModal()">✕</button>
       </div>
       <input type="text" [(ngModel)]="searchText" (ngModelChange)="search$.next($event)" placeholder="Search users" class="w-full p-2 border rounded mb-2" />
       <div *ngFor="let user of filteredNewChatUsers$ | async; trackBy: trackByUid"
@@ -121,7 +121,7 @@
         </h3>
         <!-- Right: Close -->
         <button
-          class="ml-auto text-gray-500 hover:text-gray-800 transition-colors duration-150"
+          class="ml-auto"
           (click)="closeModal()">
           ✕
         </button>

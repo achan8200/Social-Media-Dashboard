@@ -57,19 +57,49 @@
           class="bg-white rounded-xl shadow p-4 cursor-pointer hover:shadow-md transition">
 
           <!-- Avatar -->
-          <div class="w-12 h-12 rounded-full bg-gray-200 mb-3 flex items-center justify-center text-lg font-bold">
-            {{ group.name.charAt(0).toUpperCase() }}
+          <div class="relative w-12 h-12">
+
+            <!-- Avatar (future-proof for image support) -->
+            <ng-container *ngIf="group?.avatar; else defaultAvatar">
+              <img
+                [src]="group?.avatar"
+                class="w-12 h-12 rounded-full object-cover border"
+              />
+            </ng-container>
+
+            <!-- Default avatar -->
+            <ng-template #defaultAvatar>
+              <div class="w-12 h-12 rounded-full bg-gray-200 mb-3 flex items-center justify-center font-normal text-[24px] text-white"
+                [ngStyle]="{ 'background-color': getAvatarColor(group.name) }">
+                {{ getInitial(group.name) }}
+              </div>
+            </ng-template>
+
           </div>
 
-          <!-- Name -->
-          <h2 class="font-semibold text-lg truncate">
-            {{ group.name }}
-          </h2>
+          <div class="flex items-center gap-2">
+            <!-- Name -->
+            <h2 class="font-semibold text-lg truncate">
+              {{ group.name }}
+            </h2>
+
+            <!-- Role Badge -->
+            <span
+              *ngIf="group.isMember && group.role"
+              class="text-xs px-2 py-1 rounded-full flex-shrink-0"
+              [ngClass]="{
+                'bg-yellow-100 text-yellow-700': group.role === 'owner',
+                'bg-blue-100 text-blue-700': group.role === 'moderator',
+                'bg-gray-200 text-gray-700': group.role === 'member'
+              }"
+            >
+              {{ group.role === 'owner' ? 'Owner' :
+                group.role === 'moderator' ? 'Moderator' : 'Member' }}
+            </span>
+          </div>
 
           <!-- Bio -->
-          <p class="text-sm text-gray-500 line-clamp-2 mt-1">
-            {{ group.bio || 'No description' }}
-          </p>
+          <p class="text-sm text-gray-500 line-clamp-2 mt-1 break-words whitespace-pre-wrap">{{ group.bio || 'No description' }}</p>
 
         </div>
 
@@ -107,13 +137,13 @@
 
     <div class="flex justify-end gap-2">
       <button (click)="showCreateModal = false"
-              class="px-4 py-2 text-gray-500 hover:text-gray-800">
+              class="px-4 py-2 text-gray-500 hover:text-gray-800 transition-colors duration-150">
         Cancel
       </button>
 
       <button
         (click)="createGroup(nameInput.value, bioInput.value)"
-        class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+        class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-150">
         Create
       </button>
     </div>

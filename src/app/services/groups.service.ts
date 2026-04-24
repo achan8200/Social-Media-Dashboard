@@ -87,20 +87,33 @@ export class GroupsService {
     );
   }
 
-  getUserGroupsWithDetails(userId: string): Observable<Group[]> {
+  getUserGroupsWithDetails(userId: string): Observable<(Group & { role: string })[]> {
     const userGroupsRef = collection(this.firestore, `users/${userId}/groups`);
 
     return collectionData(userGroupsRef).pipe(
       switchMap((memberships: any[]) => {
         if (!memberships.length) return of([]);
 
-        const groupObservables = memberships.map(m =>
-          this.getGroup(m.groupId)
-        );
+        return combineLatest(
+          memberships.map(m =>
+            combineLatest([
+              this.getGroup(m.groupId),
+              docData(doc(this.firestore, `groups/${m.groupId}/members/${userId}`))
+            ]).pipe(
+              map(([group, member]: any) => {
+                if (!group) return null;
 
-        return combineLatest(groupObservables);
+                return {
+                  ...group,
+                  role: member?.role || 'member',
+                  isMember: true
+                };
+              })
+            )
+          )
+        );
       }),
-      map(groups => groups.filter((g): g is Group => g !== null))
+      map(groups => groups.filter((g): g is Group & { role: string } => !!g))
     );
   }
 
@@ -201,12 +214,22 @@ export class GroupsService {
   async transferOwnership(groupId: string, ownerUid: string, targetUid: string) {
     const batch = writeBatch(this.firestore);
 
+    const groupRef = doc(this.firestore, `groups/${groupId}`);
     const ownerRef = doc(this.firestore, `groups/${groupId}/members/${ownerUid}`);
     const targetRef = doc(this.firestore, `groups/${groupId}/members/${targetUid}`);
 
     batch.set(ownerRef, { role: 'moderator' }, { merge: true });
     batch.set(targetRef, { role: 'owner' }, { merge: true });
+    batch.set(groupRef, { ownerId: targetUid, updatedAt: serverTimestamp() }, { merge: true });
 
     await batch.commit();
+  }
+
+  async updateGroup(groupId: string, data: Partial<Group>) {
+    const ref = doc(this.firestore, `groups/${groupId}`);
+    await setDoc(ref, {
+      ...data,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
   }
 }

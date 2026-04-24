@@ -11,8 +11,8 @@ import { CreatePostModal } from "../../components/create-post-modal/create-post-
 import { FollowService } from '../../services/follow.service';
 import { MessagesService } from '../../services/messages.service';
 import { getInitial, getAvatarColor } from '../../utils/avatar';
-import { trigger, state, style, transition, animate } from '@angular/animations';
-import { Observable, map, from, combineLatest, switchMap, of, debounceTime, distinctUntilChanged, shareReplay, tap, finalize } from 'rxjs';
+import { trigger, style, transition, animate } from '@angular/animations';
+import { Observable, map, from, combineLatest, switchMap, of, debounceTime, distinctUntilChanged, shareReplay, tap, finalize, firstValueFrom } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 type UsernameStatus =
@@ -28,16 +28,19 @@ type UsernameStatus =
   templateUrl: './profile.html',
   styleUrl: './profile.css',
   animations: [
-    trigger('fade', [
-      state('void', style({ opacity: 0 })),
-      state('*', style({ opacity: 1 })),
-      transition(':enter', [
-        style({ opacity: 0 }),
-        animate('150ms ease-in')
+    // Overlay fade
+    trigger('overlayFade', [
+      transition(':enter', [style({ opacity: 0 }), animate('200ms ease-out', style({ opacity: 1 }))]),
+      transition(':leave', [animate('150ms ease-in', style({ opacity: 0 }))])
+    ]),
+    // Modal sliding/fade
+    trigger('modalTransition', [
+      transition('newChat <=> createGroup', [
+        style({ opacity: 0, transform: 'translateX(50px)' }),
+        animate('250ms ease-out', style({ opacity: 1, transform: 'translateX(0)' }))
       ]),
-      transition(':leave', [
-        animate('150ms ease-out', style({ opacity: 0 }))
-      ])
+      transition('void => *', [style({ opacity: 0 }), animate('200ms ease-out', style({ opacity: 1 }))]),
+      transition('* => void', [animate('150ms ease-in', style({ opacity: 0 }))])
     ])
   ]
 })
@@ -511,7 +514,7 @@ export class Profile {
 
   // Save cropped image
   async saveCroppedProfilePicture() {
-    const currentUser = await this.authService.getCurrentUser().toPromise();
+    const currentUser = await firstValueFrom(this.authService.user$);
     if (!currentUser || !this.cropImageSrc) return;
 
     const avatarSize = 256;
@@ -574,9 +577,18 @@ export class Profile {
     });
   }
 
+  cancelCrop() {
+    this.cropImageSrc = null;
+    this.crop = { x: 0, y: 0, scale: 1 };
+    this.imageNaturalWidth = 0;
+    this.imageNaturalHeight = 0;
+    this.imageDisplayWidth = 0;
+    this.imageDisplayHeight = 0;
+  }
+
   async removeProfilePicture() {
-    const currentUser = await this.authService.getCurrentUser().toPromise();
-    if (!currentUser) return;
+    const currentUser = await firstValueFrom(this.authService.user$);
+    if (!currentUser) throw new Error('Not authenticated');
 
     // Clear Firestore profilePicture field
     const userRef = doc(this.firestore, `users/${currentUser.uid}`);
@@ -585,12 +597,16 @@ export class Profile {
     // Update the local form and reset crop modal
     this.profileForm.patchValue({ profilePicture: '' });
     this.cropImageSrc = null;
-
-    console.log('Profile picture removed');
+    this.showRemoveConfirm = false;
   }
 
   confirmRemoveProfilePicture() {
+    this.cropImageSrc = null;
     this.showRemoveConfirm = true;
+  }
+
+  cancelRemoveProfilePicture() {
+    this.showRemoveConfirm = false;
   }
 
   // Shared avatar helpers
@@ -654,8 +670,8 @@ export class Profile {
   }
 
   async saveEditProfile() {
-    const currentUser = await this.authService.getCurrentUser().toPromise();
-    if (!currentUser) return;
+    const currentUser = await firstValueFrom(this.authService.user$);
+    if (!currentUser) throw new Error('Not authenticated');
 
     if (!this.hasChanges()) return;
 
@@ -745,7 +761,7 @@ export class Profile {
   }
 
   async toggleFollow() {
-    const authUser = await this.authService.getCurrentUser().toPromise();
+    const authUser = await firstValueFrom(this.authService.user$);
     const targetUser = this.originalProfile;
     if (!authUser || !targetUser) return;
 
@@ -759,7 +775,7 @@ export class Profile {
   }
 
   async openMessageThread() {
-    const currentUser = await this.authService.getCurrentUser().toPromise();
+    const currentUser = await firstValueFrom(this.authService.user$);
     const targetUser = this.originalProfile;
     if (!currentUser || !targetUser) return;
 

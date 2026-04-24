@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { GroupsService } from '../../services/groups.service';
+import { getInitial, getAvatarColor } from '../../utils/avatar';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { BehaviorSubject, combineLatest, map, of, switchMap } from 'rxjs';
 
@@ -45,6 +46,9 @@ export class Groups {
   tab$ = this.tabSubject.asObservable();
   search$ = this.searchSubject.asObservable();
 
+  role?: 'owner' | 'moderator' | 'member';
+  isMember?: boolean;
+
   showCreateModal = false;
 
   // ─────────────────────────────
@@ -71,7 +75,19 @@ export class Groups {
   ]).pipe(
     map(([tab, search, myGroups, allGroups]) => {
 
-      const base = tab === 'my' ? myGroups : allGroups;
+      let base: any[];
+
+      if (tab === 'my') {
+        base = myGroups;
+      } else {
+        // merge role info into discover
+        const roleMap = new Map(myGroups.map(g => [g.id, g]));
+
+        base = allGroups.map(g => ({
+          ...g,
+          ...(roleMap.get(g.id!) || {})
+        }));
+      }
 
       const term = search.toLowerCase().trim();
 
@@ -107,4 +123,8 @@ export class Groups {
   goToGroup(groupId: string) {
     this.router.navigate(['/group', groupId]);
   }
+
+  // Shared avatar helpers
+  getInitial = getInitial;
+  getAvatarColor = getAvatarColor;
 }
