@@ -1,15 +1,19 @@
 import { ChangeDetectorRef, Component, ElementRef, HostListener, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { doc, Firestore, serverTimestamp, setDoc } from '@angular/fire/firestore';
 import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { GroupsService, Group, GroupMember } from '../../services/groups.service';
+import { PostsService } from '../../services/posts.service';
+import { Post } from '../../models/post.model';
+import { PostModal } from "../../components/post-modal/post-modal";
+import { CreatePostModal } from "../../components/create-post-modal/create-post-modal";
 import { UserService } from '../../services/user.service';
 import { Avatar } from "../../components/avatar/avatar";
 import { getInitial, getAvatarColor } from '../../utils/avatar';
 import { trigger, transition, style, animate } from '@angular/animations';
-import { combineLatest, firstValueFrom, map, Observable, of, shareReplay, switchMap, take } from 'rxjs';
+import { combineLatest, map, Observable, of, shareReplay, switchMap, take } from 'rxjs';
+
 
 type MemberVM = GroupMember & {
   user: any;
@@ -18,7 +22,7 @@ type MemberVM = GroupMember & {
 @Component({
   selector: 'app-group-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, Avatar],
+  imports: [CommonModule, FormsModule, Avatar, PostModal, CreatePostModal],
   templateUrl: './group-page.html',
   styleUrl: './group-page.css',
   animations: [
@@ -39,10 +43,10 @@ type MemberVM = GroupMember & {
   ]
 })
 export class GroupPage {
-  private firestore = inject(Firestore);
   private route = inject(ActivatedRoute);
   private authService = inject(AuthService);
   private groupsService = inject(GroupsService);
+  private postsService = inject(PostsService);
   private userService = inject(UserService);
   private cdr = inject(ChangeDetectorRef);
 
@@ -63,6 +67,7 @@ export class GroupPage {
     user: any;
     members: MemberVM[];
     memberCount: number;
+    postCount: number;
   }>;
 
   membersVM$!: Observable<MemberVM[]>;
@@ -89,6 +94,11 @@ export class GroupPage {
   showRemoveConfirm = false;
 
   private originalGroupForm: any = null;
+
+  showCreateModal = false;
+  selectedPost: Post | null = null;
+  groupPosts$!: Observable<Post[]>;
+  postCount$!: Observable<number>;
 
   // Crop state
   cropImageSrc: string | null = null;
@@ -181,24 +191,34 @@ export class GroupPage {
       map(role => role === 'owner' || role === 'moderator')
     );
 
+    this.groupPosts$ = groupId$.pipe(
+      switchMap(groupId => this.postsService.getPostsByGroup(groupId))
+    );
+
+    this.postCount$ = this.groupPosts$.pipe(
+      map(posts => posts.length),
+      shareReplay(1)
+    );
+
     this.vm$ = combineLatest([
       this.group$,
       this.membersVM$,
       this.memberCount$,
+      this.groupPosts$,
       this.isMember$,
       this.currentUser$
     ]).pipe(
-      map(([group, members, memberCount, isMember, user]) => ({
+      map(([group, members, memberCount, posts, isMember, user]) => ({
         group,
         members,
         memberCount,
+        postCount: posts.length,
         isMember,
         user
       }))
     );
 
-    // Optional: keep raw groupId for actions
-    groupId$.subscribe(id => this.groupId = id);
+    //groupId$.subscribe(id => this.groupId = id);
   }
 
   toggleMembership(isMember: boolean) {
@@ -627,4 +647,24 @@ export class GroupPage {
   // Shared avatar helpers
   getInitial = getInitial;
   getAvatarColor = getAvatarColor;
+
+  openCreateModal() {
+    this.showCreateModal = true;
+  }
+
+  closeCreateModal() {
+    this.showCreateModal = false;
+  }
+
+  openPostModal(post: Post) {
+    this.selectedPost = post;
+  }
+
+  closePostModal() {
+    this.selectedPost = null;
+  }
+
+  trackByPostId(index: number, post: Post) {
+    return post.id;
+  }
 }

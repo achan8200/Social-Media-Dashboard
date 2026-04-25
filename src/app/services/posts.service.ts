@@ -2,7 +2,8 @@ import { Injectable } from '@angular/core';
 import { Firestore, collection, collectionData, query, orderBy, addDoc, 
   serverTimestamp, doc, updateDoc, increment, getDoc, setDoc, deleteDoc, docData,
   limit, startAfter, getDocs, QueryDocumentSnapshot, 
-  DocumentReference, collectionSnapshots } from '@angular/fire/firestore';
+  DocumentReference, collectionSnapshots, 
+  where} from '@angular/fire/firestore';
 import { Storage, ref, getDownloadURL, uploadBytesResumable, deleteObject } from '@angular/fire/storage'
 import { Auth } from '@angular/fire/auth';
 import { Post, PostMedia } from '../models/post.model';
@@ -201,6 +202,7 @@ export class PostsService {
   async createPost(
     caption?: string,
     files?: File[],
+    groupId?: string,
     onProgress?: (fileIndex: number, progress: number) => void
   ) {
     const user = this.auth.currentUser;
@@ -227,6 +229,8 @@ export class PostsService {
 
       createdAt: new Date(),
       updatedAt: new Date(),
+
+      groupId,
 
       pending: true
     };
@@ -280,16 +284,22 @@ export class PostsService {
         }));
       }
 
-      // Create Firestore document
-      const docRef = await addDoc(collection(this.firestore, 'posts'), {
+      const payload: any = {
         uid,
         caption: caption || '',
-        media: media,
+        media,
         likesCount: 0,
         commentsCount: 0,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
-      });
+      };
+
+      if (groupId) {
+        payload.groupId = groupId;
+      }
+
+      // Create Firestore document
+      const docRef = await addDoc(collection(this.firestore, 'posts'), payload);
 
       // Fetch latest user info
       const userSnap = await getDoc(doc(this.firestore, `users/${uid}`));
@@ -901,6 +911,20 @@ export class PostsService {
 
     // Delete the post document itself
     await deleteDoc(postRef);
+  }
+
+  /** -------------------- GROUP POSTS -------------------- */
+
+  getPostsByGroup(groupId: string): Observable<Post[]> {
+    const postsRef = collection(this.firestore, 'posts');
+
+    const q = query(
+      postsRef,
+      where('groupId', '==', groupId),
+      orderBy('createdAt', 'desc')
+    );
+
+    return collectionData(q, { idField: 'id' }) as Observable<Post[]>;
   }
 
   /** -------------------- UTILS -------------------- */

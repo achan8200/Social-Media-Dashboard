@@ -1,7 +1,8 @@
-import { Component, EventEmitter, Output, NgZone, ChangeDetectorRef, ViewChild, ElementRef  } from '@angular/core';
+import { Component, EventEmitter, Output, NgZone, ChangeDetectorRef, ViewChild, ElementRef, Input  } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PostsService } from '../../services/posts.service';
+import { Group } from '../../services/groups.service';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 
@@ -30,9 +31,11 @@ interface SelectedMedia {
 export class CreatePostModal {
   caption: string = '';
   selectedMedia: SelectedMedia[] = [];
+
   isVisible = true; // controls fade out
   isUploading = false;
 
+  @Input() group: Group | null = null;
   @Output() close = new EventEmitter<void>();
   @Output() create = new EventEmitter<{ caption: string; media: File[] }>();
 
@@ -43,13 +46,13 @@ export class CreatePostModal {
   async onCreate() {
     if (!this.caption.trim() && this.selectedMedia.length === 0) return;
 
-    const files = this.selectedMedia.map(m => m.file);
+    const files: File[] = this.selectedMedia.map(m => m.file);
 
     this.isUploading = true;
     this.cdr.detectChanges();
 
     try {
-      await this.postsService.createPost(this.caption, files, (index, progress) => {
+      await this.postsService.createPost(this.caption, files, this.group?.id, (index: number, progress: number) => {
         // Update progress inside Angular zone
         this.ngZone.run(() => {
           this.selectedMedia[index].progress = progress;

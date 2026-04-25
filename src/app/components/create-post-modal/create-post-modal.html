@@ -7,7 +7,9 @@
   <div @modalScale class="relative bg-white w-full max-w-lg rounded-lg p-4 flex flex-col space-y-4">
 
     <div class="flex justify-between items-center">
-      <h3 class="font-semibold text-lg">New Post</h3>
+      <h3 class="font-semibold text-lg">
+        {{ group ? ('Create Post • ' + group.name) : 'Create Post' }}
+      </h3>
       <button (click)="onCancel()">✕</button>
     </div>
 

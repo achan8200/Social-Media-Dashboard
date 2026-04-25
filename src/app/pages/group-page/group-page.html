@@ -90,7 +90,7 @@
     <div class="grid grid-cols-2 gap-4 text-center">
 
       <div class="bg-white rounded-lg shadow p-4">
-        <p class="text-xl font-bold">--</p>
+        <p class="text-xl font-bold">{{ vm.postCount }}</p>
         <p class="text-gray-500 text-sm">Posts</p>
       </div>
 
@@ -106,13 +106,76 @@
       </div>
 
     </div>
+    <!-- Group Posts Grid -->
+    <div class="grid grid-cols-3 gap-2 mt-6">
+      <ng-container *ngIf="groupPosts$ | async as posts">
+        <ng-container *ngIf="posts.length > 0; else noPosts">
+          <ng-container *ngFor="let post of posts; trackBy: trackByPostId">
+            <!-- media post -->
+            <div *ngIf="post.media!.length > 0; else captionOnlyPost" 
+              (click)="openPostModal(post)"
+              class="relative aspect-square bg-gray-100 overflow-hidden rounded cursor-pointer">
+              <!-- Stack icon (only if multiple media) -->
+              <img *ngIf="(post?.media?.length ?? 0) > 1"
+                src="assets/icons/stack.svg"
+                class="absolute top-2 right-2 w-6 h-6 p-1 rounded-md"/>
+              <img *ngIf="post.media![0].type === 'image'" [src]="post.media![0].url" class="w-full h-full object-cover"/>
+              <video *ngIf="post.media![0].type === 'video'" [src]="post.media![0].url" class="w-full h-full object-cover" muted loop playsinline></video>
+            </div>
 
-    <!-- Debug -->
-    <p class="text-sm text-gray-400">
-      Group ID: {{ groupId }}
-    </p>
+            <!-- Caption-only post -->
+            <ng-template #captionOnlyPost>
+              <div
+                (click)="openPostModal(post)"
+                class="relative aspect-square bg-white rounded overflow-hidden cursor-pointer">
+                <div class="absolute inset-3 flex items-center justify-center p-2">
+                  <p class="text-center text-sm text-gray-700 whitespace-pre-wrap break-words">
+                    {{ post.caption }}
+                  </p>
+                </div>
+                <!-- Top fade overlay -->
+                <div class="pointer-events-none absolute top-0 left-0 right-0 h-16
+                            bg-gradient-to-b from-white to-transparent">
+                </div>
+                <!-- Bottom fade overlay -->
+                <div class="pointer-events-none absolute bottom-0 left-0 right-0 h-16
+                            bg-gradient-to-t from-white to-transparent">
+                </div>
+              </div>
+            </ng-template>
+          </ng-container>
+        </ng-container>
+      </ng-container>
 
+      <ng-template #noPosts>
+        <p class="text-center col-span-3 text-gray-500">No group posts yet.</p>
+      </ng-template>
+    </div>
   </div>
+
+  <!-- Floating Create Button -->
+  <button
+    *ngIf="isMember$ | async"
+    (click)="openCreateModal()"
+    class="fixed bottom-8 right-8 w-14 h-14 bg-blue-600 text-white text-3xl rounded-full shadow-lg hover:scale-105 transition
+          flex items-center justify-center leading-none"
+  >
+    <span class="relative -top-0.5">+</span>
+  </button>
+
+  <!-- Create Group Post Modal -->
+  <app-create-post-modal
+    *ngIf="showCreateModal"
+    [group]="vm.group"
+    (close)="closeCreateModal()">
+  </app-create-post-modal>
+
+  <!-- Post View Modal -->
+  <app-post-modal
+    *ngIf="selectedPost"
+    [post]="selectedPost"
+    (close)="closePostModal()">
+  </app-post-modal>
 </ng-container>
 
 <!-- Member List Modal -->
