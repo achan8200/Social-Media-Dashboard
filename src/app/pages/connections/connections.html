@@ -1,4 +1,4 @@
-<div class="flex-1 p-4 max-w-4xl mx-auto">
+<div class="flex-1 p-4 max-w-5xl mx-auto">
   <h1 class="text-2xl font-semibold mb-4">
     <ng-container *ngIf="isOwnProfile; else otherUser">
       Connections
@@ -14,80 +14,101 @@
     </ng-template>
   </h1>
 
-  <!-- Tabs -->
-  <div class="flex border-b mb-6">
-    <button
-      [routerLink]="[]"
-      [queryParams]="{ tab: 'followers' }"
-      [class.border-blue-600]="activeTab === 'followers'"
-      class="px-4 py-2 border-b-2 font-medium transition-colors duration-200 hover:text-blue-600">
-      Followers
-    </button>
+  <ng-container *ngIf="tab$ | async as activeTab">
 
-    <button
-      [routerLink]="[]"
-      [queryParams]="{ tab: 'following' }"
-      [class.border-blue-600]="activeTab === 'following'"
-      class="px-4 py-2 border-b-2 font-medium transition-colors duration-200 hover:text-blue-600">
-      Following
-    </button>
-  </div>
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-4">
+      <button
+        [routerLink]="[]"
+        [queryParams]="{ tab: 'followers' }"
+        [ngClass]="activeTab === 'followers'
+            ? 'bg-gray-900 text-white'
+            : 'bg-gray-200 hover:bg-gray-300'"
+        class="px-4 py-2 rounded-lg transition">
+        Followers
+      </button>
 
-  <!-- User Cards Grid -->
-  <div class="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
-    <div *ngFor="let user of users; trackBy: trackByUid"
-      class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-transform duration-200 transform hover:-translate-y-1">
-      
-          <!-- Avatar + Info -->
-          <a class="flex items-center gap-4 flex-1 min-w-0" [routerLink]="['/profile', user.userId$ | async]">
-            <div class="w-14 h-14 rounded-full bg-white border border-gray-300 overflow-hidden flex flex-shrink-0 items-center justify-center">
-              <app-avatar
-                [username]="user.usernameCache || (user.username$ | async)"
-                [imageUrl]="user.profilePictureCache || (user.profilePicture$ | async)"
-                class="transform scale-[1.75] origin-center">
-              </app-avatar>
-            </div>
-
-            <div class="flex flex-col truncate min-w-0">
-              <p class="font-semibold text-gray-900 truncate">{{ user.displayNameCache || (user.displayName$ | async) }}</p>
-              <p class="text-sm text-gray-500 truncate">@{{ user.usernameCache || (user.username$ | async) }}</p>
-            </div>
-          </a>
-
-          <!-- Action Buttons -->
-          <div class="flex items-center gap-2">
-            <ng-container *ngIf="isOwnProfile">
-              <!-- Followers tab: Follow + Remove -->
-              <ng-container *ngIf="activeTab === 'followers'">
-                <button
-                  *ngIf="user.following === false"
-                  (click)="follow(user.uid)"
-                  class="px-3 py-1 text-sm rounded-lg text-white bg-blue-500 hover:bg-blue-600 transition">
-                  Follow
-                </button>
-
-                <button
-                  (click)="removeFollower(user.uid)"
-                  class="px-2 py-1 text-sm rounded-lg text-gray-500 hover:bg-gray-200 transition">
-                  ✕
-                </button>
-              </ng-container>
-
-              <!-- Following tab: Unfollow -->
-              <ng-container *ngIf="activeTab === 'following'">
-                <button
-                  (click)="unfollow(user.uid)"
-                  class="px-2 py-1 text-sm rounded-xl text-gray-500 hover:bg-gray-200 transition">
-                  ✕
-                </button>
-              </ng-container>
-            </ng-container>
-          </div>
+      <button
+        [routerLink]="[]"
+        [queryParams]="{ tab: 'following' }"
+        [ngClass]="activeTab === 'following'
+            ? 'bg-gray-900 text-white'
+            : 'bg-gray-200 hover:bg-gray-300'"
+        class="px-4 py-2 rounded-lg transition">
+        Following
+      </button>
     </div>
+
+    <!-- Search -->
+    <input
+      type="text"
+      placeholder="Search connections"
+      class="w-full border rounded-lg p-2 mb-4"
+      (input)="onSearch($any($event.target).value)"
+    />
+
+    <ng-container *ngIf="connections$ | async as users">
+      <ng-container *ngIf="users.length > 0; else noConnections">
+      <!-- User Cards Grid -->
+      <div class="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
+        <div *ngFor="let user of users; trackBy: trackByUid"
+          class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-transform duration-200 transform hover:-translate-y-1">
+          
+              <!-- Avatar + Info -->
+              <a class="flex items-center gap-4 flex-1 min-w-0" [routerLink]="['/profile', user.userId$ | async]">
+                <div class="w-14 h-14 rounded-full bg-white border border-gray-300 overflow-hidden flex flex-shrink-0 items-center justify-center">
+                  <app-avatar
+                    [username]="user.usernameCache || (user.username$ | async)"
+                    [imageUrl]="user.profilePictureCache || (user.profilePicture$ | async)"
+                    class="transform scale-[1.75] origin-center">
+                  </app-avatar>
+                </div>
+
+                <div class="flex flex-col truncate min-w-0">
+                  <p class="font-semibold text-gray-900 truncate">{{ user.displayNameCache || (user.displayName$ | async) }}</p>
+                  <p class="text-sm text-gray-500 truncate">@{{ user.usernameCache || (user.username$ | async) }}</p>
+                </div>
+              </a>
+
+              <!-- Action Buttons -->
+              <div class="flex items-center gap-2">
+                <ng-container *ngIf="isOwnProfile">
+                  <!-- Followers tab: Follow + Remove -->
+                  <ng-container *ngIf="activeTab === 'followers'">
+                    <button
+                      *ngIf="user.following === false"
+                      (click)="follow(user.uid)"
+                      class="px-3 py-1 text-sm rounded-lg text-white bg-blue-500 hover:bg-blue-600 transition">
+                      Follow
+                    </button>
+
+                    <button
+                      (click)="removeFollower(user.uid)"
+                      class="px-2 py-1 text-sm rounded-lg text-gray-500 hover:bg-gray-200 transition">
+                      ✕
+                    </button>
+                  </ng-container>
+
+                  <!-- Following tab: Unfollow -->
+                  <ng-container *ngIf="activeTab === 'following'">
+                    <button
+                      (click)="unfollow(user.uid)"
+                      class="px-2 py-1 text-sm rounded-lg text-gray-500 hover:bg-gray-200 transition">
+                      ✕
+                    </button>
+                  </ng-container>
+                </ng-container>
+              </div>
+        </div>
+      </div>
+      </ng-container>
+    </ng-container>
 
     <!-- Empty State -->
-    <div *ngIf="users.length === 0" class="col-span-full text-center text-gray-500 p-6">
-      No {{ activeTab }} yet.
-    </div>
-  </div>
+    <ng-template #noConnections>
+      <p class="text-gray-500 text-center mt-10">
+        No {{ activeTab }} found.
+      </p>
+    </ng-template>
+  </ng-container>
 </div>

@@ -1,12 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit, ChangeDetectorRef, OnDestroy } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { Firestore, collection, getDocs, query, where } from '@angular/fire/firestore';
 import { AuthService } from '../../services/auth.service';
 import { FollowService } from '../../services/follow.service';
 import { UserService } from '../../services/user.service';
 import { Avatar } from '../../components/avatar/avatar';
-import { firstValueFrom, Observable, map, Subject, takeUntil } from 'rxjs';
+import { firstValueFrom, Observable, map, Subject, takeUntil, BehaviorSubject, combineLatest } from 'rxjs';
 
 interface ObservableUser {
   uid: string;
@@ -35,12 +35,9 @@ export class Connections implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private followService = inject(FollowService);
   private userService = inject(UserService);
-  private cdr = inject(ChangeDetectorRef);
 
-  activeTab: 'followers' | 'following' = 'followers';
-  followers: ObservableUser[] = [];
-  following: ObservableUser[] = [];
-  users: ObservableUser[] = [];
+  followers$ = new BehaviorSubject<ObservableUser[]>([]);
+  following$ = new BehaviorSubject<ObservableUser[]>([]);
   private followingSet = new Set<string>();
 
   profileUserId: string | null = null;
@@ -48,7 +45,35 @@ export class Connections implements OnInit, OnDestroy {
   isOwnProfile: boolean = false;
   profileUsername$: Observable<string> | null = null;
 
+  private tabSubject = new BehaviorSubject<'followers' | 'following'>('followers');
+  private searchSubject = new BehaviorSubject<string>('');
+
+  tab$ = this.tabSubject.asObservable();
+  search$ = this.searchSubject.asObservable();
+
   private destroy$ = new Subject<void>();
+
+  connections$ = combineLatest([
+    this.tab$,
+    this.search$,
+    this.followers$,
+    this.following$
+  ]).pipe(
+    map(([tab, search, followers, following]) => {
+      const base = tab === 'followers' ? followers : following;
+
+      const term = search.toLowerCase().trim();
+
+      if (!term) return base;
+
+      return base.filter(user => {
+        const username = (user.usernameCache || '').toLowerCase();
+        const displayName = (user.displayNameCache || '').toLowerCase();
+
+        return username.includes(term) || displayName.includes(term);
+      });
+    })
+  );
 
   async ngOnInit() {
     const authUser = await firstValueFrom(this.authService.getCurrentUser());
@@ -71,24 +96,8 @@ export class Connections implements OnInit, OnDestroy {
     this.isOwnProfile = this.profileUserId === this.currentUserId;
 
     this.route.queryParamMap.subscribe(params => {
-      const tab = params.get('tab');
-      this.activeTab = tab === 'following' ? 'following' : 'followers';
-      this.users = this.activeTab === 'followers' ? this.followers : this.following;
-      this.cdr.detectChanges();
-    });
-
-    // Patch followers
-    this.followers.forEach(u => {
-      u.username$.pipe(takeUntil(this.destroy$)).subscribe(name => u.usernameCache = name);
-      u.displayName$.pipe(takeUntil(this.destroy$)).subscribe(name => u.displayNameCache = name);
-      u.profilePicture$.pipe(takeUntil(this.destroy$)).subscribe(url => u.profilePictureCache = url);
-    });
-
-    // Patch following
-    this.following.forEach(u => {
-      u.username$.pipe(takeUntil(this.destroy$)).subscribe(name => u.usernameCache = name);
-      u.displayName$.pipe(takeUntil(this.destroy$)).subscribe(name => u.displayNameCache = name);
-      u.profilePicture$.pipe(takeUntil(this.destroy$)).subscribe(url => u.profilePictureCache = url);
+      const tab = params.get('tab') === 'following' ? 'following' : 'followers';
+      this.tabSubject.next(tab);
     });
   }
 
@@ -132,17 +141,25 @@ export class Connections implements OnInit, OnDestroy {
     this.followService.getFollowers(this.profileUserId)
       .pipe(takeUntil(this.destroy$))
       .subscribe(async rawFollowers => {
-        this.followers = await this.mapUsersToObservables(rawFollowers);
-        if (this.activeTab === 'followers') this.users = this.followers;
-        this.cdr.detectChanges();
+        const mapped = await this.mapUsersToObservables(rawFollowers);
+        mapped.forEach(u => {
+          u.username$.pipe(takeUntil(this.destroy$)).subscribe(name => u.usernameCache = name);
+          u.displayName$.pipe(takeUntil(this.destroy$)).subscribe(name => u.displayNameCache = name);
+          u.profilePicture$.pipe(takeUntil(this.destroy$)).subscribe(url => u.profilePictureCache = url);
+        });
+        this.followers$.next(mapped);
       });
 
     this.followService.getFollowing(this.profileUserId)
       .pipe(takeUntil(this.destroy$))
       .subscribe(async rawFollowing => {
-        this.following = await this.mapUsersToObservables(rawFollowing);
-        if (this.activeTab === 'following') this.users = this.following;
-        this.cdr.detectChanges();
+        const mapped = await this.mapUsersToObservables(rawFollowing);
+        mapped.forEach(u => {
+          u.username$.pipe(takeUntil(this.destroy$)).subscribe(name => u.usernameCache = name);
+          u.displayName$.pipe(takeUntil(this.destroy$)).subscribe(name => u.displayNameCache = name);
+          u.profilePicture$.pipe(takeUntil(this.destroy$)).subscribe(url => u.profilePictureCache = url);
+        });
+        this.following$.next(mapped);
       });
   }
 
@@ -152,26 +169,14 @@ export class Connections implements OnInit, OnDestroy {
 
       const observableUser: ObservableUser = {
         uid: u.uid,
-        
-        username$: user$.pipe(map(user => {
-          observableUser.usernameCache = user?.username || 'Unknown';
-          return observableUser.usernameCache;
-        })),
-
-        displayName$: user$.pipe(map(user => {
-          observableUser.displayNameCache = user?.displayName || 'Unknown';
-          return observableUser.displayNameCache;
-        })),
-
-        profilePicture$: user$.pipe(map(user => {
-          observableUser.profilePictureCache = user?.profilePicture || null;
-          return observableUser.profilePictureCache;
-        })),
-
+        username$: user$.pipe(map(user => user?.username || 'Unknown')),
+        displayName$: user$.pipe(map(user => user?.displayName || 'Unknown')),
+        profilePicture$: user$.pipe(map(user => user?.profilePicture || null)),
         userId$: user$.pipe(map(user => user?.userId || '')),
 
         following: this.followingSet.has(u.uid),
 
+        // initial cache
         usernameCache: u.username,
         displayNameCache: u.displayName,
         profilePictureCache: u.profilePicture,
@@ -181,10 +186,8 @@ export class Connections implements OnInit, OnDestroy {
     });
   }
 
-  async switchTab(tab: 'followers' | 'following') {
-    this.activeTab = tab;
-    this.users = tab === 'followers' ? this.followers : this.following;
-    this.cdr.detectChanges();
+  onSearch(value: string) {
+    this.searchSubject.next(value);
   }
 
   // Follow a user (used in Followers tab)
@@ -206,11 +209,16 @@ export class Connections implements OnInit, OnDestroy {
   }
 
   private updateFollowingState() {
-    [...this.followers, ...this.following].forEach(user => {
+    const followers = this.followers$.value;
+    const following = this.following$.value;
+
+    [...followers, ...following].forEach(user => {
       user.following = this.followingSet.has(user.uid);
     });
 
-    this.cdr.markForCheck();
+    // trigger UI update
+    this.followers$.next([...followers]);
+    this.following$.next([...following])
   }
 
   private chunkArray(array: string[], size: number) {
