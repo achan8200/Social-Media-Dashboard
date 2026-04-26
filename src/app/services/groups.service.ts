@@ -30,6 +30,12 @@ export class GroupsService {
   // Create Group
   // ─────────────────────────────
   async createGroup(name: string, bio: string = ''): Promise<string> {
+    const trimmedName = name?.trim();
+
+    if (!trimmedName) {
+      throw new Error('Group name cannot be empty');
+    }
+    
     const user = await firstValueFrom(this.authService.user$);
     if (!user) throw new Error('Not authenticated');
 

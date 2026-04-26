@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { GroupsService } from '../../services/groups.service';
@@ -12,7 +13,7 @@ type Tab = 'my' | 'discover';
 @Component({
   selector: 'app-groups',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './groups.html',
   styleUrl: './groups.css',
   animations: [
@@ -49,7 +50,9 @@ export class Groups {
   role?: 'owner' | 'moderator' | 'member';
   isMember?: boolean;
 
+  groupName = '';
   showCreateModal = false;
+  isCreating = false;
 
   // ─────────────────────────────
   // DATA STREAMS
@@ -112,11 +115,17 @@ export class Groups {
   }
 
   async createGroup(name: string, bio: string) {
+    if (this.isCreating) return;
+
+    this.isCreating = true;
+
     try {
       await this.groupsService.createGroup(name, bio);
       this.showCreateModal = false;
     } catch (err) {
       console.error(err);
+    } finally {
+      this.isCreating = false;
     }
   }
 

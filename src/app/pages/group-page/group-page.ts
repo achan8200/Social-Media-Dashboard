@@ -93,7 +93,7 @@ export class GroupPage {
 
   showRemoveConfirm = false;
 
-  private originalGroupForm: any = null;
+  originalGroupForm: any = null;
 
   showCreateModal = false;
   selectedPost: Post | null = null;
@@ -393,8 +393,15 @@ export class GroupPage {
   async saveGroupSettings() {
     if (!this.groupId) return;
 
+    const trimmedName = this.groupForm.name?.trim();
+
+    if (!trimmedName) {
+      console.warn('Group name cannot be empty');
+      return;
+    }
+
     await this.groupsService.updateGroup(this.groupId, {
-      name: this.groupForm.name.trim(),
+      name: trimmedName,
       bio: this.groupForm.bio,
       avatar: this.groupForm.avatar
     });

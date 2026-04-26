@@ -127,13 +127,14 @@
     <h2 class="text-lg font-bold">Create Group</h2>
 
     <input #nameInput
-           type="text"
-           placeholder="Group name"
-           class="w-full border rounded p-2"/>
+      type="text"
+      placeholder="Group name"
+      class="w-full border rounded p-2"
+      [(ngModel)]="groupName"/>
 
     <textarea #bioInput
-              placeholder="Group bio (optional)"
-              class="w-full border rounded p-2"></textarea>
+      placeholder="Group bio (optional)"
+      class="w-full border rounded p-2"></textarea>
 
     <div class="flex justify-end gap-2">
       <button (click)="showCreateModal = false"
@@ -143,8 +144,9 @@
 
       <button
         (click)="createGroup(nameInput.value, bioInput.value)"
-        class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-150">
-        Create
+        [disabled]="!groupName.trim() || isCreating"
+        class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-150 disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed">
+        {{ isCreating ? 'Creating...' : 'Create' }}
       </button>
     </div>
 
