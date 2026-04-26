@@ -98,10 +98,7 @@ export class PostCard {
         }
 
         if (updatedPost.groupId) {
-          this.groupName$ = this.groupsService.getGroup(updatedPost.groupId).pipe(
-            map(group => group?.name ?? null),
-            shareReplay(1)
-          );
+          this.groupName$ = this.groupsService.getGroupName(updatedPost.groupId);
         } else {
           this.groupName$ = of(null);
         }

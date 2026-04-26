@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Firestore, collection, doc, setDoc, collectionData, serverTimestamp, deleteDoc, docData, writeBatch } from '@angular/fire/firestore';
 import { AuthService } from './auth.service';
-import { map, Observable, switchMap, of, firstValueFrom, combineLatest, startWith } from 'rxjs';
+import { map, Observable, switchMap, of, firstValueFrom, combineLatest, startWith, shareReplay } from 'rxjs';
 
 export interface Group {
   id?: string;
@@ -23,6 +23,8 @@ export interface GroupMember {
 export class GroupsService {
   private firestore = inject(Firestore);
   private authService = inject(AuthService);
+
+  private groupCache = new Map<string, Observable<Group | null>>();
 
   // ─────────────────────────────
   // Create Group
@@ -66,12 +68,24 @@ export class GroupsService {
   // Get Single Group
   // ─────────────────────────────
   getGroup(groupId: string): Observable<Group | null> {
+    if (this.groupCache.has(groupId)) {
+      return this.groupCache.get(groupId)!;
+    }
+
     const ref = doc(this.firestore, `groups/${groupId}`);
-    return docData(ref, { idField: 'id' }) as Observable<Group>;
+
+    const group$ = docData(ref, { idField: 'id' }).pipe(
+      map(data => data ? (data as Group) : null),
+      shareReplay({ bufferSize: 1, refCount: true })
+    );
+
+    this.groupCache.set(groupId, group$);
+
+    return group$;
   }
 
   // ─────────────────────────────
-  // Get All Groups (basic)
+  // Get All Groups
   // ─────────────────────────────
   getAllGroups(): Observable<Group[]> {
     const ref = collection(this.firestore, 'groups');
@@ -87,6 +101,9 @@ export class GroupsService {
     );
   }
 
+  // ─────────────────────────────
+  // Get Groups for a User with Details
+  // ─────────────────────────────
   getUserGroupsWithDetails(userId: string): Observable<(Group & { role: string })[]> {
     const userGroupsRef = collection(this.firestore, `users/${userId}/groups`);
 
@@ -114,6 +131,15 @@ export class GroupsService {
         );
       }),
       map(groups => groups.filter((g): g is Group & { role: string } => !!g))
+    );
+  }
+
+  // ─────────────────────────────
+  // Get Group Name
+  // ─────────────────────────────
+  getGroupName(groupId: string): Observable<string | null> {
+    return this.getGroup(groupId).pipe(
+      map(group => group?.name ?? null)
     );
   }
 
@@ -159,6 +185,9 @@ export class GroupsService {
     ]);
   }
 
+  // ─────────────────────────────
+  // Remove Member from Group
+  // ─────────────────────────────
   async removeMember(groupId: string, uid: string) {
     const batch = writeBatch(this.firestore);
 
@@ -203,6 +232,9 @@ export class GroupsService {
     );
   }
 
+  // ─────────────────────────────
+  // Check if Group Owner or Moderator
+  // ─────────────────────────────
   isGroupAdmin(groupId: string, uid: string): Observable<boolean> {
     const ref = doc(this.firestore, `groups/${groupId}/members/${uid}`);
 
@@ -214,6 +246,9 @@ export class GroupsService {
     );
   }
 
+  // ─────────────────────────────
+  // Update Role
+  // ─────────────────────────────
   async updateRole(groupId: string, uid: string, role: string) {
     await setDoc(
       doc(this.firestore, `groups/${groupId}/members/${uid}`),
@@ -222,6 +257,9 @@ export class GroupsService {
     );
   }
 
+  // ─────────────────────────────
+  // Transfer Ownership
+  // ─────────────────────────────
   async transferOwnership(groupId: string, ownerUid: string, targetUid: string) {
     const batch = writeBatch(this.firestore);
 
@@ -236,6 +274,9 @@ export class GroupsService {
     await batch.commit();
   }
 
+  // ─────────────────────────────
+  // Update Group Info
+  // ─────────────────────────────
   async updateGroup(groupId: string, data: Partial<Group>) {
     const ref = doc(this.firestore, `groups/${groupId}`);
     await setDoc(ref, {

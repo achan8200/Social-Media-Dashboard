@@ -771,9 +771,7 @@ export class PostView implements AfterViewInit {
     this.menuOpen = false;
     this.selectedPostToRemoveFromGroup = this.post;
 
-    this.selectedGroupName$ = this.groupsService.getGroup(this.post.groupId).pipe(
-      map(group => group?.name ?? null)
-    );
+    this.selectedGroupName$ = this.groupsService.getGroupName(this.post.groupId);
   }
 
   async confirmRemoveFromGroup() {
