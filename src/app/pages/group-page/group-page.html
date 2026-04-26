@@ -106,6 +106,31 @@
       </div>
 
     </div>
+
+    <!-- Tabs -->
+    <div class="bg-white rounded-lg shadow flex mt-2 overflow-hidden">
+      <button
+        (click)="setTab('posts')"
+        class="flex-1 py-3 text-sm font-medium transition"
+        [ngClass]="activeTab === 'posts'
+            ? 'bg-gray-900 text-white'
+            : 'bg-gray-200 hover:bg-gray-300'">
+        Posts
+      </button>
+
+      <button
+        (click)="setTab('messages')"
+        [disabled]="!vm.isMember"
+        class="flex-1 py-3 text-sm font-medium transition disabled:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        [ngClass]="activeTab === 'messages'
+            ? 'bg-gray-900 text-white'
+            : 'bg-gray-200 hover:bg-gray-300'">
+        Messages
+      </button>
+    </div>
+
+    <!-- POSTS TAB -->
+    <ng-container *ngIf="activeTab === 'posts'">
     <!-- Group Posts Grid -->
     <div class="grid grid-cols-3 gap-2 mt-6">
       <ng-container *ngIf="groupPosts$ | async as posts">
@@ -151,11 +176,19 @@
         <p class="text-center col-span-3 text-gray-500">No group posts yet.</p>
       </ng-template>
     </div>
+    </ng-container>
+
+    <!-- MESSAGES TAB -->
+    <ng-container *ngIf="activeTab === 'messages'">
+      <div class="bg-white rounded-lg shadow p-4 min-h-[300px] flex items-center justify-center">
+        <p class="text-gray-500">Messages coming soon...</p>
+      </div>
+    </ng-container>
   </div>
 
   <!-- Floating Create Button -->
   <button
-    *ngIf="isMember$ | async"
+    *ngIf="activeTab === 'posts' && (isMember$ | async)"
     (click)="openCreateModal()"
     class="fixed bottom-8 right-8 w-14 h-14 bg-blue-600 text-white text-3xl rounded-full shadow-lg hover:scale-105 transition
           flex items-center justify-center leading-none"
@@ -325,7 +358,7 @@
         <button
           [disabled]="!isConfirmValid(vm.user)"
           (click)="executeAction(vm)"
-          class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded disabled:opacity-50">
+          class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150">
 
           Confirm
         </button>

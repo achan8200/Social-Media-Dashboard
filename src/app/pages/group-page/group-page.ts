@@ -95,6 +95,8 @@ export class GroupPage {
 
   originalGroupForm: any = null;
 
+  activeTab: 'posts' | 'messages' = 'posts';
+
   showCreateModal = false;
   selectedPost: Post | null = null;
   groupPosts$!: Observable<Post[]>;
@@ -175,6 +177,12 @@ export class GroupPage {
         return this.groupsService.isMember(groupId, user.uid);
       })
     );
+
+    this.isMember$.subscribe(isMember => {
+      if (!isMember && this.activeTab === 'messages') {
+        this.activeTab = 'posts';
+      }
+    });
 
     this.currentUserRole$ = combineLatest([
       this.members$,
@@ -669,6 +677,10 @@ export class GroupPage {
 
   closePostModal() {
     this.selectedPost = null;
+  }
+
+  setTab(tab: 'posts' | 'messages') {
+    this.activeTab = tab;
   }
 
   trackByPostId(index: number, post: Post) {
