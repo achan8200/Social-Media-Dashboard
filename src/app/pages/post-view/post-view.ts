@@ -3,9 +3,11 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Auth } from '@angular/fire/auth';
+import { AuthService } from '../../services/auth.service';
 import { PostsService } from '../../services/posts.service';
 import { Post, PostMedia } from '../../models/post.model';
 import { UserService } from '../../services/user.service';
+import { GroupsService } from '../../services/groups.service';
 import { ConfirmModal } from '../../components/confirm-modal/confirm-modal';
 import { EditPostModal } from '../../components/edit-post-modal/edit-post-modal';
 import { Comment, CommentWithLikes } from '../../models/comment.model';
@@ -76,6 +78,9 @@ export class PostView implements AfterViewInit {
   currentMediaAspect = 1;
 
   private initialized = false;
+  selectedPostToRemoveFromGroup: Post | null = null;
+  selectedGroupName$: Observable<string | null> = of(null);
+  canRemoveFromGroup$!: Observable<boolean>;
 
   @ViewChild('carouselContainer') carouselContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('commentsContainer') commentsContainer!: ElementRef<HTMLDivElement>;
@@ -90,6 +95,8 @@ export class PostView implements AfterViewInit {
     private postsService: PostsService, 
     private userService: UserService, 
     public auth: Auth, 
+    private authService: AuthService,
+    private groupsService: GroupsService,
     private route: ActivatedRoute,
     private cdr: ChangeDetectorRef,
     @Inject(PLATFORM_ID) private platformId: Object
@@ -154,6 +161,18 @@ export class PostView implements AfterViewInit {
 
     this.likesCount$ = this.postsService.getPostLikesCount(this.post.id).pipe(
       shareReplay(1)
+    );
+
+    this.canRemoveFromGroup$ = this.authService.user$.pipe(
+      switchMap(user => {
+        if (!user || !this.post?.groupId) return of(false);
+        
+        const isOwner = this.post.uid === user.uid;
+        
+        return this.groupsService.isGroupAdmin(this.post.groupId, user.uid).pipe(
+          map(isAdmin => isOwner || isAdmin)
+        );
+      })
     );
 
     setTimeout(() => {
@@ -742,6 +761,34 @@ export class PostView implements AfterViewInit {
       this.commentsSubject.next(resetComments);
       this.cdr.markForCheck();
     }, 500);
+  }
+
+  onRemoveFromGroup(event: Event) {
+    event.stopPropagation();
+
+    if (!this.post?.groupId) return;
+
+    this.menuOpen = false;
+    this.selectedPostToRemoveFromGroup = this.post;
+
+    this.selectedGroupName$ = this.groupsService.getGroup(this.post.groupId).pipe(
+      map(group => group?.name ?? null)
+    );
+  }
+
+  async confirmRemoveFromGroup() {
+    if (!this.selectedPostToRemoveFromGroup) return;
+
+    try {
+      await this.postsService.removePostFromGroup(this.selectedPostToRemoveFromGroup.id);
+      this.selectedPostToRemoveFromGroup = null;
+    } catch (err) {
+      console.error('Failed to remove from group:', err);
+    }
+  }
+
+  cancelRemoveFromGroup() {
+    this.selectedPostToRemoveFromGroup = null;
   }
 
   async onShare(event: Event) {

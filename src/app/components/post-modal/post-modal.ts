@@ -3,7 +3,9 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Auth } from '@angular/fire/auth';
+import { AuthService } from '../../services/auth.service';
 import { PostsService } from '../../services/posts.service';
+import { GroupsService } from '../../services/groups.service';
 import { Post, PostMedia } from '../../models/post.model';
 import { UserService } from '../../services/user.service';
 import { ConfirmModal } from "../confirm-modal/confirm-modal";
@@ -13,7 +15,7 @@ import { Avatar } from '../avatar/avatar';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { PickerComponent } from '@ctrl/ngx-emoji-mart';
 import { formatPostTimestamp } from '../../utils/date';
-import { BehaviorSubject, map, Observable, of } from 'rxjs';
+import { BehaviorSubject, map, Observable, of, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-post-modal',
@@ -87,6 +89,10 @@ export class PostModal implements AfterViewInit {
 
   currentMediaAspect = 1;
 
+  selectedPostToRemoveFromGroup: Post | null = null;
+  selectedGroupName$: Observable<string | null> = of(null);
+  canRemoveFromGroup$!: Observable<boolean>;
+
   @ViewChild('carouselContainer') carouselContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('commentsContainer') commentsContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('newCommentInput') newCommentInput!: ElementRef<HTMLTextAreaElement>;
@@ -98,6 +104,8 @@ export class PostModal implements AfterViewInit {
   constructor(
     private postsService: PostsService, 
     private userService: UserService, 
+    private groupsService: GroupsService,
+    private authService: AuthService,
     public auth: Auth,
     private cdr: ChangeDetectorRef,
   ) {}
@@ -143,6 +151,18 @@ export class PostModal implements AfterViewInit {
 
     // Subscribe to likes count
     this.likesCount$ = this.postsService.getPostLikesCount(this.post.id);
+
+    this.canRemoveFromGroup$ = this.authService.user$.pipe(
+      switchMap(user => {
+        if (!user || !this.post?.groupId) return of(false);
+
+        const isOwner = this.post.uid === user.uid;
+
+        return this.groupsService.isGroupAdmin(this.post.groupId, user.uid).pipe(
+          map(isAdmin => isOwner || isAdmin)
+        );
+      })
+    );
 
     setTimeout(() => {
       this.currentMediaIndex = 0;
@@ -600,6 +620,35 @@ export class PostModal implements AfterViewInit {
     } catch (err) {
       console.error('Failed to update post:', err);
     }
+  }
+
+  onRemoveFromGroup(event: Event) {
+    event.stopPropagation();
+
+    if (!this.post?.groupId) return;
+
+    this.menuOpen = false;
+    this.selectedPostToRemoveFromGroup = this.post;
+    
+    this.selectedGroupName$ = this.groupsService.getGroup(this.post.groupId).pipe(
+      map(group => group?.name ?? null)
+    );
+  }
+
+  async confirmRemoveFromGroup() {
+    if (!this.selectedPostToRemoveFromGroup) return;
+
+    try {
+      await this.postsService.removePostFromGroup(this.selectedPostToRemoveFromGroup.id);
+      this.selectedPostToRemoveFromGroup = null;
+      this.onClose();
+    } catch (err) {
+      console.error('Failed to remove from group:', err);
+    }
+  }
+
+  cancelRemoveFromGroup() {
+    this.selectedPostToRemoveFromGroup = null;
   }
 
   scrollCommentsToBottom() {

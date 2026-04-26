@@ -13,7 +13,8 @@
       (openPost)="openPostModal($event)"
       (like)="likePost($event)"
       (edit)="onEditPost($event)"
-      (deletePost)="onDeletePost($event)">
+      (deletePost)="onDeletePost($event)"
+      (removePostFromGroup)="onRemovePostFromGroup($event)">
     </app-post-card>
   </div>
 
@@ -51,6 +52,17 @@
   cancelText="Cancel"
   (confirmed)="confirmDelete()"
   (cancelled)="cancelDelete()">
+</app-confirm-modal>
+
+<!-- Confirm Modal for Remove from Group -->
+<app-confirm-modal
+  *ngIf="selectedPostToRemoveFromGroup"
+  [title]="'Remove from ' + (selectedPostToRemoveFromGroup.groupName + '?' || 'this group?')"
+  message="This post will no longer appear in the group feed."
+  confirmText="Remove"
+  cancelText="Cancel"
+  (confirmed)="confirmRemoveFromGroup()"
+  (cancelled)="cancelRemoveFromGroup()">
 </app-confirm-modal>
 
 <!-- Edit Post Modal -->

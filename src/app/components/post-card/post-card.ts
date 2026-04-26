@@ -2,12 +2,14 @@ import { Component, ElementRef, EventEmitter, HostListener, Input, Output, ViewC
 import { CommonModule, isPlatformBrowser  } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { Auth } from '@angular/fire/auth';
+import { AuthService } from '../../services/auth.service';
 import { PostsService } from '../../services/posts.service';
+import { GroupsService } from '../../services/groups.service';
 import { Post, PostMedia } from '../../models/post.model';
 import { UserService } from '../../services/user.service';
 import { Avatar } from '../avatar/avatar';
 import { formatPostTimestamp } from '../../utils/date';
-import { map, Observable, of, shareReplay, Subscription } from 'rxjs';
+import { map, Observable, of, shareReplay, Subscription, switchMap, take } from 'rxjs';
 
 @Component({
   selector: 'app-post-card',
@@ -26,6 +28,7 @@ export class PostCard {
   @Output() seen = new EventEmitter<string>();
   @Output() edit = new EventEmitter<Post>();
   @Output() deletePost = new EventEmitter<Post>();
+  @Output() removePostFromGroup = new EventEmitter<{ post: Post; groupName: string | null }>();
 
   private postSub?: Subscription;
   private currentPostId: string | null = null;
@@ -47,14 +50,18 @@ export class PostCard {
   copied = false;
 
   private initialized = false;
+  groupName$!: Observable<string | null>;
+  canRemoveFromGroup$!: Observable<boolean>;
 
   @ViewChild('feedVideo') feedVideo?: ElementRef<HTMLVideoElement>;
   @ViewChild('postRef') postRef?: ElementRef<HTMLElement>;
   private observer?: IntersectionObserver;
 
   constructor(
-    private userService: UserService, 
-    private auth: Auth, 
+    private userService: UserService,
+    private authService: AuthService,
+    private auth: Auth,
+    private groupsService: GroupsService,
     private postsService: PostsService,
     private cdr: ChangeDetectorRef,
     @Inject(PLATFORM_ID) private platformId: Object
@@ -90,6 +97,15 @@ export class PostCard {
           this.userId$ = user$.pipe(map(u => u?.userId || ''));
         }
 
+        if (updatedPost.groupId) {
+          this.groupName$ = this.groupsService.getGroup(updatedPost.groupId).pipe(
+            map(group => group?.name ?? null),
+            shareReplay(1)
+          );
+        } else {
+          this.groupName$ = of(null);
+        }
+
         this.timestamp$ = of(updatedPost.createdAt).pipe(
           map(ts => this.formatPostTimestamp(ts))
         );
@@ -103,6 +119,18 @@ export class PostCard {
         this.caption$ = this.postsService.getPostCaption(updatedPost.id).pipe(
           map(caption => this.formatCaption(caption ?? '')),
           shareReplay(1)
+        );
+
+        this.canRemoveFromGroup$ = this.authService.user$.pipe(
+          switchMap(user => {
+            if (!user || !this.post?.groupId) return of(false);
+        
+            const isOwner = this.post.uid === user.uid;
+        
+            return this.groupsService.isGroupAdmin(this.post.groupId, user.uid).pipe(
+              map(isAdmin => isOwner || isAdmin)
+            );
+          })
         );
       }
     });
@@ -248,6 +276,20 @@ export class PostCard {
     if (this.post) {
       this.deletePost.emit(this.post);
     }
+  }
+
+  onRemoveFromGroup(event: Event) {
+    event.stopPropagation();
+
+    if (!this.post) return;
+
+    this.menuOpen = false;
+    this.groupName$.pipe(take(1)).subscribe(groupName => {
+      this.removePostFromGroup.emit({
+        post: this.post!,
+        groupName
+      });
+    });
   }
 
   async onShare(event: Event) {

@@ -927,6 +927,15 @@ export class PostsService {
     return collectionData(q, { idField: 'id' }) as Observable<Post[]>;
   }
 
+  async removePostFromGroup(postId: string): Promise<void> {
+    const ref = doc(this.firestore, `posts/${postId}`);
+
+    await setDoc(ref, {
+      groupId: null,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  }
+
   /** -------------------- UTILS -------------------- */
 
   // Load post on feed locally

@@ -29,6 +29,8 @@ export class Feed implements OnInit, AfterViewInit {
 
   editingPost: Post | null = null;
 
+  selectedPostToRemoveFromGroup: { post: Post; groupName: string | null } | null = null;
+
   @ViewChildren('postRef') postElements!: QueryList<ElementRef>;
   @ViewChildren(PostCard) postCards!: QueryList<PostCard>;
 
@@ -190,6 +192,28 @@ export class Feed implements OnInit, AfterViewInit {
 
   cancelDelete() {
     this.selectedPostToDelete = null;
+  }
+
+  onRemovePostFromGroup(data: { post: Post; groupName: string | null }) {
+    this.selectedPostToRemoveFromGroup = data;
+  }
+
+  async confirmRemoveFromGroup() {
+    if (!this.selectedPostToRemoveFromGroup) return;
+
+    try {
+      await this.postsService.removePostFromGroup(
+        this.selectedPostToRemoveFromGroup.post.id
+      );
+
+      this.selectedPostToRemoveFromGroup = null;
+    } catch (err) {
+      console.error('Failed to remove from group:', err);
+    }
+  }
+
+  cancelRemoveFromGroup() {
+    this.selectedPostToRemoveFromGroup = null;
   }
 
   // --- Edit Post Handlers ---

@@ -25,7 +25,7 @@
         </span>
 
         <!-- Menu Button (only if author) -->
-        <div *ngIf="isAuthor" class="relative">
+        <div *ngIf="isAuthor || (post?.groupId && (canRemoveFromGroup$ | async))" class="relative">
           <button 
             (click)="toggleMenu($event)"
             [class.bg-gray-200]="menuOpen"
@@ -34,12 +34,20 @@
           </button>
 
           <div *ngIf="menuOpen"
-              class="absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg z-50 animate-slide-down">
-            <button (click)="onEdit($event)" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-              Edit Post
-            </button>
-            <button (click)="onDelete($event)" class="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">
-              Delete Post
+            class="absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg z-50 animate-slide-down">
+            <div *ngIf="isAuthor">
+              <button (click)="onEdit($event)" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+                Edit Post
+              </button>
+              <button (click)="onDelete($event)" class="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">
+                Delete Post
+              </button>
+            </div>
+            <button
+              *ngIf="post?.groupId && (canRemoveFromGroup$ | async)"
+              (click)="onRemoveFromGroup($event)"
+              class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+              Remove from group
             </button>
           </div>
         </div>

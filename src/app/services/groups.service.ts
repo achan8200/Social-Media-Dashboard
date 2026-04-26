@@ -203,6 +203,17 @@ export class GroupsService {
     );
   }
 
+  isGroupAdmin(groupId: string, uid: string): Observable<boolean> {
+    const ref = doc(this.firestore, `groups/${groupId}/members/${uid}`);
+
+    return docData(ref).pipe(
+      map((member: any) => {
+        return member?.role === 'owner' || member?.role === 'moderator';
+      }),
+      startWith(false)
+    );
+  }
+
   async updateRole(groupId: string, uid: string, role: string) {
     await setDoc(
       doc(this.firestore, `groups/${groupId}/members/${uid}`),
