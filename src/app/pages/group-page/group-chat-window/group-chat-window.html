@@ -101,9 +101,11 @@
 										<div class="relative max-w-[60%] break-words group"
 											[ngClass]="openMessageMenuId === msg.id ? 'z-50' : 'z-0'">
 											<!-- Menu button for your messages -->
-											<div *ngIf="msg.senderId === currentUserId && !editingMessageId && !msg.isDeleted"
-													class="absolute top-1/2 -translate-y-1/2 -left-8 transition"
+											<div *ngIf="(msg.senderId === currentUserId || msg.senderRole === 'owner' || msg.senderRole === 'moderator') && !editingMessageId && !msg.isDeleted"
+													class="absolute top-1/2 -translate-y-1/2 transition"
 													[ngClass]="{
+														'-left-8': msg.senderId === currentUserId,
+														'-right-8': msg.senderId !== currentUserId,
 														'opacity-100': openMessageMenuId === msg.id,
 														'opacity-0 group-hover:opacity-100': openMessageMenuId !== msg.id
 													}">
@@ -120,13 +122,13 @@
 														class="message-menu absolute -left-14 bg-white border rounded shadow w-20 text-sm z-50"
 														[ngClass]="messageMenuDirection[msg.id] === 'up' ? 'bottom-full mb-1 animate-slide-up' : 'top-full mt-1 animate-slide-down'">
 
-													<button
+													<button *ngIf="(msg.senderId === currentUserId && !editingMessageId && !msg.isDeleted)"
 														(click)="startEdit(msg)"
 														class="block w-full text-left px-3 py-2 hover:bg-gray-100">
 														Edit
 													</button>
 
-													<button
+													<button *ngIf="(msg.senderId === currentUserId && !editingMessageId && !msg.isDeleted) || (msg.senderRole === 'owner' || msg.senderRole === 'moderator')"
 														(click)="confirmDelete(msg)"
 														class="block w-full text-left px-3 py-2 text-red-500 hover:bg-gray-100">
 														Delete
@@ -172,7 +174,7 @@
 													<!-- Deleted -->
 													<span *ngIf="msg.isDeleted"
 														[ngClass]="msg.senderId === currentUserId ? 'text-white' : 'text-gray-800'"
-														class="italic opacity-80">{{ msg.senderId === currentUserId ? 'You deleted this message' : 'Message deleted' }}</span>
+														class="italic opacity-80">Message deleted</span>
 
 													<!-- Normal -->
 													<span *ngIf="!msg.isDeleted"
