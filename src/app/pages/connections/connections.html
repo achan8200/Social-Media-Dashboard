@@ -6,7 +6,7 @@
 
     <ng-template #otherUser>
       <ng-container *ngIf="profileUsername$ | async as profileUsername; else loading">
-        {{ profileUsername }}{{ profileUsername.endsWith('s') ? '’' : "'s" }} connections
+        {{ profileUsername }}{{ profileUsername.endsWith('s') ? '\'' : "'s" }} connections
       </ng-container>
       <ng-template #loading>
         Connections

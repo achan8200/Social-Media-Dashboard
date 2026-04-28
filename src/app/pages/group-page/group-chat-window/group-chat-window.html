@@ -1,283 +1,285 @@
-<div class="flex flex-col w-full h-[86vh] bg-white overflow-hidden rounded-xl shadow-2xl">
+<div class="p-[2px]">
+	<div class="flex flex-col w-full h-[86vh] bg-white overflow-hidden rounded-xl shadow">
 
-	<!-- Header -->
-	<div class="flex items-center px-4 h-16 border-b bg-white sticky top-0 z-20">
+		<!-- Header -->
+		<div class="flex items-center px-4 h-16 border-b bg-white sticky top-0 z-20">
 
-		<div class="flex items-center gap-3 h-full">
+			<div class="flex items-center gap-3 h-full">
 
-      <!-- Avatar -->
-      <div class="w-10 h-10 flex items-center justify-center">
-        <ng-container *ngIf="group$ | async as group">
-          <app-avatar
-            [imageUrl]="group.avatar"
-            [username]="group.name"
-            size="sm">
-          </app-avatar>
-        </ng-container>
-      </div>
-
-      <!-- Name -->
-      <div class="flex flex-col justify-center">
-        <span class="font-normal text-gray-800 truncate">
-          {{ (group$ | async)?.name }}
-        </span>
-
-        <div *ngIf="members$ | async as members"
-          class="text-xs text-gray-500 truncate">
-          {{ members.length }} members
-        </div>
-      </div>
-    </div>
-	</div>
-
-  <!-- Messages -->
-  <div *ngIf="groupId" class="flex flex-col flex-1 min-h-0 relative">
-
-    <!-- Message List -->
-		<div #scrollContainer
-			(scroll)="onScroll()"
-			class="flex-1 overflow-y-auto overflow-x-visible px-4 py-2 min-h-0 flex flex-col">
-			<div class="flex flex-col flex-1 justify-end">
-				<div *ngIf="messages$ | async as messages" class="flex flex-col">
-					<ng-container *ngFor="let msg of messages; let i = index">
-						<div [ngClass]="getMessageSpacing(messages, i)">
-
-							<!-- Date Separator -->
-							<div *ngIf="shouldShowDateSeparator(messages, i)"
-									class="flex justify-center my-3 sticky top-0 z-10 transition-opacity duration-300 ease-in-out">
-								<div class="text-gray-600 bg-white text-xs px-3 py-1 rounded-full">
-									{{ formatDateSeparator(msg.createdAt) }}
-								</div>
-							</div>
-
-							<!-- System Message -->
-							<div *ngIf="msg.type === 'system'" class="text-center text-gray-500 text-sm my-2">
-								{{ msg.text }}
-							</div>
-
-							<!-- User Message -->
-							<div *ngIf="msg.type === 'text'">
-
-								<!-- Sender name -->
-								<div *ngIf="shouldShowSenderName(messages, i)" 
-									class="flex items-center gap-2 text-xs mb-1 ml-12">
-
-									<!-- Name -->
-									<span class="text-gray-500">
-										{{ getSenderName(msg) }}
-									</span>
-
-									<!-- Role badge -->
-									<span *ngIf="msg.senderRole"
-										class="px-2 py-[2px] rounded-full text-[10px] font-medium capitalize"
-										[ngClass]="{
-											'bg-yellow-100 text-yellow-700': msg.senderRole === 'owner',
-											'bg-blue-100 text-blue-700': msg.senderRole === 'moderator',
-											'bg-gray-200 text-gray-700': msg.senderRole === 'member'
-										}">
-										{{ msg.senderRole }}
-									</span>
-
-								</div>
-
-								<!-- Avatar and bubble only -->
-								<div class="flex items-end gap-2"
-									[ngClass]="msg.senderId === currentUserId ? 'justify-end' : 'justify-start'">
-
-									<!-- Avatar (only for last in group) -->
-									<div class="w-8" *ngIf="msg.senderId !== currentUserId">
-										<ng-container *ngIf="msg.senderId !== currentUserId && shouldRoundBottom(messages, i)">
-											<app-avatar 
-												[imageUrl]="msg.senderProfilePicture"
-												[username]="msg.senderUsername"
-												[userId]="msg.senderUserId"
-												size="sm"
-												class="flex-shrink-0 self-end">
-											</app-avatar>
-										</ng-container>
-									</div>
-
-									<div class="relative max-w-[60%] break-words group"
-										[ngClass]="openMessageMenuId === msg.id ? 'z-50' : 'z-0'">
-										<!-- Menu button for your messages -->
-										<div *ngIf="msg.senderId === currentUserId && !editingMessageId && !msg.isDeleted"
-												class="absolute top-1/2 -translate-y-1/2 -left-8 transition"
-												[ngClass]="{
-													'opacity-100': openMessageMenuId === msg.id,
-													'opacity-0 group-hover:opacity-100': openMessageMenuId !== msg.id
-												}">
-
-											<button
-												(click)="toggleMessageMenu(msg.id, $event)"
-												class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"
-												[class.bg-gray-200]="openMessageMenuId === msg.id">
-												<span class="relative -top-[0.5px]">⋮</span>
-											</button>
-
-											<!-- Dropdown -->
-											<div *ngIf="openMessageMenuId === msg.id"
-													class="message-menu absolute -left-14 bg-white border rounded shadow w-20 text-sm z-50"
-													[ngClass]="messageMenuDirection[msg.id] === 'up' ? 'bottom-full mb-1 animate-slide-up' : 'top-full mt-1 animate-slide-down'">
-
-												<button
-													(click)="startEdit(msg)"
-													class="block w-full text-left px-3 py-2 hover:bg-gray-100">
-													Edit
-												</button>
-
-												<button
-													(click)="confirmDelete(msg)"
-													class="block w-full text-left px-3 py-2 text-red-500 hover:bg-gray-100">
-													Delete
-												</button>
-											</div>
-										</div>
-
-										<!-- Bubble -->
-										<div [ngClass]="getBubbleClasses(msg, messages, i)">
-
-											<!-- Editing Mode -->
-											<ng-container *ngIf="editingMessageId === msg.id; else normalMessage">
-												<div [ngClass]="{
-																'px-3 py-2 rounded-2xl bg-blue-500 text-white text-base break-words': isEmojiOnly(msg.text)
-															}">
-												<textarea
-													#editBox
-													[(ngModel)]="editingText"
-													rows="1"
-													class="w-full bg-transparent outline-none resize-none overflow-hidden whitespace-pre-wrap break-words"
-													(input)="autoResizeEdit($event)">
-												</textarea>
-
-												<div class="flex justify-end gap-2 mt-1">
-													<button
-														(click)="saveEdit(groupId, msg)"
-														class="text-white text-xs hover:underline">
-														Save
-													</button>
-
-													<button
-														(click)="cancelEdit()"
-														class="text-white text-xs hover:underline">
-														Cancel
-													</button>
-												</div>
-												</div>
-											</ng-container>
-
-											<!-- Normal Message -->
-											<ng-template #normalMessage>
-
-												<!-- Deleted -->
-												<span *ngIf="msg.isDeleted"
-													[ngClass]="msg.senderId === currentUserId ? 'text-white' : 'text-gray-800'"
-													class="italic opacity-80">{{ msg.senderId === currentUserId ? 'You deleted this message' : 'Message deleted' }}</span>
-
-												<!-- Normal -->
-												<span *ngIf="!msg.isDeleted"
-													class="whitespace-pre-wrap break-words">{{ msg.text }}</span>
-
-												<!-- Edited label -->
-												<span *ngIf="msg.isEdited && !msg.isDeleted"
-													[class]="getEditedLabelClass(msg)">(edited)</span>
-
-											</ng-template>
-										</div>
-									</div>
-								</div>
-
-								<!-- Timestamp -->
-								<div 
-									*ngIf="shouldShowTimestamp(messages, i)"
-									[ngClass]="msg.senderId === currentUserId ? 'text-right pr-2' : 'text-left ml-12'"
-									class="text-[0.65rem] text-gray-400 mt-[2px]">
-									{{ msg.createdAt?.toDate() | date:'shortTime' }}
-								</div>
-
-							</div>
-
-						</div>
+				<!-- Avatar -->
+				<div class="w-10 h-10 flex items-center justify-center">
+					<ng-container *ngIf="group$ | async as group">
+						<app-avatar
+							[imageUrl]="group.avatar"
+							[username]="group.name"
+							size="sm">
+						</app-avatar>
 					</ng-container>
 				</div>
+
+				<!-- Name -->
+				<div class="flex flex-col justify-center">
+					<span class="font-normal text-gray-800 truncate">
+						{{ (group$ | async)?.name }}
+					</span>
+
+					<div *ngIf="members$ | async as members"
+						class="text-xs text-gray-500 truncate">
+						{{ members.length }} members
+					</div>
+				</div>
 			</div>
 		</div>
 
-		<button
-			*ngIf="showNewMessageIndicator"
-			(click)="scrollToBottomAndClearIndicator()"
-			class="absolute bottom-20 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-3 py-1 rounded-full shadow hover:bg-blue-600 transition z-30">
-			New messages ↓
-		</button>
+		<!-- Messages -->
+		<div *ngIf="groupId" class="flex flex-col flex-1 min-h-0 relative">
 
-		<!-- Typing Indicator -->
-    <div *ngIf="(typing$ | async) as typing" class="absolute bottom-14 left-0 w-full px-4 pointer-events-none z-50">
-      <div *ngIf="(otherParticipants$ | async) as participants">
-        <div *ngIf="isOtherUserTyping(typing)" 
-             class="bg-white/90 backdrop-blur-sm border border-gray-100 px-3 py-1 rounded-full shadow text-sm text-gray-500 italic flex items-center gap-2 max-w-xs">
-          
-          <!-- Text -->
-          <span>{{ getTypingText(typing, participants) }}</span>
+			<!-- Message List -->
+			<div #scrollContainer
+				(scroll)="onScroll()"
+				class="flex-1 overflow-y-auto overflow-x-visible px-4 py-2 min-h-0 flex flex-col">
+				<div class="flex flex-col flex-1 justify-end">
+					<div *ngIf="messages$ | async as messages" class="flex flex-col">
+						<ng-container *ngFor="let msg of messages; let i = index">
+							<div [ngClass]="getMessageSpacing(messages, i)">
 
-          <!-- Animated dots -->
-          <span class="flex gap-[3px]">
-            <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0ms]"></span>
-            <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]"></span>
-            <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]"></span>
-          </span>
+								<!-- Date Separator -->
+								<div *ngIf="shouldShowDateSeparator(messages, i)"
+										class="flex justify-center my-3 sticky top-0 z-10 transition-opacity duration-300 ease-in-out">
+									<div class="text-gray-600 bg-white text-xs px-3 py-1 rounded-full">
+										{{ formatDateSeparator(msg.createdAt) }}
+									</div>
+								</div>
 
-        </div>
-      </div>
-    </div>
+								<!-- System Message -->
+								<div *ngIf="msg.type === 'system'" class="text-center text-gray-500 text-sm my-2">
+									{{ msg.text }}
+								</div>
 
-    <!-- Input Area -->
-		<div class="p-3 border-t flex items-end space-x-2 relative">
+								<!-- User Message -->
+								<div *ngIf="msg.type === 'text'">
 
-			<!-- Textarea + Emoji Wrapper -->
-			<div class="flex-1 relative">
-				
-				<!-- Textarea -->
-				<textarea
-					#messageInput
-					[(ngModel)]="newMessage"
-					(keydown.enter)="handleEnter($event)"
-					(input)="onInputChange($event)"
-					placeholder="Type a message..."
-					rows="1"
-					class="w-full border rounded px-3 py-1.5 pr-10 resize-none overflow-hidden"></textarea>
+									<!-- Sender name -->
+									<div *ngIf="shouldShowSenderName(messages, i)" 
+										class="flex items-center gap-2 text-xs mb-1 ml-12">
 
-				<div #emojiPickerContainer>
-					<!-- Emoji Button -->
-					<button
-						#emojiButton
-						type="button"
-						(click)="toggleEmojiPicker($event)"
-						(mousedown)="$event.preventDefault()"
-						class="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:scale-105">
-						<img src="assets/icons/emoji-1.svg" alt="Emoji" class="w-5 h-5" style="filter: invert(0.6);"/>
-					</button>
+										<!-- Name -->
+										<span class="text-gray-500">
+											{{ getSenderName(msg) }}
+										</span>
+
+										<!-- Role badge -->
+										<span *ngIf="msg.senderRole"
+											class="px-2 py-[2px] rounded-full text-[10px] font-medium capitalize"
+											[ngClass]="{
+												'bg-yellow-100 text-yellow-700': msg.senderRole === 'owner',
+												'bg-blue-100 text-blue-700': msg.senderRole === 'moderator',
+												'bg-gray-200 text-gray-700': msg.senderRole === 'member'
+											}">
+											{{ msg.senderRole }}
+										</span>
+
+									</div>
+
+									<!-- Avatar and bubble only -->
+									<div class="flex items-end gap-2"
+										[ngClass]="msg.senderId === currentUserId ? 'justify-end' : 'justify-start'">
+
+										<!-- Avatar (only for last in group) -->
+										<div class="w-8" *ngIf="msg.senderId !== currentUserId">
+											<ng-container *ngIf="msg.senderId !== currentUserId && shouldRoundBottom(messages, i)">
+												<app-avatar 
+													[imageUrl]="msg.senderProfilePicture"
+													[username]="msg.senderUsername"
+													[userId]="msg.senderUserId"
+													size="sm"
+													class="flex-shrink-0 self-end">
+												</app-avatar>
+											</ng-container>
+										</div>
+
+										<div class="relative max-w-[60%] break-words group"
+											[ngClass]="openMessageMenuId === msg.id ? 'z-50' : 'z-0'">
+											<!-- Menu button for your messages -->
+											<div *ngIf="msg.senderId === currentUserId && !editingMessageId && !msg.isDeleted"
+													class="absolute top-1/2 -translate-y-1/2 -left-8 transition"
+													[ngClass]="{
+														'opacity-100': openMessageMenuId === msg.id,
+														'opacity-0 group-hover:opacity-100': openMessageMenuId !== msg.id
+													}">
+
+												<button
+													(click)="toggleMessageMenu(msg.id, $event)"
+													class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"
+													[class.bg-gray-200]="openMessageMenuId === msg.id">
+													<span class="relative -top-[0.5px]">⋮</span>
+												</button>
+
+												<!-- Dropdown -->
+												<div *ngIf="openMessageMenuId === msg.id"
+														class="message-menu absolute -left-14 bg-white border rounded shadow w-20 text-sm z-50"
+														[ngClass]="messageMenuDirection[msg.id] === 'up' ? 'bottom-full mb-1 animate-slide-up' : 'top-full mt-1 animate-slide-down'">
+
+													<button
+														(click)="startEdit(msg)"
+														class="block w-full text-left px-3 py-2 hover:bg-gray-100">
+														Edit
+													</button>
+
+													<button
+														(click)="confirmDelete(msg)"
+														class="block w-full text-left px-3 py-2 text-red-500 hover:bg-gray-100">
+														Delete
+													</button>
+												</div>
+											</div>
+
+											<!-- Bubble -->
+											<div [ngClass]="getBubbleClasses(msg, messages, i)">
+
+												<!-- Editing Mode -->
+												<ng-container *ngIf="editingMessageId === msg.id; else normalMessage">
+													<div [ngClass]="{
+																	'px-3 py-2 rounded-2xl bg-blue-500 text-white text-base break-words': isEmojiOnly(msg.text)
+																}">
+													<textarea
+														#editBox
+														[(ngModel)]="editingText"
+														rows="1"
+														class="w-full bg-transparent outline-none resize-none overflow-hidden whitespace-pre-wrap break-words"
+														(input)="autoResizeEdit($event)">
+													</textarea>
+
+													<div class="flex justify-end gap-2 mt-1">
+														<button
+															(click)="saveEdit(groupId, msg)"
+															class="text-white text-xs hover:underline">
+															Save
+														</button>
+
+														<button
+															(click)="cancelEdit()"
+															class="text-white text-xs hover:underline">
+															Cancel
+														</button>
+													</div>
+													</div>
+												</ng-container>
+
+												<!-- Normal Message -->
+												<ng-template #normalMessage>
+
+													<!-- Deleted -->
+													<span *ngIf="msg.isDeleted"
+														[ngClass]="msg.senderId === currentUserId ? 'text-white' : 'text-gray-800'"
+														class="italic opacity-80">{{ msg.senderId === currentUserId ? 'You deleted this message' : 'Message deleted' }}</span>
+
+													<!-- Normal -->
+													<span *ngIf="!msg.isDeleted"
+														class="whitespace-pre-wrap break-words">{{ msg.text }}</span>
+
+													<!-- Edited label -->
+													<span *ngIf="msg.isEdited && !msg.isDeleted"
+														[class]="getEditedLabelClass(msg)">(edited)</span>
+
+												</ng-template>
+											</div>
+										</div>
+									</div>
+
+									<!-- Timestamp -->
+									<div 
+										*ngIf="shouldShowTimestamp(messages, i)"
+										[ngClass]="msg.senderId === currentUserId ? 'text-right pr-2' : 'text-left ml-12'"
+										class="text-[0.65rem] text-gray-400 mt-[2px]">
+										{{ msg.createdAt?.toDate() | date:'shortTime' }}
+									</div>
+
+								</div>
+
+							</div>
+						</ng-container>
+					</div>
 				</div>
 			</div>
 
-			<!-- Send Button -->
 			<button
-				(click)="sendMessage()"
-				class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-				Send
+				*ngIf="showNewMessageIndicator"
+				(click)="scrollToBottomAndClearIndicator()"
+				class="absolute bottom-20 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-3 py-1 rounded-full shadow hover:bg-blue-600 transition z-30">
+				New messages ↓
 			</button>
-		</div>
-  </div>
 
-	<!-- Emoji Picker -->
-  <div *ngIf="showEmojiPicker" 
-    class="fixed z-[100] shadow-lg"
-    [style.top.px]="emojiPickerPosition.top"
-    [style.left.px]="emojiPickerPosition.left">
-    <emoji-mart
-      [perLine]="9"
-      [emojiSize]="24"
-      (emojiSelect)="addEmoji($event)">
-      </emoji-mart>
-  </div>
+			<!-- Typing Indicator -->
+			<div *ngIf="(typing$ | async) as typing" class="absolute bottom-14 left-0 w-full px-4 pointer-events-none z-50">
+				<div *ngIf="(otherParticipants$ | async) as participants">
+					<div *ngIf="isOtherUserTyping(typing)" 
+							class="bg-white/90 backdrop-blur-sm border border-gray-100 px-3 py-1 rounded-full shadow text-sm text-gray-500 italic flex items-center gap-2 max-w-xs">
+						
+						<!-- Text -->
+						<span>{{ getTypingText(typing, participants) }}</span>
+
+						<!-- Animated dots -->
+						<span class="flex gap-[3px]">
+							<span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0ms]"></span>
+							<span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]"></span>
+							<span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]"></span>
+						</span>
+
+					</div>
+				</div>
+			</div>
+
+			<!-- Input Area -->
+			<div class="p-3 border-t flex items-end space-x-2 relative">
+
+				<!-- Textarea + Emoji Wrapper -->
+				<div class="flex-1 relative">
+					
+					<!-- Textarea -->
+					<textarea
+						#messageInput
+						[(ngModel)]="newMessage"
+						(keydown.enter)="handleEnter($event)"
+						(input)="onInputChange($event)"
+						placeholder="Type a message..."
+						rows="1"
+						class="w-full border rounded px-3 py-1.5 pr-10 resize-none overflow-hidden"></textarea>
+
+					<div #emojiPickerContainer>
+						<!-- Emoji Button -->
+						<button
+							#emojiButton
+							type="button"
+							(click)="toggleEmojiPicker($event)"
+							(mousedown)="$event.preventDefault()"
+							class="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:scale-105">
+							<img src="assets/icons/emoji-1.svg" alt="Emoji" class="w-5 h-5" style="filter: invert(0.6);"/>
+						</button>
+					</div>
+				</div>
+
+				<!-- Send Button -->
+				<button
+					(click)="sendMessage()"
+					class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+					Send
+				</button>
+			</div>
+		</div>
+
+		<!-- Emoji Picker -->
+		<div *ngIf="showEmojiPicker" 
+			class="fixed z-[100] shadow-lg"
+			[style.top.px]="emojiPickerPosition.top"
+			[style.left.px]="emojiPickerPosition.left">
+			<emoji-mart
+				[perLine]="9"
+				[emojiSize]="24"
+				(emojiSelect)="addEmoji($event)">
+				</emoji-mart>
+		</div>
+	</div>
 </div>
 
 <app-confirm-modal

@@ -195,11 +195,11 @@ export class GroupsService {
     const threadRef = doc(this.firestore, `groupThreads/${groupId}`);
 
     await Promise.all([
-      deleteDoc(memberRef),
-      deleteDoc(userGroupRef),
       setDoc(threadRef, {
         participants: arrayRemove(user.uid)
-      }, { merge: true })
+      }, { merge: true }),
+      deleteDoc(memberRef),
+      deleteDoc(userGroupRef),
     ]);
   }
 
