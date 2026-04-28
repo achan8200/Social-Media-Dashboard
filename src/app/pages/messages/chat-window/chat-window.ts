@@ -81,6 +81,7 @@ export class ChatWindow implements OnChanges {
   participants$!: Observable<Participant[]>;
   otherParticipants$!: Observable<Participant[]>;
   otherParticipants: Participant[] = [];
+  private participantMap = new Map<string, string>();
   messagesWithSender$!: Observable<MessageWithSender[]>;
   groupName: string | null = null;
 
@@ -173,6 +174,12 @@ export class ChatWindow implements OnChanges {
         return combineLatest(observables);
       })
     );
+
+    this.participants$.subscribe(participants => {
+      this.participantMap = new Map(
+        participants.map(p => [p.uid, p.username])
+      );
+    });
 
     this.otherParticipants$ = this.participants$.pipe(
       map(list => list.filter(p => p.uid !== this.currentUserId))
@@ -483,10 +490,14 @@ export class ChatWindow implements OnChanges {
 
     const value = (event.target as HTMLTextAreaElement).value;
 
-    // User is typing
+    this.triggerTyping(value);
+  }
+
+  private triggerTyping(value: string) {
+    if (!this.threadId) return;
+
     this.messagesService.setTyping(this.threadId, value.length > 0);
 
-    // Auto-stop typing after 2 seconds idle
     clearTimeout(this.typingTimeout);
     this.typingTimeout = setTimeout(() => {
       this.messagesService.setTyping(this.threadId!, false);
@@ -623,7 +634,7 @@ export class ChatWindow implements OnChanges {
     if (!typing) return false;
 
     return Object.entries(typing).some(
-      ([uid, isTyping]) => uid !== this.currentUserId && isTyping
+      ([uid, isTyping]) => isTyping && uid !== this.currentUserId
     );
   }
 
@@ -632,11 +643,8 @@ export class ChatWindow implements OnChanges {
     participants: { uid: string; username: string }[]
   ): string {
     const typingUsers = Object.entries(typing)
-      .filter(([uid, isTyping]) => uid !== this.currentUserId && isTyping)
-      .map(([uid]) => {
-        const user = participants.find(p => p.uid === uid);
-        return user?.username || 'Someone';
-      });
+      .filter(([uid, isTyping]) => isTyping && uid !== this.currentUserId)
+      .map(([uid]) => this.participantMap.get(uid) || 'Someone');
 
     if (typingUsers.length === 0) return '';
 
@@ -657,18 +665,14 @@ export class ChatWindow implements OnChanges {
     const start = input.selectionStart;
     const end = input.selectionEnd;
 
-    // Direct DOM manipulation only
     input.value = input.value.substring(0, start) + emoji + input.value.substring(end);
-
-    // Restore cursor
     input.selectionStart = input.selectionEnd = start + emoji.length;
 
-    // Manually update ngModel AFTER DOM update using setTimeout
     setTimeout(() => {
       this.newMessage = input.value;
+      this.triggerTyping(this.newMessage || ' ');
     }, 0);
 
-    // Keep focus
     input.focus({ preventScroll: true });
   }
 

@@ -241,7 +241,7 @@
 		</button>
 
 		<!-- Typing Indicator -->
-    <div *ngIf="(typing$ | async) as typing" class="absolute bottom-14 left-0 w-full px-4">
+    <div *ngIf="(typing$ | async) as typing" class="absolute bottom-14 left-0 w-full px-4 pointer-events-none z-50">
       <div *ngIf="(otherParticipants$ | async) as participants">
         <div *ngIf="isOtherUserTyping(typing)" 
              class="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow text-sm text-gray-500 italic flex items-center gap-2 max-w-xs">

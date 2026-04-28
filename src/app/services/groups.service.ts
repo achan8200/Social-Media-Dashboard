@@ -1,6 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, collection, doc, setDoc, collectionData, serverTimestamp, deleteDoc, docData, writeBatch } from '@angular/fire/firestore';
+import { Firestore, collection, doc, setDoc, collectionData, serverTimestamp, deleteDoc, docData, writeBatch, arrayUnion, arrayRemove, getDoc } from '@angular/fire/firestore';
 import { AuthService } from './auth.service';
+import { UserService } from './user.service';
+import { MessagesService } from './messages.service';
 import { map, Observable, switchMap, of, firstValueFrom, combineLatest, startWith, shareReplay } from 'rxjs';
 
 export interface Group {
@@ -23,6 +25,8 @@ export interface GroupMember {
 export class GroupsService {
   private firestore = inject(Firestore);
   private authService = inject(AuthService);
+  private userService = inject(UserService);
+  private messagesService = inject(MessagesService);
 
   private groupCache = new Map<string, Observable<Group | null>>();
 
@@ -35,7 +39,7 @@ export class GroupsService {
     if (!trimmedName) {
       throw new Error('Group name cannot be empty');
     }
-    
+
     const user = await firstValueFrom(this.authService.user$);
     if (!user) throw new Error('Not authenticated');
 
@@ -58,14 +62,12 @@ export class GroupsService {
       joinedAt: serverTimestamp()
     });
 
-    try {
-      await setDoc(userGroupRef, {
-        groupId,
-        joinedAt: serverTimestamp()
-      });
-    } catch (err) {
-      console.error('User group write FAILED:', err);
-    }
+    await setDoc(userGroupRef, {
+      groupId,
+      joinedAt: serverTimestamp()
+    });
+
+    await this.createGroupThread(groupId, user.uid);
 
     return groupId;
   }
@@ -162,6 +164,9 @@ export class GroupsService {
     // User side
     const userGroupRef = doc(this.firestore, `users/${user.uid}/groups/${groupId}`);
 
+    // Group thread side
+    const threadRef = doc(this.firestore, `groupThreads/${groupId}`);
+
     await Promise.all([
       setDoc(memberRef, {
         uid: user.uid,
@@ -171,7 +176,10 @@ export class GroupsService {
       setDoc(userGroupRef, {
         groupId,
         joinedAt: serverTimestamp()
-      })
+      }),
+      setDoc(threadRef, {
+        participants: arrayUnion(user.uid)
+      }, { merge: true })
     ]);
   }
 
@@ -184,10 +192,14 @@ export class GroupsService {
 
     const memberRef = doc(this.firestore, `groups/${groupId}/members/${user.uid}`);
     const userGroupRef = doc(this.firestore, `users/${user.uid}/groups/${groupId}`);
+    const threadRef = doc(this.firestore, `groupThreads/${groupId}`);
 
     await Promise.all([
       deleteDoc(memberRef),
-      deleteDoc(userGroupRef)
+      deleteDoc(userGroupRef),
+      setDoc(threadRef, {
+        participants: arrayRemove(user.uid)
+      }, { merge: true })
     ]);
   }
 
@@ -199,9 +211,11 @@ export class GroupsService {
 
     const memberRef = doc(this.firestore, `groups/${groupId}/members/${uid}`);
     const userGroupRef = doc(this.firestore, `users/${uid}/groups/${groupId}`);
+    const threadRef = doc(this.firestore, `groupThreads/${groupId}`);
 
     batch.delete(userGroupRef);
     batch.delete(memberRef);
+    batch.set(threadRef,{ participants: arrayRemove(uid) }, { merge: true });
 
     await batch.commit();
   }
@@ -285,9 +299,70 @@ export class GroupsService {
   // ─────────────────────────────
   async updateGroup(groupId: string, data: Partial<Group>) {
     const ref = doc(this.firestore, `groups/${groupId}`);
+    const snap = await getDoc(ref);
+    const oldData = snap.data() as Group;
+
     await setDoc(ref, {
       ...data,
       updatedAt: serverTimestamp()
     }, { merge: true });
+
+    const authUser = await firstValueFrom(this.authService.user$);
+    if (!authUser) return;
+
+    const actor = await firstValueFrom(
+      this.userService.getUserByUid(authUser.uid)
+    );
+
+    const actorName = actor?.displayName || actor?.username || 'Someone';
+    
+    const threadId = groupId;
+
+    if (data.name && data.name !== oldData.name) {
+      await this.messagesService.sendGroupMessage(
+        threadId,
+        `${actorName} changed the group name to "${data.name}"`,
+        'system'
+      );
+    }
+
+    if (data.bio && data.bio !== oldData.bio) {
+      await this.messagesService.sendGroupMessage(
+        threadId,
+        `${actorName} updated the group bio`,
+        'system'
+      );
+    } else if (!data.bio && data.bio !== oldData.bio) {
+      await this.messagesService.sendGroupMessage(
+        threadId,
+        `${actorName} removed the group bio`,
+        'system'
+      );
+    }
+
+    if (data.avatar && data.avatar !== oldData.avatar) {
+      await this.messagesService.sendGroupMessage(
+        threadId,
+        `${actorName} updated the group avatar`,
+        'system'
+      );
+    } else if (!data.avatar && data.avatar !== oldData.avatar) {
+      await this.messagesService.sendGroupMessage(
+        threadId,
+        `${actorName} removed the group avatar`,
+        'system'
+      );
+    }
+  }
+
+  private createGroupThread(groupId: string, ownerId: string) {
+    const threadRef = doc(this.firestore, `groupThreads/${groupId}`);
+
+    return setDoc(threadRef, {
+      groupId,
+      createdAt: serverTimestamp(),
+      lastMessageAt: null,
+      participants: [ownerId]
+    });
   }
 }

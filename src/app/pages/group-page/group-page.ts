@@ -10,10 +10,10 @@ import { PostModal } from "../../components/post-modal/post-modal";
 import { CreatePostModal } from "../../components/create-post-modal/create-post-modal";
 import { UserService } from '../../services/user.service';
 import { Avatar } from "../../components/avatar/avatar";
+import { GroupChatWindow } from './group-chat-window/group-chat-window';
 import { getInitial, getAvatarColor } from '../../utils/avatar';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { combineLatest, map, Observable, of, shareReplay, switchMap, take } from 'rxjs';
-
 
 type MemberVM = GroupMember & {
   user: any;
@@ -22,7 +22,7 @@ type MemberVM = GroupMember & {
 @Component({
   selector: 'app-group-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, Avatar, PostModal, CreatePostModal],
+  imports: [CommonModule, FormsModule, Avatar, PostModal, CreatePostModal, GroupChatWindow],
   templateUrl: './group-page.html',
   styleUrl: './group-page.css',
   animations: [
@@ -226,7 +226,7 @@ export class GroupPage {
       }))
     );
 
-    //groupId$.subscribe(id => this.groupId = id);
+    groupId$.subscribe(id => this.groupId = id);
   }
 
   toggleMembership(isMember: boolean) {

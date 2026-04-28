@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, ElementRef, inject, ViewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Firestore, collection, query, where, getDocs, doc, serverTimestamp, setDoc, docData, getCountFromServer, collectionData } from '@angular/fire/firestore';
+import { Firestore, collection, query, where, getDocs, doc, serverTimestamp, setDoc, docData, collectionData } from '@angular/fire/firestore';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { PostsService } from '../../services/posts.service';

@@ -1,5 +1,5 @@
 <ng-container *ngIf="vm$ | async as vm">
-  <div class="max-w-4xl mx-auto space-y-6">
+  <div class="max-w-4xl mx-auto space-y-6 flex flex-col">
 
     <!-- Group Card -->
     <div class="bg-white rounded-xl shadow p-6 flex flex-col sm:flex-row items-center sm:items-start gap-6 relative">
@@ -129,61 +129,63 @@
       </button>
     </div>
 
-    <!-- POSTS TAB -->
-    <ng-container *ngIf="activeTab === 'posts'">
-    <!-- Group Posts Grid -->
-    <div class="grid grid-cols-3 gap-2 mt-6">
-      <ng-container *ngIf="groupPosts$ | async as posts">
-        <ng-container *ngIf="posts.length > 0; else noPosts">
-          <ng-container *ngFor="let post of posts; trackBy: trackByPostId">
-            <!-- media post -->
-            <div *ngIf="post.media!.length > 0; else captionOnlyPost" 
-              (click)="openPostModal(post)"
-              class="relative aspect-square bg-gray-100 overflow-hidden rounded cursor-pointer">
-              <!-- Stack icon (only if multiple media) -->
-              <img *ngIf="(post?.media?.length ?? 0) > 1"
-                src="assets/icons/stack.svg"
-                class="absolute top-2 right-2 w-6 h-6 p-1 rounded-md"/>
-              <img *ngIf="post.media![0].type === 'image'" [src]="post.media![0].url" class="w-full h-full object-cover"/>
-              <video *ngIf="post.media![0].type === 'video'" [src]="post.media![0].url" class="w-full h-full object-cover" muted loop playsinline></video>
-            </div>
-
-            <!-- Caption-only post -->
-            <ng-template #captionOnlyPost>
-              <div
+    <div class="flex-1 min-h-0 overflow-hidden">
+      <!-- POSTS TAB -->
+      <ng-container *ngIf="activeTab === 'posts'">
+      <!-- Group Posts Grid -->
+      <div class="grid grid-cols-3 gap-2">
+        <ng-container *ngIf="groupPosts$ | async as posts">
+          <ng-container *ngIf="posts.length > 0; else noPosts">
+            <ng-container *ngFor="let post of posts; trackBy: trackByPostId">
+              <!-- media post -->
+              <div *ngIf="post.media!.length > 0; else captionOnlyPost" 
                 (click)="openPostModal(post)"
-                class="relative aspect-square bg-white rounded overflow-hidden cursor-pointer">
-                <div class="absolute inset-3 flex items-center justify-center p-2">
-                  <p class="text-center text-sm text-gray-700 whitespace-pre-wrap break-words">
-                    {{ post.caption }}
-                  </p>
-                </div>
-                <!-- Top fade overlay -->
-                <div class="pointer-events-none absolute top-0 left-0 right-0 h-16
-                            bg-gradient-to-b from-white to-transparent">
-                </div>
-                <!-- Bottom fade overlay -->
-                <div class="pointer-events-none absolute bottom-0 left-0 right-0 h-16
-                            bg-gradient-to-t from-white to-transparent">
-                </div>
+                class="relative aspect-square bg-gray-100 overflow-hidden rounded cursor-pointer">
+                <!-- Stack icon (only if multiple media) -->
+                <img *ngIf="(post?.media?.length ?? 0) > 1"
+                  src="assets/icons/stack.svg"
+                  class="absolute top-2 right-2 w-6 h-6 p-1 rounded-md"/>
+                <img *ngIf="post.media![0].type === 'image'" [src]="post.media![0].url" class="w-full h-full object-cover"/>
+                <video *ngIf="post.media![0].type === 'video'" [src]="post.media![0].url" class="w-full h-full object-cover" muted loop playsinline></video>
               </div>
-            </ng-template>
+
+              <!-- Caption-only post -->
+              <ng-template #captionOnlyPost>
+                <div
+                  (click)="openPostModal(post)"
+                  class="relative aspect-square bg-white rounded overflow-hidden cursor-pointer">
+                  <div class="absolute inset-3 flex items-center justify-center p-2">
+                    <p class="text-center text-sm text-gray-700 whitespace-pre-wrap break-words">
+                      {{ post.caption }}
+                    </p>
+                  </div>
+                  <!-- Top fade overlay -->
+                  <div class="pointer-events-none absolute top-0 left-0 right-0 h-16
+                              bg-gradient-to-b from-white to-transparent">
+                  </div>
+                  <!-- Bottom fade overlay -->
+                  <div class="pointer-events-none absolute bottom-0 left-0 right-0 h-16
+                              bg-gradient-to-t from-white to-transparent">
+                  </div>
+                </div>
+              </ng-template>
+            </ng-container>
           </ng-container>
         </ng-container>
+
+        <ng-template #noPosts>
+          <p class="text-center col-span-3 text-gray-500">No group posts yet.</p>
+        </ng-template>
+      </div>
       </ng-container>
 
-      <ng-template #noPosts>
-        <p class="text-center col-span-3 text-gray-500">No group posts yet.</p>
-      </ng-template>
+      <!-- MESSAGES TAB -->
+      <ng-container *ngIf="activeTab === 'messages'">
+        <app-group-chat-window
+          [groupId]="groupId">
+        </app-group-chat-window>
+      </ng-container>
     </div>
-    </ng-container>
-
-    <!-- MESSAGES TAB -->
-    <ng-container *ngIf="activeTab === 'messages'">
-      <div class="bg-white rounded-lg shadow p-4 min-h-[300px] flex items-center justify-center">
-        <p class="text-gray-500">Messages coming soon...</p>
-      </div>
-    </ng-container>
   </div>
 
   <!-- Floating Create Button -->

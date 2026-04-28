@@ -1,8 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Firestore, collection, query, where, orderBy, getDocs, 
   addDoc, serverTimestamp, updateDoc, doc, collectionData, getDoc, 
-  docData, deleteDoc, writeBatch, 
-  limit} from '@angular/fire/firestore';
+  docData, deleteDoc, writeBatch } from '@angular/fire/firestore';
 import { Auth, authState } from '@angular/fire/auth';
 import { Observable, from, map, switchMap, of } from 'rxjs';
 import { Thread, Message } from '../models/messages.model';
@@ -595,6 +594,124 @@ export class MessagesService {
     if (!isLastMessage) return;
 
     // If it is last message, just update its state in thread
+    await updateDoc(threadRef, {
+      'lastMessage.text': '',
+      'lastMessage.isDeleted': true
+    });
+  }
+
+  getGroupMessages(groupId: string): Observable<Message[]> {
+    return this.withAuth(userId => {
+      const ref = collection(this.firestore, `groupThreads/${groupId}/messages`);
+      const q = query(ref, orderBy('createdAt', 'asc'));
+
+      return collectionData(q, { idField: 'id' }).pipe(
+        map((messages: any[]) =>
+          messages.filter(m => m.readBy?.includes(userId) || true)
+        )
+      );
+    });
+  }
+
+  async sendGroupMessage(groupId: string, text: string, type: string = "text") {
+    const currentUser = this.auth.currentUser;
+    if (!currentUser?.uid) throw new Error('Not authenticated');
+
+    const userRef = doc(this.firestore, `users/${currentUser.uid}`);
+    const userSnap = await getDoc(userRef);
+    const userData = userSnap.data();
+
+    const messageRef = collection(this.firestore, `groupThreads/${groupId}/messages`);
+
+    const newMsgRef = await addDoc(messageRef, {
+      senderId: currentUser.uid,
+      senderName: userData?.['displayName'],
+      text,
+      type,
+      createdAt: serverTimestamp()
+    });
+
+    const threadRef = doc(this.firestore, `groupThreads/${groupId}`);
+    await updateDoc(threadRef, {
+      lastMessage: {
+        id: newMsgRef.id,
+        text,
+        senderId: currentUser.uid,
+        senderName: userData?.['displayName'],
+        createdAt: serverTimestamp(),
+        type
+      },
+      lastMessageAt: serverTimestamp()
+    });
+  }
+
+  getGroupTyping(groupId: string): Observable<{ [uid: string]: boolean }> {
+    return docData(doc(this.firestore, `groupThreads/${groupId}`)).pipe(
+      map((thread: any) => thread?.typing || {})
+    );
+  }
+
+  async setGroupTyping(groupId: string, isTyping: boolean) {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) return;
+
+    const threadRef = doc(this.firestore, `groupThreads/${groupId}`);
+
+    await updateDoc(threadRef, {
+      [`typing.${uid}`]: isTyping
+    });
+  }
+
+  async editGroupMessage(groupId: string, messageId: string, newText: string) {
+    const messageRef = doc(
+      this.firestore,
+      `groupThreads/${groupId}/messages/${messageId}`
+    );
+
+    const threadRef = doc(this.firestore, `groupThreads/${groupId}`);
+
+    // Update message
+    await updateDoc(messageRef, {
+      text: newText,
+      isEdited: true
+    });
+
+    // Update lastMessage if needed
+    const threadSnap = await getDoc(threadRef);
+    const threadData = threadSnap.data();
+
+    if (threadData?.['lastMessage']?.id === messageId) {
+      await updateDoc(threadRef, {
+        'lastMessage.text': newText,
+        'lastMessage.isEdited': true
+      });
+    }
+  }
+
+  async deleteGroupMessage(groupId: string, messageId: string) {
+    const messageRef = doc(
+      this.firestore,
+      `groupThreads/${groupId}/messages/${messageId}`
+    );
+
+    const threadRef = doc(this.firestore, `groupThreads/${groupId}`);
+
+    const threadSnap = await getDoc(threadRef);
+    const threadData = threadSnap.data();
+
+    const lastMessage = threadData?.['lastMessage'];
+    const isLastMessage = lastMessage?.id === messageId;
+
+    // Soft delete message
+    await updateDoc(messageRef, {
+      text: '',
+      isDeleted: true
+    });
+
+    // If it's not the last message, we're done
+    if (!isLastMessage) return;
+
+    // If it is the last message, reflect deletion in thread preview
     await updateDoc(threadRef, {
       'lastMessage.text': '',
       'lastMessage.isDeleted': true
