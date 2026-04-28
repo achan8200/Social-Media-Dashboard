@@ -213,9 +213,9 @@ export class GroupsService {
     const userGroupRef = doc(this.firestore, `users/${uid}/groups/${groupId}`);
     const threadRef = doc(this.firestore, `groupThreads/${groupId}`);
 
+    batch.set(threadRef,{ participants: arrayRemove(uid) }, { merge: true });
     batch.delete(userGroupRef);
     batch.delete(memberRef);
-    batch.set(threadRef,{ participants: arrayRemove(uid) }, { merge: true });
 
     await batch.commit();
   }
