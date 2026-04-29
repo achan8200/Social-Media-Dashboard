@@ -15,7 +15,7 @@ import { Avatar } from '../avatar/avatar';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { PickerComponent } from '@ctrl/ngx-emoji-mart';
 import { formatPostTimestamp } from '../../utils/date';
-import { BehaviorSubject, map, Observable, of, switchMap } from 'rxjs';
+import { BehaviorSubject, combineLatest, map, Observable, of, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-post-modal',
@@ -89,6 +89,13 @@ export class PostModal implements AfterViewInit {
 
   currentMediaAspect = 1;
 
+  likesModalUsers$!: Observable<any[]>;
+  likesModalTitle = 'Likes';
+  likesText$!: Observable<string | null>;
+  likesUsers$!: Observable<any[]>;
+  topLikesUsers$!: Observable<any[]>;
+  showLikesModal = false;
+
   selectedPostToRemoveFromGroup: Post | null = null;
   selectedGroupName$: Observable<string | null> = of(null);
   canRemoveFromGroup$!: Observable<boolean>;
@@ -151,6 +158,78 @@ export class PostModal implements AfterViewInit {
 
     // Subscribe to likes count
     this.likesCount$ = this.postsService.getPostLikesCount(this.post.id);
+
+    // Subscribe to users who like
+    this.likesUsers$ = this.postsService.getPostLikesUsers(this.post.id).pipe(
+      switchMap(uids => {
+        if (!uids.length) return of([]);
+
+        return combineLatest(
+          uids.map(uid => this.userService.getUserByUid(uid))
+        );
+      })
+    );
+
+    this.topLikesUsers$ = combineLatest([
+      this.likesUsers$,
+      this.authService.user$
+    ]).pipe(
+      map(([users, currentUser]) => {
+        if (!currentUser) return users.slice(0, 3);
+
+        const sorted = [...users].sort((a, b) => {
+          if (a?.uid === currentUser.uid) return -1;
+          if (b?.uid === currentUser.uid) return 1;
+          return 0;
+        });
+
+        return sorted.slice(0, 3);
+      })
+    );
+
+    this.likesText$ = combineLatest([
+      this.likesUsers$,
+      this.authService.user$
+    ]).pipe(
+      map(([users, currentUser]) => {
+        if (!users.length) return null;
+
+        const mapped = users.map(u => ({
+          username: u?.username || 'Unknown',
+          uid: u?.uid
+        }));
+
+        const isCurrentUser = (uid: string) =>
+          currentUser && uid === currentUser.uid;
+
+        // Sort so current user is first
+        const sorted = [...mapped].sort((a, b) => {
+          if (isCurrentUser(a.uid)) return -1;
+          if (isCurrentUser(b.uid)) return 1;
+          return 0;
+        });
+
+        const names = sorted.map(u =>
+          isCurrentUser(u.uid) ? 'you' : `<strong>${u.username}</strong>`
+        );
+
+        // --- Cases ---
+        if (names.length === 1) {
+          return `Liked by ${names[0]}`;
+        }
+
+        if (names.length === 2) {
+          return `Liked by ${names[0]} and ${names[1]}`;
+        }
+
+        if (names.length === 3) {
+          return `Liked by ${names[0]}, ${names[1]}, and ${names[2]}`;
+        }
+
+        // 4+
+        return `Liked by ${names[0]}, ${names[1]}, and ${names.length - 2} others`;
+      })
+    );
 
     this.canRemoveFromGroup$ = this.authService.user$.pipe(
       switchMap(user => {
@@ -856,6 +935,28 @@ export class PostModal implements AfterViewInit {
     const spaceBelow = modalRect.bottom - rect.bottom;
 
     return spaceBelow < 60; // threshold (adjust if needed)
+  }
+
+  openPostLikes() {
+    this.likesModalUsers$ = this.likesUsers$;
+    this.likesModalTitle = 'Likes';
+    this.showLikesModal = true;
+  }
+
+  openCommentLikes(comment: CommentWithLikes) {
+    this.likesModalUsers$ = this.postsService
+      .getCommentLikesUsers(this.post!.id, comment.id!)
+      .pipe(
+        switchMap(uids => {
+          if (!uids.length) return of([]);
+          return combineLatest(
+            uids.map(uid => this.userService.getUserByUid(uid))
+          );
+        })
+      );
+
+    this.likesModalTitle = 'Likes';
+    this.showLikesModal = true;
   }
 
   trackByMedia(index: number, media: PostMedia) {

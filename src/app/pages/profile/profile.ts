@@ -28,19 +28,13 @@ type UsernameStatus =
   templateUrl: './profile.html',
   styleUrl: './profile.css',
   animations: [
-    // Overlay fade
     trigger('overlayFade', [
       transition(':enter', [style({ opacity: 0 }), animate('200ms ease-out', style({ opacity: 1 }))]),
       transition(':leave', [animate('150ms ease-in', style({ opacity: 0 }))])
     ]),
-    // Modal sliding/fade
-    trigger('modalTransition', [
-      transition('newChat <=> createGroup', [
-        style({ opacity: 0, transform: 'translateX(50px)' }),
-        animate('250ms ease-out', style({ opacity: 1, transform: 'translateX(0)' }))
-      ]),
-      transition('void => *', [style({ opacity: 0 }), animate('200ms ease-out', style({ opacity: 1 }))]),
-      transition('* => void', [animate('150ms ease-in', style({ opacity: 0 }))])
+    trigger('modalScale', [
+      transition(':enter', [style({ opacity: 0, transform: 'scale(0.95)' }), animate('200ms ease-out', style({ opacity: 1, transform: 'scale(1)' }))]),
+      transition(':leave', [animate('150ms ease-in', style({ opacity: 0, transform: 'scale(0.95)' }))])
     ])
   ]
 })

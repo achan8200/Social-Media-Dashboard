@@ -372,7 +372,7 @@
 <div *ngIf="showDetailsModal" @overlayFade
      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
 
-  <div @modalTransition class="bg-white w-[420px] max-h-[80vh] rounded-xl shadow-lg flex flex-col overflow-hidden">
+  <div @modalScale class="bg-white w-[420px] max-h-[80vh] rounded-xl shadow-lg flex flex-col overflow-hidden">
 
     <!-- Header -->
     <div class="p-4 border-b flex justify-between items-center">
@@ -512,7 +512,7 @@
 <div *ngIf="showAddPeopleModal" @overlayFade
      class="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
 
-  <div @modalTransition class="bg-white w-[400px] max-h-[70vh] rounded-xl shadow-lg flex flex-col">
+  <div @modalScale class="bg-white w-[400px] max-h-[70vh] rounded-xl shadow-lg flex flex-col">
 
     <!-- Header -->
     <div class="p-4 border-b flex justify-between items-center text-gray-500 hover:text-gray-800 transition-colors duration-150">

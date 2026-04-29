@@ -390,6 +390,15 @@ export class PostsService {
     );
   }
 
+  // Returns an Observable of the users who like a specific post
+  getPostLikesUsers(postId: string): Observable<string[]> {
+    const likesRef = collection(this.firestore, `posts/${postId}/likes`);
+
+    return collectionData(likesRef, { idField: 'id' }).pipe(
+      map((likes: any[]) => likes.map(l => l.uid))
+    );
+  }
+
   // Toggle like locally
   async toggleLikeOptimistic(postId: string) {
     const uid = this.auth.currentUser?.uid;
@@ -794,6 +803,18 @@ export class PostsService {
     const commentsRef = doc(this.firestore, `posts/${postId}/comments/${commentId}`);
     return docData(commentsRef).pipe(
       map((comment: any) => comment?.likesCount || 0)
+    );
+  }
+
+  // Returns an Observable of the users who like a specific comment
+  getCommentLikesUsers(postId: string, commentId: string): Observable<string[]> {
+    const likesRef = collection(
+      this.firestore,
+      `posts/${postId}/comments/${commentId}/likes`
+    );
+
+    return collectionData(likesRef, { idField: 'id' }).pipe(
+      map((likes: any[]) => likes.map(l => l.uid))
     );
   }
 

@@ -151,6 +151,27 @@
 						</div>
 					</div>
 
+					<!-- Likes Text Button -->
+					<button
+						*ngIf="likesText$ | async as likesText"
+						(click)="openPostLikes()"
+						class="flex items-center space-x-2 text-sm text-gray-700 mb-3 transition">
+
+						<!-- Avatars -->
+						<div class="flex -space-x-2">
+							<app-avatar
+								*ngFor="let user of topLikesUsers$ | async"
+								class="w-6 h-6 border-[1px] border-white rounded-full shadow-sm"
+								[username]="user?.username"
+								[imageUrl]="user?.profilePicture"
+								size="xs">
+							</app-avatar>
+						</div>
+
+						<!-- Text -->
+						<span [innerHTML]="likesText"></span>
+					</button>
+
 					<div class="flex-1 flex flex-col min-h-0 overflow-hidden relative">
 						<!-- Scrollable comments -->
 						<div #commentsContainer class="flex-1 min-h-0 overflow-y-auto flex flex-col space-y-3 border-t pt-4">
@@ -176,7 +197,7 @@
 										</div>
 										<ng-template #normalComment>
 											<span class="text-xs text-gray-700 break-words whitespace-pre-wrap">{{ comment.text }}</span>
-											<div class="flex items-center space-x-2 mt-1 text-xs text-gray-400">
+											<div class="flex items-center space-x-4 mt-1 text-xs text-gray-400">
 												<span>{{ getRelativeTime(comment.createdAt) }}</span>
 												<div class="ml-2 flex items-center space-x-1">
 													<button class="ml-2 flex items-center space-x-1"
@@ -186,11 +207,12 @@
 															[class.like-pop]="animatingCommentLike[comment.id!]"
 															[src]="(comment.liked$ | async) ? 'assets/icons/red-heart-2.svg' : 'assets/icons/heart.svg'"
 														/>
-														<span *ngIf="comment.likesCount !== undefined && comment.likesCount > 0"
-															class="transition-opacity duration-150"
-															[style.opacity]="comment.likesCount > 0 ? 1 : 0">
-															{{ comment.likesCount === 1 ? '1 like' : comment.likesCount + ' likes' }}
-														</span>
+													</button>
+													<button *ngIf="comment.likesCount !== undefined && comment.likesCount > 0"
+														(click)="openCommentLikes(comment)"
+														class="transition-opacity duration-150"
+														[style.opacity]="comment.likesCount > 0 ? 1 : 0">
+														{{ comment.likesCount === 1 ? '1 like' : comment.likesCount + ' likes' }}
 													</button>
 												</div>
 											</div>
@@ -329,6 +351,27 @@
 						</div>
 					</div>
 
+					<!-- Likes Text Button -->
+					<button
+						*ngIf="likesText$ | async as likesText"
+						(click)="openPostLikes()"
+						class="flex items-center space-x-2 text-sm text-gray-700 mb-3 transition">
+
+						<!-- Avatars -->
+						<div class="flex -space-x-2">
+							<app-avatar
+								*ngFor="let user of topLikesUsers$ | async"
+								class="w-6 h-6 border-[1px] border-white rounded-full shadow-sm"
+								[username]="user?.username"
+								[imageUrl]="user?.profilePicture"
+								size="xs">
+							</app-avatar>
+						</div>
+
+						<!-- Text -->
+						<span [innerHTML]="likesText"></span>
+					</button>
+
 					<!-- Scrollable Comments -->
 					<div #commentsContainer class="flex-1 h-full min-h-[150px] overflow-y-auto flex flex-col space-y-3 border-t pt-4">
 						<div *ngFor="let comment of comments$ | async; trackBy: trackByCommentId"
@@ -355,19 +398,22 @@
 										<span class="text-xs text-gray-700 break-words whitespace-pre-wrap">{{ comment.text }}</span>
 										<div class="flex items-center space-x-4 mt-1 text-xs text-gray-400">
 											<span>{{ getRelativeTime(comment.createdAt) }}</span>
-											<button class="ml-2 flex items-center space-x-1"
-												(click)="toggleCommentLike(comment)">
-												<img
-                          class="like-heart w-[12px] h-[12px]"
-                          [class.like-pop]="animatingCommentLike[comment.id!]"
-                          [src]="(comment.liked$ | async) ? 'assets/icons/red-heart-2.svg' : 'assets/icons/heart.svg'"
-                        />
-												<span *ngIf="comment.likesCount !== undefined && comment.likesCount > 0"
+											<div class="ml-2 flex items-center space-x-1">
+												<button class="ml-2 flex items-center space-x-1"
+													(click)="toggleCommentLike(comment)">
+													<img
+														class="like-heart w-[12px] h-[12px]"
+														[class.like-pop]="animatingCommentLike[comment.id!]"
+														[src]="(comment.liked$ | async) ? 'assets/icons/red-heart-2.svg' : 'assets/icons/heart.svg'"
+													/>
+												</button>
+												<button *ngIf="comment.likesCount !== undefined && comment.likesCount > 0"
+													(click)="openCommentLikes(comment)"
 													class="transition-opacity duration-150"
 													[style.opacity]="comment.likesCount > 0 ? 1 : 0">
 													{{ comment.likesCount === 1 ? '1 like' : comment.likesCount + ' likes' }}
-												</span>
-											</button>
+												</button>
+											</div>
 										</div>
 									</ng-template>
 								</div>
@@ -429,6 +475,38 @@
 					</div>
 				</div>
 			</ng-template>
+
+  </div>
+</div>
+
+<!-- Likes Modal -->
+<div *ngIf="showLikesModal" class="fixed inset-0 z-[60] flex items-center justify-center" @overlayFade>
+
+  <!-- Overlay -->
+  <div class="absolute inset-0 bg-black/50" (click)="showLikesModal = false"></div>
+
+  <!-- Modal -->
+  <div @modalScale class="relative bg-white w-full max-w-sm rounded-lg shadow-lg p-4 z-[70] max-h-[70vh] overflow-y-auto">
+
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-medium">Likes</h2>
+      <button (click)="showLikesModal = false">✕</button>
+    </div>
+
+    <div class="space-y-3">
+      <div *ngFor="let user of likesModalUsers$ | async" class="flex items-center space-x-3">
+
+        <app-avatar
+          [username]="user?.username"
+          [imageUrl]="user?.profilePicture"
+          [userId]="user?.userId">
+        </app-avatar>
+
+        <a [routerLink]="['/profile', user?.userId]" class="hover:text-gray-600 transition-colors" (click)="onAvatarClick()">
+          {{ user?.username }}
+        </a>
+      </div>
+    </div>
 
   </div>
 </div>
