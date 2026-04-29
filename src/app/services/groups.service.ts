@@ -167,6 +167,20 @@ export class GroupsService {
     // Group thread side
     const threadRef = doc(this.firestore, `groupThreads/${groupId}`);
 
+    const actor = await firstValueFrom(
+      this.userService.getUserByUid(user.uid)
+    );
+
+    const actorName = actor?.displayName || actor?.username || 'Someone';
+    
+    const threadId = groupId;
+
+    await this.messagesService.sendGroupMessage(
+      threadId,
+      `${actorName} joined the group`,
+      'system'
+    );
+
     await Promise.all([
       setDoc(memberRef, {
         uid: user.uid,
@@ -194,6 +208,20 @@ export class GroupsService {
     const userGroupRef = doc(this.firestore, `users/${user.uid}/groups/${groupId}`);
     const threadRef = doc(this.firestore, `groupThreads/${groupId}`);
 
+    const actor = await firstValueFrom(
+      this.userService.getUserByUid(user.uid)
+    );
+
+    const actorName = actor?.displayName || actor?.username || 'Someone';
+    
+    const threadId = groupId;
+
+    await this.messagesService.sendGroupMessage(
+      threadId,
+      `${actorName} left the group`,
+      'system'
+    );
+
     await Promise.all([
       setDoc(threadRef, {
         participants: arrayRemove(user.uid)
@@ -206,14 +234,32 @@ export class GroupsService {
   // ─────────────────────────────
   // Remove Member from Group
   // ─────────────────────────────
-  async removeMember(groupId: string, uid: string) {
+  async removeMember(groupId: string, actorUid: string, targetUid: string) {
     const batch = writeBatch(this.firestore);
 
-    const memberRef = doc(this.firestore, `groups/${groupId}/members/${uid}`);
-    const userGroupRef = doc(this.firestore, `users/${uid}/groups/${groupId}`);
+    const memberRef = doc(this.firestore, `groups/${groupId}/members/${targetUid}`);
+    const userGroupRef = doc(this.firestore, `users/${targetUid}/groups/${groupId}`);
     const threadRef = doc(this.firestore, `groupThreads/${groupId}`);
 
-    batch.set(threadRef,{ participants: arrayRemove(uid) }, { merge: true });
+    const actor = await firstValueFrom(
+      this.userService.getUserByUid(actorUid)
+    );
+    const actorName = actor?.displayName || actor?.username || 'Someone';
+
+    const target = await firstValueFrom(
+      this.userService.getUserByUid(targetUid)
+    );
+    const targetName = target?.displayName || target?.username || 'Someone';
+    
+    const threadId = groupId;
+
+    await this.messagesService.sendGroupMessage(
+      threadId,
+      `${actorName} removed ${targetName} from the group`,
+      'system'
+    );
+
+    batch.set(threadRef,{ participants: arrayRemove(targetUid) }, { merge: true });
     batch.delete(userGroupRef);
     batch.delete(memberRef);
 
@@ -270,6 +316,22 @@ export class GroupsService {
   // Update Role
   // ─────────────────────────────
   async updateRole(groupId: string, uid: string, role: string) {
+    const target = await firstValueFrom(
+      this.userService.getUserByUid(uid)
+    );
+
+    const targetName = target?.displayName || target?.username || 'Someone';
+
+    const threadId = groupId;
+
+    if (role === 'moderator') {
+      await this.messagesService.sendGroupMessage(
+        threadId,
+        `${targetName} was promoted to moderator`,
+        'system'
+      );
+    }
+
     await setDoc(
       doc(this.firestore, `groups/${groupId}/members/${uid}`),
       { role },
@@ -286,6 +348,24 @@ export class GroupsService {
     const groupRef = doc(this.firestore, `groups/${groupId}`);
     const ownerRef = doc(this.firestore, `groups/${groupId}/members/${ownerUid}`);
     const targetRef = doc(this.firestore, `groups/${groupId}/members/${targetUid}`);
+
+    const owner = await firstValueFrom(
+      this.userService.getUserByUid(ownerUid)
+    );
+    const ownerName = owner?.displayName || owner?.username || 'Someone';
+
+    const target = await firstValueFrom(
+      this.userService.getUserByUid(targetUid)
+    );
+    const targetName = target?.displayName || target?.username || 'Someone';
+    
+    const threadId = groupId;
+
+    await this.messagesService.sendGroupMessage(
+      threadId,
+      `${ownerName} transferred ownership to ${targetName}`,
+      'system'
+    );
 
     batch.set(ownerRef, { role: 'moderator' }, { merge: true });
     batch.set(targetRef, { role: 'owner' }, { merge: true });

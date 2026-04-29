@@ -361,7 +361,7 @@ export class GroupPage {
     this.confirmInput = '';
 
     if (type === 'remove') {
-      await this.groupsService.removeMember(groupId, member.uid);
+      await this.groupsService.removeMember(groupId, vm.user.uid, member.uid);
     }
 
     if (type === 'promote') {
