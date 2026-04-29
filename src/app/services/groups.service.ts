@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, collection, doc, setDoc, collectionData, serverTimestamp, deleteDoc, docData, writeBatch, arrayUnion, arrayRemove, getDoc } from '@angular/fire/firestore';
+import { Firestore, collection, doc, setDoc, collectionData, serverTimestamp, deleteDoc, docData, writeBatch, arrayUnion, arrayRemove, getDoc, getDocs, query, where } from '@angular/fire/firestore';
 import { AuthService } from './auth.service';
 import { UserService } from './user.service';
 import { MessagesService } from './messages.service';
@@ -29,6 +29,7 @@ export class GroupsService {
   private messagesService = inject(MessagesService);
 
   private groupCache = new Map<string, Observable<Group | null>>();
+  private readonly BATCH_SIZE = 400;
 
   // ─────────────────────────────
   // Create Group
@@ -435,6 +436,9 @@ export class GroupsService {
     }
   }
 
+  // ─────────────────────────────
+  // Create Group Thread
+  // ─────────────────────────────
   private createGroupThread(groupId: string, ownerId: string) {
     const threadRef = doc(this.firestore, `groupThreads/${groupId}`);
 
@@ -444,5 +448,106 @@ export class GroupsService {
       lastMessageAt: null,
       participants: [ownerId]
     });
+  }
+
+  // ─────────────────────────────
+  // Delete Group
+  // ─────────────────────────────
+  async deleteGroup(groupId: string): Promise<void> {
+    const user = await firstValueFrom(this.authService.user$);
+    if (!user) throw new Error('Not authenticated');
+
+    // Check ownership first
+    const memberRef = doc(this.firestore, `groups/${groupId}/members/${user.uid}`);
+    const memberSnap = await getDoc(memberRef);
+
+    if (!memberSnap.exists() || memberSnap.data()?.['role'] !== 'owner') {
+      throw new Error('Only group owner can delete this group');
+    }
+    
+    const groupRef = doc(this.firestore, `groups/${groupId}`);
+    const threadRef = doc(this.firestore, `groupThreads/${groupId}`);
+
+    // Get members first (needed for user cleanup)
+    const membersSnap = await getDocs(
+      collection(this.firestore, `groups/${groupId}/members`)
+    );
+
+    const memberUids = membersSnap.docs.map(d => d.id);
+
+    // Run independent heavy operations in parallel
+    await Promise.all([
+      this.deleteCollectionInChunks(`groups/${groupId}/members`),
+      this.deleteCollectionInChunks(`groupThreads/${groupId}/messages`),
+      this.batchUpdatePostsRemoveGroupId(groupId)
+    ]);
+
+    // Remove group from each user's subcollection (chunked)
+    const userRefs = memberUids.map(uid =>
+      doc(this.firestore, `users/${uid}/groups/${groupId}`)
+    );
+
+    const userChunks = this.chunkArray(userRefs, this.BATCH_SIZE);
+
+    for (const chunk of userChunks) {
+      const batch = writeBatch(this.firestore);
+      chunk.forEach(ref => batch.delete(ref));
+      await batch.commit();
+    }
+
+    // Delete group + thread in one final batch
+    const finalBatch = writeBatch(this.firestore);
+    finalBatch.delete(groupRef);
+    finalBatch.delete(threadRef);
+    await finalBatch.commit();
+  }
+
+  // Split array into chunks
+  private chunkArray<T>(arr: T[], size: number): T[][] {
+    const chunks: T[][] = [];
+    for (let i = 0; i < arr.length; i += size) {
+      chunks.push(arr.slice(i, i + size));
+    }
+    return chunks;
+  }
+
+  // Delete an entire collection in chunks
+  private async deleteCollectionInChunks(path: string) {
+    const colRef = collection(this.firestore, path);
+    const snap = await getDocs(colRef);
+
+    if (snap.empty) return;
+
+    const chunks = this.chunkArray(snap.docs, this.BATCH_SIZE);
+
+    for (const chunk of chunks) {
+      const batch = writeBatch(this.firestore);
+      chunk.forEach(docSnap => batch.delete(docSnap.ref));
+      await batch.commit();
+    }
+  }
+
+  // Remove groupId from posts in chunks
+  private async batchUpdatePostsRemoveGroupId(groupId: string) {
+    const postsRef = collection(this.firestore, 'posts');
+    const q = query(postsRef, where('groupId', '==', groupId));
+    const snap = await getDocs(q);
+
+    if (snap.empty) return;
+
+    const chunks = this.chunkArray(snap.docs, this.BATCH_SIZE);
+
+    for (const chunk of chunks) {
+      const batch = writeBatch(this.firestore);
+
+      chunk.forEach(docSnap => {
+        batch.update(docSnap.ref, {
+          groupId: null,
+          updatedAt: serverTimestamp()
+        });
+      });
+
+      await batch.commit();
+    }
   }
 }

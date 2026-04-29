@@ -455,26 +455,34 @@
 
 				<!-- Participants -->
 				<div *ngFor="let p of otherParticipants" class="flex items-center justify-between p-2 rounded  transition-colors duration-150">
-					<div class="flex items-center gap-2">
-						<app-avatar [imageUrl]="p.profilePicture" [username]="p.username" [userId]="p.userId" size="sm"></app-avatar>
+					<div class="flex items-center gap-2 min-w-0">
+						<app-avatar
+							[imageUrl]="p.profilePicture"
+							[username]="p.username"
+							[userId]="p.userId"
+							size="sm">
+						</app-avatar>
 
-						<span class="flex items-center gap-2 truncate">
+						<span class="truncate">
 							{{ p.username }}
-							<ng-container *ngIf="followingMap$ | async as followingSet">
-								<span *ngIf="followingSet.has(p.uid)" 
-											class="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
-									Following
-								</span>
-							</ng-container>
 						</span>
 					</div>
-					<div class="relative">
+					<div class="flex items-center gap-2 relative">
+						<!-- Following badge -->
+						<ng-container *ngIf="followingMap$ | async as followingSet">
+							<span *ngIf="followingSet.has(p.uid)"
+										class="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full flex-shrink-0">Following</span>
+						</ng-container>
+
+						<!-- Menu button -->
 						<button 
 							(click)="toggleParticipantMenu(p.uid, $event)"
 							[class.bg-gray-200]="selectedParticipantMenu === p.uid"
 							class="w-6 h-6 rounded-full hover:bg-gray-100">
 							<span class="relative -top-[1.5px]">⋯</span>
 						</button>
+
+						<!-- Dropdown -->
 						<div *ngIf="selectedParticipantMenu === p.uid" 
 							class="absolute right-0 bg-white border rounded shadow w-40 z-50 text-sm"
 							[ngClass]="participantMenuDirection[p.uid] === 'up' ? 'bottom-full mb-1 animate-slide-up' : 'top-full mt-1 animate-slide-down'">
