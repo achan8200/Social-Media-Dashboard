@@ -26,7 +26,7 @@ export class NotificationsService {
   }
 
   async createNotification(notification: Partial<Notification>) {
-    const { recipientUid, actorUid, postOwnerUid, type, postId, commentId, threadId } = notification;
+    const { recipientUid, actorUid, postOwnerUid, type, postId, commentId, threadId, groupId } = notification;
 
     if (!recipientUid || !actorUid || !type) {
       console.warn('createNotification: missing required fields', notification);
@@ -40,14 +40,16 @@ export class NotificationsService {
       // Build deterministic id
       let id = `${recipientUid}_${type}`;
 
-      // Special case for thread_added
       if (type === 'thread_added' && threadId) {
         id = `${recipientUid}_${type}_${threadId}`;
+      } else if (type === 'promote' && groupId) {
+        id = `${recipientUid}_${type}_${groupId}`;
       } else {
         id += `_${actorUid}`;
         if (postId) id += `_${postId}`;
         if (commentId) id += `_${commentId}`;
         if (threadId) id += `_${threadId}`;
+        if (groupId) id += `_${groupId}`;
       }
 
       const ref = doc(this.firestore, `notifications/${id}`);
@@ -74,6 +76,10 @@ export class NotificationsService {
 
         case 'thread_added':
           payload.threadId = threadId;
+          break;
+        
+        case 'promote':
+          payload.groupId = groupId;
           break;
       }
 
@@ -106,7 +112,7 @@ export class NotificationsService {
   }
 
   async deleteNotification(notification: Partial<Notification>) {
-    const { recipientUid, actorUid, type, postId, commentId, threadId } = notification;
+    const { recipientUid, actorUid, type, postId, commentId, threadId, groupId } = notification;
 
     if (!recipientUid || !type) {
       console.warn('deleteNotification: missing required fields', notification);
@@ -119,11 +125,14 @@ export class NotificationsService {
 
       if (type === 'thread_added' && threadId) {
         id = `${recipientUid}_${type}_${threadId}`;
+      } else if (type === 'promote' && groupId) {
+        id = `${recipientUid}_${type}_${groupId}`;
       } else {
         id += `_${actorUid}`;
         if (postId) id += `_${postId}`;
         if (commentId) id += `_${commentId}`;
         if (threadId) id += `_${threadId}`;
+        if (groupId) id += `_${groupId}`;
       }
 
       const ref = doc(this.firestore, `notifications/${id}`);

@@ -3,6 +3,7 @@ import { Firestore, collection, doc, setDoc, collectionData, serverTimestamp, de
 import { AuthService } from './auth.service';
 import { UserService } from './user.service';
 import { MessagesService } from './messages.service';
+import { NotificationsService } from './notifications.service';
 import { map, Observable, switchMap, of, firstValueFrom, combineLatest, startWith, shareReplay } from 'rxjs';
 
 export interface Group {
@@ -27,6 +28,7 @@ export class GroupsService {
   private authService = inject(AuthService);
   private userService = inject(UserService);
   private messagesService = inject(MessagesService);
+  private notificationsService = inject(NotificationsService);
 
   private groupCache = new Map<string, Observable<Group | null>>();
   private readonly BATCH_SIZE = 400;
@@ -317,6 +319,9 @@ export class GroupsService {
   // Update Role
   // ─────────────────────────────
   async updateRole(groupId: string, uid: string, role: string) {
+    const user = await firstValueFrom(this.authService.user$);
+    if (!user) return;
+
     const target = await firstValueFrom(
       this.userService.getUserByUid(uid)
     );
@@ -326,11 +331,25 @@ export class GroupsService {
     const threadId = groupId;
 
     if (role === 'moderator') {
+      await this.notificationsService.createNotification({
+        recipientUid: uid,
+        actorUid: user.uid,
+        type: 'promote',
+        groupId
+      });
       await this.messagesService.sendGroupMessage(
         threadId,
         `${targetName} was promoted to moderator`,
         'system'
       );
+    }
+
+    if (role === 'member') {
+      await this.notificationsService.deleteNotification({
+        recipientUid: uid,
+        type: 'promote',
+        groupId
+      });
     }
 
     await setDoc(
@@ -479,7 +498,8 @@ export class GroupsService {
     await Promise.all([
       this.deleteCollectionInChunks(`groups/${groupId}/members`),
       this.deleteCollectionInChunks(`groupThreads/${groupId}/messages`),
-      this.batchUpdatePostsRemoveGroupId(groupId)
+      this.batchUpdatePostsRemoveGroupId(groupId),
+      this.deleteGroupNotifications(groupId)
     ]);
 
     // Remove group from each user's subcollection (chunked)
@@ -547,6 +567,27 @@ export class GroupsService {
         });
       });
 
+      await batch.commit();
+    }
+  }
+
+  private async deleteGroupNotifications(groupId: string) {
+    const notificationsRef = collection(this.firestore, 'notifications');
+
+    const q = query(
+      notificationsRef,
+      where('groupId', '==', groupId)
+    );
+
+    const snap = await getDocs(q);
+
+    if (snap.empty) return;
+
+    const chunks = this.chunkArray(snap.docs, this.BATCH_SIZE);
+
+    for (const chunk of chunks) {
+      const batch = writeBatch(this.firestore);
+      chunk.forEach(docSnap => batch.delete(docSnap.ref));
       await batch.commit();
     }
   }

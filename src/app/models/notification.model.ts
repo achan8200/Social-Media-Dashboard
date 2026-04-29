@@ -12,7 +12,8 @@ export interface Notification {
     | 'follow'
     | 'message'
     | 'thread_added'
-    | 'group_invite';
+    | 'group_invite'
+    | 'promote';
 
   postId?: string;
   commentId?: string;

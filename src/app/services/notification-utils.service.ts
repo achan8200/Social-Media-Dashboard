@@ -33,6 +33,9 @@ export class NotificationUtilsService {
         case 'thread_added':
           key = 'thread_added';
           break;
+        case 'promote':
+          key = 'promote';
+          break;
       }
 
       // Find existing group

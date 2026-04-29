@@ -101,6 +101,12 @@ export class NotificationItem implements OnChanges {
         }
         break;
 
+      case 'promote':
+        if (n.groupId) {
+          this.router.navigate(['/group', n.groupId]);
+        }
+        break;
+
       default:
         console.warn('[Notification] Unhandled type:', n.type);
     }
