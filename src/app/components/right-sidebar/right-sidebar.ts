@@ -25,6 +25,7 @@ export class RightSidebar {
     '#Firebase',
   ];
 
+  isGuest$!: Observable<boolean>;
   notificationsByDay$!: Observable<Record<string, Notification[][]>>;
   unreadCount$!: Observable<number>;
   
@@ -38,6 +39,9 @@ export class RightSidebar {
   ) {}
 
   async ngOnInit() {
+    this.isGuest$ = this.authService.user$.pipe(
+      map(user => !user)  // true if no user is logged in
+    );
     const user = await firstValueFrom(this.authService.getCurrentUser());
     if (!user) return;
 

@@ -20,7 +20,7 @@ export const routes: Routes = [
   { path: 'connections/:username', component: Connections }, // public view
   { path: 'connections', component: Connections, canActivate: [AuthGuard] }, // your own
   { path: 'groups', component: Groups, canActivate: [AuthGuard] },
-  { path: 'group/:groupId', component: GroupPage, canActivate: [AuthGuard] },
+  { path: 'group/:groupId', component: GroupPage},
   { path: 'login', component: Login, canActivate: [GuestGuard] },
   { path: 'signup', component: Signup, canActivate: [GuestGuard] },
   { path: 'profile/:userId', component: Profile },

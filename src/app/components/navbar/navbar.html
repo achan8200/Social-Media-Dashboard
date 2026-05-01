@@ -3,7 +3,7 @@
   <div class="flex items-center space-x-4">
 
     <!-- Notifications Button -->
-    <div class="relative flex-shrink-0 lg:hidden">
+    <div *ngIf="!(isGuest$ | async)" class="relative flex-shrink-0 lg:hidden">
       <ng-container *ngIf="unreadCount$ | async as unreadCount">
         <button 
           (click)="toggleNotifications(); $event.stopPropagation()"

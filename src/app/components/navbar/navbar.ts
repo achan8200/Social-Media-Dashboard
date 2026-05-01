@@ -31,6 +31,7 @@ type DayKey = 'Today' | 'Yesterday' | 'Earlier';
   ]
 })
 export class Navbar {
+  isGuest$!: Observable<boolean>;
   showNotifications = false;
 
   notifications$!: Observable<Notification[]>;
@@ -50,6 +51,9 @@ export class Navbar {
   ) {}
 
   ngOnInit() {
+    this.isGuest$ = this.authService.user$.pipe(
+      map(user => !user)  // true if no user is logged in
+    );
     const raw$ = this.authService.authReady$.pipe(
     filter(Boolean),
     switchMap(() => this.authService.user$),

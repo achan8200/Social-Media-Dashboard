@@ -21,7 +21,7 @@
   </div>
 
   <!-- Notifications Section -->
-  <div class="bg-white p-4 rounded shadow relative">
+  <div *ngIf="!(isGuest$ | async)" class="bg-white p-4 rounded shadow relative">
     <h2 class="font-semibold text-gray-700 mb-3 flex justify-between items-center">
       <span class="flex items-center gap-2 text-lg">
         <img src="assets/icons/notification.svg" alt="Notifications" class="w-5 h-5" />

@@ -50,6 +50,7 @@ export class GroupPage {
 
   group$!: Observable<Group | null>;
   isMember$!: Observable<boolean>;
+  isGuest$!: Observable<boolean>;
   currentUserRole$!: Observable<'owner' | 'moderator' | 'member' | null>;
   canEditGroup$!: Observable<boolean>;
   members$!: Observable<GroupMember[]>;
@@ -122,6 +123,9 @@ export class GroupPage {
   @ViewChild('cropCircle') cropCircle!: ElementRef<HTMLDivElement>;
 
   ngOnInit() {
+    this.isGuest$ = this.authService.user$.pipe(
+      map(user => !user)  // true if no user is logged in
+    );
     this.currentUser$ = this.authService.user$.pipe(
       switchMap(user => {
         if (!user) return of(null);
