@@ -45,6 +45,7 @@ export class GroupChatWindow implements OnChanges {
   group$!: Observable<Group | null>;
   members$!: Observable<any[]>;
   membersWithProfile$!: Observable<any[]>;
+  currentUserRole$!: Observable<string>;
   messages$!: Observable<MessageWithSender[]>;
   newMessage = '';
   editingMessageId: string | null = null;
@@ -95,7 +96,15 @@ export class GroupChatWindow implements OnChanges {
     this.group$ = this.groupsService.getGroup(this.groupId).pipe(
       takeUntil(this.destroy$)
     );
+    
     this.members$ = this.groupsService.getMembers(this.groupId);
+
+    this.currentUserRole$ = this.members$.pipe(
+      map((members: GroupMember[]) => {
+        const me = members.find(m => m.uid === this.currentUserId);
+        return me?.role || 'member';
+      })
+    );
 
     this.membersWithProfile$ = this.members$.pipe(
       switchMap((members: GroupMember[]) => {
@@ -390,6 +399,11 @@ export class GroupChatWindow implements OnChanges {
     if (i === 0) return 'mt-3';
 
     const current = messages[i];
+
+    if (current.type === 'system') {
+      return 'mt-[2px]';
+    }
+
     const prev = messages[i - 1];
 
     const sameSender = current.senderId === prev.senderId;

@@ -170,6 +170,22 @@ export class GroupsService {
     // Group thread side
     const threadRef = doc(this.firestore, `groupThreads/${groupId}`);
 
+    await setDoc(memberRef, {
+      uid: user.uid,
+      role: 'member',
+      joinedAt: serverTimestamp()
+    });
+
+    await Promise.all([
+      setDoc(userGroupRef, {
+        groupId,
+        joinedAt: serverTimestamp()
+      }),
+      setDoc(threadRef, {
+        participants: arrayUnion(user.uid)
+      }, { merge: true })
+    ]);
+
     const actor = await firstValueFrom(
       this.userService.getUserByUid(user.uid)
     );
@@ -183,21 +199,6 @@ export class GroupsService {
       `${actorName} joined the group`,
       'system'
     );
-
-    await Promise.all([
-      setDoc(memberRef, {
-        uid: user.uid,
-        role: 'member',
-        joinedAt: serverTimestamp()
-      }),
-      setDoc(userGroupRef, {
-        groupId,
-        joinedAt: serverTimestamp()
-      }),
-      setDoc(threadRef, {
-        participants: arrayUnion(user.uid)
-      }, { merge: true })
-    ]);
   }
 
   // ─────────────────────────────
@@ -210,6 +211,9 @@ export class GroupsService {
     const memberRef = doc(this.firestore, `groups/${groupId}/members/${user.uid}`);
     const userGroupRef = doc(this.firestore, `users/${user.uid}/groups/${groupId}`);
     const threadRef = doc(this.firestore, `groupThreads/${groupId}`);
+
+    const memberSnap = await getDoc(memberRef);
+    const role = memberSnap.data()?.['role'];
 
     const actor = await firstValueFrom(
       this.userService.getUserByUid(user.uid)
@@ -225,6 +229,14 @@ export class GroupsService {
       'system'
     );
 
+    if (role === 'moderator') {
+      await this.notificationsService.deleteNotification({
+        recipientUid: user.uid,
+        type: 'promote',
+        groupId
+      });
+    }
+
     await Promise.all([
       setDoc(threadRef, {
         participants: arrayRemove(user.uid)
@@ -237,15 +249,21 @@ export class GroupsService {
   // ─────────────────────────────
   // Remove Member from Group
   // ─────────────────────────────
-  async removeMember(groupId: string, actorUid: string, targetUid: string) {
+  async removeMember(groupId: string, targetUid: string) {
+    const user = await firstValueFrom(this.authService.user$);
+    if (!user) throw new Error('Not authenticated');
+
     const batch = writeBatch(this.firestore);
 
     const memberRef = doc(this.firestore, `groups/${groupId}/members/${targetUid}`);
     const userGroupRef = doc(this.firestore, `users/${targetUid}/groups/${groupId}`);
     const threadRef = doc(this.firestore, `groupThreads/${groupId}`);
 
+    const memberSnap = await getDoc(memberRef);
+    const role = memberSnap.data()?.['role'];
+
     const actor = await firstValueFrom(
-      this.userService.getUserByUid(actorUid)
+      this.userService.getUserByUid(user.uid)
     );
     const actorName = actor?.displayName || actor?.username || 'Someone';
 
@@ -261,6 +279,14 @@ export class GroupsService {
       `${actorName} removed ${targetName} from the group`,
       'system'
     );
+
+    if (role === 'moderator') {
+      await this.notificationsService.deleteNotification({
+        recipientUid: targetUid,
+        type: 'promote',
+        groupId
+      });
+    }
 
     batch.set(threadRef,{ participants: arrayRemove(targetUid) }, { merge: true });
     batch.delete(userGroupRef);

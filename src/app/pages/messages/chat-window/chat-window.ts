@@ -609,6 +609,11 @@ export class ChatWindow implements OnChanges {
     if (i === 0) return 'mt-3';
 
     const current = messages[i];
+
+    if (current.type === 'system') {
+      return 'mt-[2px]';
+    }
+
     const prev = messages[i - 1];
 
     const sameSender = current.senderId === prev.senderId;

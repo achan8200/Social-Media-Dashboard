@@ -100,8 +100,8 @@
 
 										<div class="relative max-w-[60%] break-words group"
 											[ngClass]="openMessageMenuId === msg.id ? 'z-50' : 'z-0'">
-											<!-- Menu button for your messages -->
-											<div *ngIf="(msg.senderId === currentUserId || msg.senderRole === 'owner' || msg.senderRole === 'moderator') && !editingMessageId && !msg.isDeleted"
+											<!-- Menu button for messages -->
+											<div *ngIf="(msg.senderId === currentUserId || (currentUserRole$ | async) === 'owner' || (currentUserRole$ | async) === 'moderator') && !editingMessageId && !msg.isDeleted"
 													class="absolute top-1/2 -translate-y-1/2 transition"
 													[ngClass]="{
 														'-left-8': msg.senderId === currentUserId,
@@ -128,7 +128,7 @@
 														Edit
 													</button>
 
-													<button *ngIf="(msg.senderId === currentUserId && !editingMessageId && !msg.isDeleted) || (msg.senderRole === 'owner' || msg.senderRole === 'moderator')"
+													<button *ngIf="(msg.senderId === currentUserId || (currentUserRole$ | async) === 'owner' || (currentUserRole$ | async) === 'moderator') && !editingMessageId && !msg.isDeleted"
 														(click)="confirmDelete(msg)"
 														class="block w-full text-left px-3 py-2 text-red-500 hover:bg-gray-100">
 														Delete
