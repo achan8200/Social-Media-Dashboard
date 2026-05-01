@@ -119,13 +119,25 @@
       </button>
 
       <button
-        (click)="setTab('messages')"
+        (click)="openMessagesTab()"
         [disabled]="!vm.isMember"
         class="flex-1 py-3 text-sm font-medium transition disabled:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
         [ngClass]="activeTab === 'messages'
             ? 'bg-gray-900 text-white'
             : 'bg-gray-200 hover:bg-gray-300'">
-        Messages
+
+        <span class="flex items-center justify-center gap-2">
+          Messages
+
+          <!-- Unread badge -->
+          <span
+            *ngIf="(groupUnreadCount$ | async) as count"
+            [class.hidden]="count === 0"
+            class="bg-gray-500 text-white text-xs px-2 py-[3px] rounded-full min-w-[20px] text-center">
+            {{ count > 99 ? '99+' : count }}
+          </span>
+        </span>
+
       </button>
     </div>
 

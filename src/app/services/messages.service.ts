@@ -628,10 +628,25 @@ export class MessagesService {
       senderName: userData?.['displayName'],
       text,
       type,
+      readBy: [currentUser.uid],
       createdAt: serverTimestamp()
     });
 
     const threadRef = doc(this.firestore, `groupThreads/${groupId}`);
+    const threadRefSnap = await getDoc(threadRef);
+
+    const threadData = threadRefSnap.data();
+    const participants: string[] = threadData?.['participants'] || [];
+    if (!participants.includes(currentUser.uid)) {
+      throw new Error('User is not a participant of this thread or thread does not exist');
+    }
+
+    // Compute unreadCount per participant
+    const unreadCounts: Record<string, number> = {};
+    participants.forEach(uid => {
+      unreadCounts[uid] = uid === currentUser.uid ? 0 : (threadData?.['unreadByUser']?.[uid] || 0) + 1;
+    });
+
     await updateDoc(threadRef, {
       lastMessage: {
         id: newMsgRef.id,
@@ -641,8 +656,71 @@ export class MessagesService {
         createdAt: serverTimestamp(),
         type
       },
-      lastMessageAt: serverTimestamp()
+      lastMessageAt: serverTimestamp(),
+      unreadByUser: unreadCounts
     });
+  }
+
+  // Unused
+  getGroupUnreadCount(groupId: string): Observable<number> {
+    return this.withAuth(userId => {
+      const ref = collection(this.firestore, `groupThreads/${groupId}/messages`);
+      const q = query(ref);
+
+      return collectionData(q).pipe(
+        map((messages: any[]) =>
+          messages.filter(m => !(m.readBy || []).includes(userId)).length
+        )
+      );
+    });
+  }
+
+  getGroupThread(groupId: string): Observable<any> {
+    return this.withAuth(userId => {
+      return docData(doc(this.firestore, `groupThreads/${groupId}`)).pipe(
+        map((thread: any) => ({
+          ...thread,
+          unreadCount: thread?.unreadByUser?.[userId] || 0
+        }))
+      );
+    });
+  }
+
+  async markGroupMessagesAsRead(groupId: string) {
+    const currentUser = this.auth.currentUser;
+    if (!currentUser?.uid) return;
+
+    const threadDocRef = doc(this.firestore, `groupThreads/${groupId}`);
+    const ref = collection(this.firestore, `groupThreads/${groupId}/messages`);
+    const snapshot = await getDocs(ref);
+
+    let markedAny = false;
+
+    const updates = snapshot.docs.map(docSnap => {
+      const data = docSnap.data();
+      const readBy: string[] = data['readBy'] || [];
+
+      if (!readBy.includes(currentUser.uid)) {
+        markedAny = true;
+        return updateDoc(docSnap.ref, {
+          readBy: [...readBy, currentUser.uid]
+        });
+      }
+      return Promise.resolve();
+    });
+
+    await Promise.all(updates);
+
+    // If any messages were marked read, update thread unreadByUser
+    if (markedAny) {
+      const threadSnap = await getDoc(threadDocRef);
+      const threadData = threadSnap.data() || {};
+      const unreadByUser = threadData['unreadByUser'] || {};
+
+      const newUnreadByUser = { ...unreadByUser, [currentUser.uid]: 0 };
+
+      await updateDoc(threadDocRef, { unreadByUser: newUnreadByUser });
+    }
   }
 
   getGroupTyping(groupId: string): Observable<{ [uid: string]: boolean }> {

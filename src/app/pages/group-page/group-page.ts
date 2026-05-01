@@ -8,6 +8,7 @@ import { PostsService } from '../../services/posts.service';
 import { Post } from '../../models/post.model';
 import { PostModal } from "../../components/post-modal/post-modal";
 import { CreatePostModal } from "../../components/create-post-modal/create-post-modal";
+import { MessagesService } from '../../services/messages.service';
 import { UserService } from '../../services/user.service';
 import { Avatar } from "../../components/avatar/avatar";
 import { GroupChatWindow } from './group-chat-window/group-chat-window';
@@ -40,6 +41,7 @@ export class GroupPage {
   private route = inject(ActivatedRoute);
   private authService = inject(AuthService);
   private groupsService = inject(GroupsService);
+  private messagesService = inject(MessagesService);
   private postsService = inject(PostsService);
   private userService = inject(UserService);
   private cdr = inject(ChangeDetectorRef);
@@ -52,6 +54,7 @@ export class GroupPage {
   canEditGroup$!: Observable<boolean>;
   members$!: Observable<GroupMember[]>;
   memberCount$!: Observable<number>;
+  groupUnreadCount$!: Observable<number>;
 
   groupId!: string;
 
@@ -177,6 +180,13 @@ export class GroupPage {
         this.activeTab = 'posts';
       }
     });
+
+    this.groupUnreadCount$ = groupId$.pipe(
+      switchMap(groupId => 
+        this.messagesService.getGroupThread(groupId)
+      ),
+      map(thread => thread?.unreadCount || 0)
+    );
 
     this.currentUserRole$ = combineLatest([
       this.members$,
@@ -675,6 +685,18 @@ export class GroupPage {
 
   setTab(tab: 'posts' | 'messages') {
     this.activeTab = tab;
+  }
+
+  async openMessagesTab() {
+    this.activeTab = 'messages';
+
+    if (!this.groupId) return;
+
+    try {
+      await this.messagesService.markGroupMessagesAsRead(this.groupId);
+    } catch (err) {
+      console.error('Failed to mark messages as read', err);
+    }
   }
 
   trackByPostId(index: number, post: Post) {
