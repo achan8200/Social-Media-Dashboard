@@ -47,9 +47,7 @@
                 'bg-blue-100 text-blue-700': role === 'moderator',
                 'bg-gray-200 text-gray-700': role === 'member'
               }"
-            >
-              {{ role === 'owner' ? 'Owner' : role === 'moderator' ? 'Moderator' : 'Member' }}
-            </span>
+            >{{ role === 'owner' ? 'Owner' : role === 'moderator' ? 'Moderator' : 'Member' }}</span>
           </ng-container>
         </div>
 

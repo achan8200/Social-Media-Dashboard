@@ -4,12 +4,13 @@ import { AuthService } from './auth.service';
 import { UserService } from './user.service';
 import { MessagesService } from './messages.service';
 import { NotificationsService } from './notifications.service';
-import { map, Observable, switchMap, of, firstValueFrom, combineLatest, startWith, shareReplay } from 'rxjs';
+import { map, Observable, switchMap, of, firstValueFrom, combineLatest, startWith, shareReplay, from } from 'rxjs';
 
 export interface Group {
   id?: string;
   ownerId: string;
   name: string;
+  nameLower: string;
   bio?: string;
   avatar?: string;
   isPrivate?: boolean;
@@ -52,6 +53,7 @@ export class GroupsService {
     await setDoc(groupRef, {
       ownerId: user.uid,
       name,
+      nameLower: name.toLowerCase(),
       bio,
       createdAt: serverTimestamp()
     });
@@ -627,5 +629,42 @@ export class GroupsService {
       chunk.forEach(docSnap => batch.delete(docSnap.ref));
       await batch.commit();
     }
+  }
+
+  // ─────────────────────────────
+  // Search Groups
+  // ─────────────────────────────
+  searchGroups(queryStr: string): Observable<any[]> {
+    const q = queryStr.toLowerCase().trim();
+    if (!q) return of([]);
+
+    const ref = collection(this.firestore, 'groups');
+
+    return from(getDocs(ref)).pipe(
+      map(snapshot =>
+        snapshot.docs.map(doc => {
+          const data = doc.data() as any;
+
+          return {
+            id: doc.id,
+            name: data.name,
+            nameLower: data.nameLower,
+            avatar: data.avatar ?? null
+          };
+        })
+      ),
+      map(groups =>
+        groups
+          .filter(g => (g.nameLower || '').includes(q))
+          .slice(0, 10)
+          .map(g => ({
+            id: g.id,
+            name: g.name,
+            display: g.name,
+            imageUrl: g.avatar,
+            type: 'group'
+          }))
+      )
+    );
   }
 }

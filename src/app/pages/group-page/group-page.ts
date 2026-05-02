@@ -431,6 +431,7 @@ export class GroupPage {
 
     await this.groupsService.updateGroup(this.groupId, {
       name: trimmedName,
+      nameLower: trimmedName.toLowerCase(),
       bio: this.groupForm.bio,
       avatar: this.groupForm.avatar
     });

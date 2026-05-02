@@ -1,5 +1,94 @@
-<nav class="bg-white shadow p-4 flex justify-between items-center">
-  <h1 class="text-2xl font-bold text-blue-600">Social Dashboard</h1>
+<nav class="bg-white shadow px-6 py-3 flex justify-between items-center">
+  <h1 class="text-2xl font-bold text-blue-600 whitespace-nowrap">Social Dashboard</h1>
+
+  <div class="flex-1 flex justify-center px-6">
+    <div #searchContainer class="relative w-full max-w-xl">
+
+      <!-- Search Bar -->
+      <div class="flex items-center border rounded-lg overflow-hidden bg-white shadow-sm">
+
+        <!-- Dropdown (Search Type) -->
+        <button
+          (click)="toggleSearchTypeDropdown($event)"
+          class="ml-[2.5px] px-3 py-2 bg-gray-100 text-sm hover:bg-gray-200 flex items-center gap-1 rounded-lg"
+        >
+          {{ searchType === 'user' ? 'User' : 'Group' }}
+          <span>▾</span>
+        </button>
+
+        <!-- Input -->
+        <input
+          type="text"
+          [(ngModel)]="searchQuery"
+          (input)="onSearchChange()"
+          (focus)="showResults = true"
+          placeholder="Search"
+          class="flex-1 px-3 py-2 outline-none"
+        />
+      </div>
+
+      <!-- Search Type Dropdown -->
+      <div *ngIf="showSearchTypeDropdown"
+           class="absolute left-0 mt-1 w-32 bg-white border rounded-lg shadow z-50 overflow-hidden animate-slide-down">
+
+        <button
+          (click)="setSearchType('user')"
+          class="w-full text-left px-3 py-2 hover:bg-gray-100">
+          Search User
+        </button>
+
+        <button
+          (click)="setSearchType('group')"
+          class="w-full text-left px-3 py-2 hover:bg-gray-100">
+          Search Group
+        </button>
+      </div>
+
+      <!-- Results Dropdown -->
+      <div *ngIf="showResults && searchQuery.trim() && (results$ | async) as results"
+           class="absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow z-50 max-h-80 overflow-y-auto">
+
+        <ng-container *ngIf="results.length; else noResults">
+          <button
+            *ngFor="let item of results"
+            (click)="goToResult(item)"
+            class="w-full text-left px-4 py-2 hover:bg-gray-100">
+
+            <div class="flex items-center gap-3">
+
+              <!-- Avatar -->
+              <app-avatar
+                [imageUrl]="item.imageUrl"
+                [username]="item.username || item.name"
+                size="sm">
+              </app-avatar>
+
+              <!-- Text -->
+              <div class="flex flex-col">
+                <span class="text-sm font-medium text-gray-900">
+                  {{ searchType === 'user' ? item.displayName : item.name }}
+                </span>
+
+                <span class="text-xs text-gray-400">
+                  {{ searchType === 'user' ? '@' + item.username : 'Group' }}
+                </span>
+              </div>
+
+            </div>
+          </button>
+        </ng-container>
+
+        <ng-template #noResults>
+          <div class="px-4 py-2 text-gray-400 text-sm">
+            No results
+          </div>
+        </ng-template>
+
+      </div>
+
+    </div>
+  </div>
+
   <div class="flex items-center space-x-4">
 
     <!-- Notifications Button -->

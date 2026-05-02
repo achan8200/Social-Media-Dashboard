@@ -65,4 +65,38 @@ export class UserService {
     }
     return res;
   }
+
+  searchUsers(queryStr: string): Observable<any[]> {
+    const q = queryStr.toLowerCase().trim();
+    if (!q) return of([]);
+
+    const ref = collection(this.firestore, 'users');
+
+    return from(getDocs(ref)).pipe(
+      map(snapshot =>
+        snapshot.docs.map(doc => ({
+          uid: doc.id,
+          ...(doc.data() as any)
+        }))
+      ),
+      map(users =>
+        users
+          .filter(user => {
+            const username = (user.username || '').toLowerCase();
+            const displayName = (user.displayName || '').toLowerCase();
+
+            return username.includes(q) || displayName.includes(q);
+          })
+          .slice(0, 10)
+          .map(user => ({
+            uid: user.uid,
+            username: user.username,
+            displayName: user.displayName,
+            imageUrl: user.profilePicture ?? null,
+            display: user.username || user.displayName || 'Unknown',
+            type: 'user'
+          }))
+      )
+    );
+  }
 }
