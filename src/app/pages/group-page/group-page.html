@@ -466,6 +466,23 @@
         ></textarea>
       </div>
 
+      <!-- Delete Group Section -->
+      <div class="border-t pt-4 mt-4 space-y-2">
+
+        <button
+          (click)="openDeleteConfirm()"
+          [disabled]="!(isOwner$ | async)"
+          class="w-full px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 transition-colors duration-150
+          disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed">
+          Delete Group
+        </button>
+
+        <p class="text-xs text-gray-500 text-center">
+          (Owner only)
+        </p>
+
+      </div>
+
       <!-- Actions -->
       <div class="flex justify-end gap-2">
         <button (click)="closeSettings()" class="px-4 py-2 text-gray-500 hover:text-gray-700 transition-colors duration-150">Cancel</button>
@@ -488,7 +505,7 @@
 
 <!-- Crop Modal -->
 <div *ngIf="cropImageSrc && (canEditGroup$ | async)" @overlayFade
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+  class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
   <div @modalScale class="bg-white p-4 rounded-lg relative w-full max-w-sm h-auto flex flex-col items-center">
     <h2 class="text-lg font-bold mb-4">Adjust Group Picture</h2>
     <div #cropCircle class="relative w-[264px] h-[264px] rounded-full overflow-hidden border-4 border-gray-200 shadow-inner touch-none"
@@ -503,23 +520,24 @@
             'translate(-50%, -50%) translate(' + crop.x + 'px,' + crop.y + 'px) scale(' + crop.scale + ')'
           "
           draggable="false"
-        />
-      </div>
-      <input
-        type="range"
-        [min]="minScale"
-        max="3"
-        step="0.01"
-        [value]="crop.scale"
-        (input)="onSliderChange($event)"
-        class="mt-4 w-64"
       />
-      <div class="mt-4 flex gap-2">
-        <button (click)="saveCroppedGroupAvatar()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Finish</button>
-        <button (click)="cancelCrop()" class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500">Cancel</button>
-      </div>
+    </div>
+    <input
+      type="range"
+      [min]="minScale"
+      max="3"
+      step="0.01"
+      [value]="crop.scale"
+      (input)="onSliderChange($event)"
+      class="mt-4 w-64"
+    />
+    <div class="mt-4 flex gap-2">
+      <button (click)="saveCroppedGroupAvatar()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Finish</button>
+      <button (click)="cancelCrop()" class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500">Cancel</button>
     </div>
   </div>
+</div>
+
 <!-- Remove Profile Picture Confirmation -->
 <div *ngIf="showRemoveConfirm && (canEditGroup$ | async)" @overlayFade
   class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -538,3 +556,49 @@
     </div>
   </div>
 </div>
+
+<!-- Delete Group Confirmation -->
+<ng-container *ngIf="showDeleteConfirm && (group$ | async) as group">
+  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @overlayFade>
+
+    <div @modalScale class="bg-white rounded-xl p-6 w-full max-w-sm space-y-4">
+
+      <h2 class="text-lg font-semibold text-red-600">
+        Delete Group
+      </h2>
+
+      <p class="text-sm text-gray-600">
+        This action cannot be undone. Type the group name to confirm.
+      </p>
+
+      <p class="text-sm font-medium text-gray-800">
+        {{ group.name }}
+      </p>
+
+      <input
+        [(ngModel)]="deleteInput"
+        class="w-full border rounded px-3 py-2"
+        placeholder="Enter group name"
+      />
+
+      <div class="flex justify-end gap-2">
+
+        <button
+          (click)="closeDeleteConfirm()"
+          class="px-4 py-2 text-gray-500 hover:text-gray-800">
+          Cancel
+        </button>
+
+        <button
+          (click)="confirmDeleteGroup(group.name)"
+          [disabled]="deleteInput !== group.name || isDeleting"
+          class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded transition-colors duration-150
+          disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed">
+          {{ isDeleting ? 'Deleting...' : 'Delete' }}
+        </button>
+
+      </div>
+
+    </div>
+  </div>
+</ng-container>

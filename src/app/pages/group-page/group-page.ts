@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, ElementRef, HostListener, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { GroupsService, Group, GroupMember } from '../../services/groups.service';
 import { PostsService } from '../../services/posts.service';
@@ -39,6 +39,7 @@ type MemberVM = GroupMember & {
 })
 export class GroupPage {
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private authService = inject(AuthService);
   private groupsService = inject(GroupsService);
   private messagesService = inject(MessagesService);
@@ -99,6 +100,11 @@ export class GroupPage {
   selectedPost: Post | null = null;
   groupPosts$!: Observable<Post[]>;
   postCount$!: Observable<number>;
+
+  showDeleteConfirm = false;
+  deleteInput = '';
+  isDeleting = false;
+  isOwner$!: Observable<boolean>;
 
   // Crop state
   cropImageSrc: string | null = null;
@@ -201,6 +207,10 @@ export class GroupPage {
         return members.find(m => m.uid === user.uid)?.role ?? null;
       }),
       shareReplay(1)
+    );
+
+    this.isOwner$ = this.currentUserRole$.pipe(
+      map(role => role === 'owner')
     );
 
     this.canEditGroup$ = this.currentUserRole$.pipe(
@@ -700,6 +710,31 @@ export class GroupPage {
       await this.messagesService.markGroupMessagesAsRead(this.groupId);
     } catch (err) {
       console.error('Failed to mark messages as read', err);
+    }
+  }
+
+  openDeleteConfirm() {
+    this.showDeleteConfirm = true;
+    this.deleteInput = '';
+  }
+
+  closeDeleteConfirm() {
+    this.showDeleteConfirm = false;
+  }
+
+  async confirmDeleteGroup(groupName: string) {
+    if (this.deleteInput.trim() !== groupName.trim()) return;
+
+    this.isDeleting = true;
+
+    try {
+      await this.groupsService.deleteGroup(this.groupId);
+
+      this.router.navigate(['/groups']);
+    } catch (err) {
+      console.error('Failed to delete group', err);
+    } finally {
+      this.isDeleting = false;
     }
   }
 

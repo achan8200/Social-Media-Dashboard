@@ -25,7 +25,7 @@
 
 					<div *ngIf="members$ | async as members"
 						class="text-xs text-gray-500 truncate">
-						{{ members.length }} members
+						{{ members.length }} {{ members.length > 1 ? 'members' : 'member' }}
 					</div>
 				</div>
 			</div>

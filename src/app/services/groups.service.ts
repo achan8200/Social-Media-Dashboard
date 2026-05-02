@@ -134,14 +134,23 @@ export class GroupsService {
                 return {
                   ...group,
                   role: member?.role || 'member',
-                  isMember: true
+                  isMember: true,
+                  joinedAt: m.joinedAt
                 };
               })
             )
           )
         );
       }),
-      map(groups => groups.filter((g): g is Group & { role: string } => !!g))
+      map(groups =>
+        groups
+          .filter((g): g is Group & { role: string; joinedAt: any } => !!g)
+          .sort((a, b) => {
+            const aTime = a.joinedAt?.seconds ?? 0;
+            const bTime = b.joinedAt?.seconds ?? 0;
+            return aTime - bTime;
+          })
+      )
     );
   }
 
@@ -509,7 +518,7 @@ export class GroupsService {
     if (!memberSnap.exists() || memberSnap.data()?.['role'] !== 'owner') {
       throw new Error('Only group owner can delete this group');
     }
-    
+
     const groupRef = doc(this.firestore, `groups/${groupId}`);
     const threadRef = doc(this.firestore, `groupThreads/${groupId}`);
 
@@ -520,32 +529,37 @@ export class GroupsService {
 
     const memberUids = membersSnap.docs.map(d => d.id);
 
-    // Run independent heavy operations in parallel
-    await Promise.all([
-      this.deleteCollectionInChunks(`groups/${groupId}/members`),
-      this.deleteCollectionInChunks(`groupThreads/${groupId}/messages`),
-      this.batchUpdatePostsRemoveGroupId(groupId),
-      this.deleteGroupNotifications(groupId)
-    ]);
-
-    // Remove group from each user's subcollection (chunked)
+    // Prepare user group refs
     const userRefs = memberUids.map(uid =>
       doc(this.firestore, `users/${uid}/groups/${groupId}`)
     );
 
     const userChunks = this.chunkArray(userRefs, this.BATCH_SIZE);
 
+    // Delete messages (needs membership)
+    await this.deleteCollectionInChunks(`groupThreads/${groupId}/messages`);
+
+    // Delete thread (needs ownership)
+    await deleteDoc(threadRef);
+
+    // Cleanup posts
+    await this.batchUpdatePostsRemoveGroupId(groupId);
+
+    // Delete notifications
+    await this.deleteGroupNotifications(groupId);
+
+    // Remove group from each user's subcollection
     for (const chunk of userChunks) {
       const batch = writeBatch(this.firestore);
       chunk.forEach(ref => batch.delete(ref));
       await batch.commit();
     }
 
-    // Delete group + thread in one final batch
-    const finalBatch = writeBatch(this.firestore);
-    finalBatch.delete(groupRef);
-    finalBatch.delete(threadRef);
-    await finalBatch.commit();
+    // Delete group document
+    await deleteDoc(groupRef);
+
+    // Delete members (removes your ownership)
+    await this.deleteCollectionInChunks(`groups/${groupId}/members`);
   }
 
   // Split array into chunks
@@ -599,12 +613,7 @@ export class GroupsService {
 
   private async deleteGroupNotifications(groupId: string) {
     const notificationsRef = collection(this.firestore, 'notifications');
-
-    const q = query(
-      notificationsRef,
-      where('groupId', '==', groupId)
-    );
-
+    const q = query(notificationsRef, where('groupId', '==', groupId));
     const snap = await getDocs(q);
 
     if (snap.empty) return;

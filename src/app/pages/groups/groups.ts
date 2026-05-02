@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { collection, Firestore, getDocs, query, where } from '@angular/fire/firestore';
@@ -8,7 +8,7 @@ import { GroupsService } from '../../services/groups.service';
 import { UserService } from '../../services/user.service';
 import { getInitial, getAvatarColor } from '../../utils/avatar';
 import { trigger, transition, style, animate } from '@angular/animations';
-import { BehaviorSubject, combineLatest, firstValueFrom, map, Observable, of, switchMap } from 'rxjs';
+import { BehaviorSubject, combineLatest, firstValueFrom, from, map, Observable, of, switchMap } from 'rxjs';
 
 type Tab = 'my' | 'discover';
 
@@ -36,6 +36,7 @@ export class Groups {
   private groupsService = inject(GroupsService);
   private userService = inject(UserService);
   private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
 
   // ─────────────────────────────
   // STATE (BehaviorSubjects = reactive store)
@@ -63,30 +64,29 @@ export class Groups {
   // ─────────────────────────────
 
   userGroups$ = this.route.paramMap.pipe(
-    switchMap(async params => {
+    switchMap(params => {
       const username = params.get('username');
 
       if (username) {
-        // Fetch target user
         const usersRef = collection(this.firestore, 'users');
         const q = query(usersRef, where('username', '==', username));
-        const snap = await getDocs(q);
 
-        if (snap.empty) return [];
-
-        const targetUid = snap.docs[0].id;
-        return firstValueFrom(
-          this.groupsService.getUserGroupsWithDetails(targetUid)
+        return from(getDocs(q)).pipe(
+          switchMap(snap => {
+            if (snap.empty) return of([]);
+            const targetUid = snap.docs[0].id;
+            return this.groupsService.getUserGroupsWithDetails(targetUid);
+          })
         );
       } else {
-        const user = await firstValueFrom(this.authService.user$);
-        if (!user) return [];
-        return firstValueFrom(
-          this.groupsService.getUserGroupsWithDetails(user.uid)
+        return this.authService.user$.pipe(
+          switchMap(user => {
+            if (!user) return of([]);
+            return this.groupsService.getUserGroupsWithDetails(user.uid);
+          })
         );
       }
-    }),
-    switchMap(groups => of(groups))
+    })
   );
 
   discoverGroups$ = this.groupsService.getAllGroups();
@@ -179,6 +179,8 @@ export class Groups {
     try {
       await this.groupsService.createGroup(name, bio);
       this.showCreateModal = false;
+      this.groupName = '';
+      this.cdr.detectChanges();
     } catch (err) {
       console.error(err);
     } finally {
