@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, collection, doc, setDoc, collectionData, serverTimestamp, deleteDoc, docData, writeBatch, arrayUnion, arrayRemove, getDoc, getDocs, query, where } from '@angular/fire/firestore';
+import { Firestore, collection, doc, setDoc, collectionData, serverTimestamp, deleteDoc, docData, writeBatch, arrayUnion, arrayRemove, getDoc, getDocs, query, where, orderBy } from '@angular/fire/firestore';
 import { AuthService } from './auth.service';
 import { UserService } from './user.service';
 import { MessagesService } from './messages.service';
@@ -309,7 +309,9 @@ export class GroupsService {
   // ─────────────────────────────
   getMembers(groupId: string): Observable<GroupMember[]> {
     const ref = collection(this.firestore, `groups/${groupId}/members`);
-    return collectionData(ref, { idField: 'uid' }) as Observable<GroupMember[]>;
+    const q = query(ref, orderBy('joinedAt', 'asc'));
+
+    return collectionData(q, { idField: 'uid' }) as Observable<GroupMember[]>;
   }
 
   // ─────────────────────────────

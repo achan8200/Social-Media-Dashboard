@@ -484,7 +484,7 @@
 
 						<!-- Dropdown -->
 						<div *ngIf="selectedParticipantMenu === p.uid" 
-							class="absolute right-0 bg-white border rounded shadow w-40 z-50 text-sm"
+							class="absolute right-0 bg-white border rounded shadow w-40 z-50 text-sm overflow-hidden"
 							[ngClass]="participantMenuDirection[p.uid] === 'up' ? 'bottom-full mb-1 animate-slide-up' : 'top-full mt-1 animate-slide-down'">
 							<div *ngIf="followingMap$ | async as followingSet">
 								<button (click)="toggleFollow(p.uid, followingSet.has(p.uid))" class="block w-full text-left px-3 py-2 hover:bg-gray-100">

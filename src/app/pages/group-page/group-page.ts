@@ -75,6 +75,7 @@ export class GroupPage {
   showMembersModal = false;
   openMenuUid: string | null = null;
   openMenuDirection: { [uid: string]: 'up' | 'down' } = {};
+  menuPosition: Record<string, { top: number; left: number }> = {};
   activeMenuEl: HTMLElement | null = null;
 
   confirmAction:
@@ -280,21 +281,18 @@ export class GroupPage {
     return false;
   }
 
-  toggleMenu(uid: string, event: Event) {
+  toggleMenu(uid: string, event: MouseEvent) {
     event.stopPropagation();
 
     const buttonEl = event.currentTarget as HTMLElement;
+    const rect = buttonEl.getBoundingClientRect();
 
-    // Determine direction before opening
-    const shouldOpenUp = this.isNearBottomOfModal(buttonEl);
-
-    this.openMenuDirection[uid] = shouldOpenUp ? 'up' : 'down';
+    this.menuPosition[uid] = {
+      top: rect.bottom + 8,
+      left: rect.right - 176
+    };
 
     this.openMenuUid = this.openMenuUid === uid ? null : uid;
-
-    setTimeout(() => {
-      this.activeMenuEl = document.querySelector('.dropdown-open') as HTMLElement;
-    });
   }
 
   isNearBottomOfModal(element: HTMLElement): boolean {
@@ -307,6 +305,11 @@ export class GroupPage {
     const spaceBelow = modalRect.bottom - rect.bottom;
 
     return spaceBelow < 120; // threshold (adjust if needed)
+  }
+
+  @HostListener('window:scroll')
+  onScroll() {
+    this.openMenuUid = null;
   }
 
   openConfirm(type: any, member: MemberVM) {

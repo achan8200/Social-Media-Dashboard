@@ -273,9 +273,7 @@
                 'bg-yellow-100 text-yellow-700': member.role === 'owner',
                 'bg-blue-100 text-blue-700': member.role === 'moderator',
                 'bg-gray-200 text-gray-700': member.role === 'member'
-              }">
-              {{ member.role === 'owner' ? 'Owner' : member.role === 'moderator' ? 'Moderator' : 'Member' }}
-            </span>
+              }">{{ member.role === 'owner' ? 'Owner' : member.role === 'moderator' ? 'Moderator' : 'Member' }}</span>
 
             <!-- Actions -->
             <ng-container *ngIf="(currentUserRole$ | async) as currentRole">
@@ -287,13 +285,15 @@
                   class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center">
                   <span class="relative -top-[1.5px]">⋯</span>
                 </button>
-                <div class="dropdown-open absolute right-0 z-[1000]"
-                  [ngClass]="openMenuDirection[member.uid] === 'up' ? 'bottom-full mb-[7.5rem] animate-slide-up' : 'top-full mt-2 animate-slide-down'"
-                  *ngIf="openMenuUid === member.uid" 
-                  #menu 
-                  (click)="$event.stopPropagation()">
+                <div
+                  class="dropdown-open fixed z-[9999] animate-slide-down"
+                  [style.top.px]="menuPosition[member.uid]?.top"
+                  [style.left.px]="menuPosition[member.uid]?.left"
+                  *ngIf="openMenuUid === member.uid"
+                  (click)="$event.stopPropagation()"
+                >
 
-                  <div class="absolute right-0 w-44 bg-white border rounded-lg shadow z-50">
+                  <div class="w-44 bg-white border rounded-lg shadow z-50 overflow-hidden">
 
                     <!-- OWNER MENU -->
                     <ng-container *ngIf="(currentUserRole$ | async) === 'owner'">
