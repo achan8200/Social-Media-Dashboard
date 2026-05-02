@@ -139,6 +139,13 @@ export class Navbar {
     else console.warn('[NAVBAR] No username or userId available for profile navigation');
   }
 
+  async goToSettings() {
+    const authUser = await firstValueFrom(this.authService.getCurrentUser());
+    if (!authUser) return;
+
+    this.router.navigate(['/settings']);
+  }
+
   onSearchChange() {
     const query = this.searchQuery.trim();
 
