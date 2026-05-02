@@ -1,12 +1,14 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { collection, Firestore, getDocs, query, where } from '@angular/fire/firestore';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { GroupsService } from '../../services/groups.service';
+import { UserService } from '../../services/user.service';
 import { getInitial, getAvatarColor } from '../../utils/avatar';
 import { trigger, transition, style, animate } from '@angular/animations';
-import { BehaviorSubject, combineLatest, map, of, switchMap } from 'rxjs';
+import { BehaviorSubject, combineLatest, firstValueFrom, map, Observable, of, switchMap } from 'rxjs';
 
 type Tab = 'my' | 'discover';
 
@@ -28,8 +30,11 @@ type Tab = 'my' | 'discover';
   ]
 })
 export class Groups {
+  private route = inject(ActivatedRoute);
+  private firestore = inject(Firestore);
   private authService = inject(AuthService);
   private groupsService = inject(GroupsService);
+  private userService = inject(UserService);
   private router = inject(Router);
 
   // ─────────────────────────────
@@ -48,15 +53,40 @@ export class Groups {
   showCreateModal = false;
   isCreating = false;
 
+  profileUserId: string | null = null;
+  currentUserId: string | null = null;
+  isOwnProfile = false;
+  profileUsername$: Observable<string> | null = null;
+
   // ─────────────────────────────
   // DATA STREAMS
   // ─────────────────────────────
 
-  userGroups$ = this.authService.user$.pipe(
-    switchMap(user => {
-      if (!user) return of([]);
-      return this.groupsService.getUserGroupsWithDetails(user.uid);
-    })
+  userGroups$ = this.route.paramMap.pipe(
+    switchMap(async params => {
+      const username = params.get('username');
+
+      if (username) {
+        // Fetch target user
+        const usersRef = collection(this.firestore, 'users');
+        const q = query(usersRef, where('username', '==', username));
+        const snap = await getDocs(q);
+
+        if (snap.empty) return [];
+
+        const targetUid = snap.docs[0].id;
+        return firstValueFrom(
+          this.groupsService.getUserGroupsWithDetails(targetUid)
+        );
+      } else {
+        const user = await firstValueFrom(this.authService.user$);
+        if (!user) return [];
+        return firstValueFrom(
+          this.groupsService.getUserGroupsWithDetails(user.uid)
+        );
+      }
+    }),
+    switchMap(groups => of(groups))
   );
 
   discoverGroups$ = this.groupsService.getAllGroups();
@@ -95,6 +125,39 @@ export class Groups {
       );
     })
   );
+
+  async ngOnInit() {
+    const user = await firstValueFrom(this.authService.user$);
+    this.currentUserId = user?.uid || null;
+
+    await this.loadProfile();
+
+    this.isOwnProfile = this.profileUserId === this.currentUserId;
+  }
+
+  private async loadProfile() {
+    const username = this.route.snapshot.paramMap.get('username');
+
+    if (username) {
+      // Viewing someone else's groups
+      const usersRef = collection(this.firestore, 'users');
+      const q = query(usersRef, where('username', '==', username));
+      const snap = await getDocs(q);
+
+      if (!snap.empty) {
+        this.profileUserId = snap.docs[0].id;
+      }
+    } else {
+      // Own groups
+      this.profileUserId = this.currentUserId;
+    }
+
+    if (this.profileUserId && !this.isOwnProfile) {
+      this.profileUsername$ = this.userService.getUserByUid(this.profileUserId).pipe(
+        map(user => user?.username ?? 'Unknown')
+      );
+    }
+  }
 
   // ─────────────────────────────
   // ACTIONS (clean state updates)

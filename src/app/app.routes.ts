@@ -19,7 +19,8 @@ export const routes: Routes = [
   { path: 'notifications', component: Notifications, canActivate: [AuthGuard] },
   { path: 'connections/:username', component: Connections }, // public view
   { path: 'connections', component: Connections, canActivate: [AuthGuard] }, // your own
-  { path: 'groups', component: Groups, canActivate: [AuthGuard] },
+  { path: 'groups/:username', component: Groups}, // public view
+  { path: 'groups', component: Groups, canActivate: [AuthGuard] }, // your own
   { path: 'group/:groupId', component: GroupPage},
   { path: 'login', component: Login, canActivate: [GuestGuard] },
   { path: 'signup', component: Signup, canActivate: [GuestGuard] },

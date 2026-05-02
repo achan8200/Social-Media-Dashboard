@@ -176,8 +176,11 @@
     </div>
 
     <div class="bg-white rounded-lg shadow p-4">
-      <p class="text-xl font-bold">{{ groupsCount$ | async }}</p>
-      <p class="text-gray-500 text-sm">Groups</p>
+      <a [routerLink]="['/groups', profile.username]"
+        class="block hover:text-gray-400">
+        <p class="text-xl font-bold">{{ groupsCount$ | async }}</p>
+        <p class="text-gray-500 text-sm">Groups</p>
+      </a>
     </div>
   </div>
 
