@@ -64,9 +64,7 @@
 										class="flex items-center gap-2 text-xs mb-1 ml-12">
 
 										<!-- Name -->
-										<span class="text-gray-500">
-											{{ getSenderName(msg) }}
-										</span>
+										<span class="text-gray-500">{{ getSenderName(msg) }}</span>
 
 										<!-- Role badge -->
 										<span *ngIf="msg.senderRole"
@@ -75,9 +73,7 @@
 												'bg-yellow-100 text-yellow-700': msg.senderRole === 'owner',
 												'bg-blue-100 text-blue-700': msg.senderRole === 'moderator',
 												'bg-gray-200 text-gray-700': msg.senderRole === 'member'
-											}">
-											{{ msg.senderRole }}
-										</span>
+											}">{{ msg.senderRole }}</span>
 
 									</div>
 

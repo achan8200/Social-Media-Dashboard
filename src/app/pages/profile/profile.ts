@@ -111,67 +111,64 @@ export class Profile {
   constructor(private postsService: PostsService) {
     this.loadProfileFromRoute();
     this.usernameStatus$ = this.profileForm.get('username')!
-    .valueChanges
-    .pipe(
-      map(value => value?.trim().toLowerCase() ?? ''),
-      debounceTime(400),
-      distinctUntilChanged(),
-      tap(() => {
-        this.checkingUsername = true;
-        this.cdr.detectChanges();
-      }),
-      switchMap(trimmed => {
-        if (!this.editMode || !this.originalProfile) {
-          this.checkingUsername = false;
+      .valueChanges
+      .pipe(
+        map(value => value?.trim().toLowerCase() ?? ''),
+        debounceTime(400),
+        distinctUntilChanged(),
+        tap(() => {
+          this.checkingUsername = true;
           this.cdr.detectChanges();
-          return of(null);
-        }
-
-        const original = this.originalProfile.username
-        ?.trim()
-        .toLowerCase();
-
-        if (trimmed === original) {
-          this.checkingUsername = false;
-          this.cdr.detectChanges();
-          return of(null);
-        }
-
-        const validationError = this.authService.validateUsername(trimmed);
-        if (validationError) {
-          this.checkingUsername = false;
-          this.cdr.detectChanges();
-          return of('invalid' as const);
-        }
-
-        return from(this.authService.isUsernameUnique(trimmed)).pipe(
-          map(isUnique => isUnique ? ('available' as const) : ('taken' as const)),
-          finalize(() => {
+        }),
+        switchMap(trimmed => {
+          if (!this.editMode || !this.originalProfile) {
             this.checkingUsername = false;
             this.cdr.detectChanges();
-          })
-        );
-      }),
-      shareReplay(1)
-    );
+            return of(null);
+          }
 
+          const original = this.originalProfile.username?.trim().toLowerCase();
+
+          if (trimmed === original) {
+            this.checkingUsername = false;
+            this.cdr.detectChanges();
+            return of(null);
+          }
+
+          const validationError = this.authService.validateUsername(trimmed);
+          if (validationError) {
+            this.checkingUsername = false;
+            this.cdr.detectChanges();
+            return of('invalid' as const);
+          }
+
+          return from(this.authService.isUsernameUnique(trimmed)).pipe(
+            map(isUnique => isUnique ? ('available' as const) : ('taken' as const)),
+            finalize(() => {
+              this.checkingUsername = false;
+              this.cdr.detectChanges();
+            })
+          );
+        }),
+        shareReplay(1)
+      );
 
     this.profile$
-    .pipe(takeUntilDestroyed())
-    .subscribe(profile => {
-      if (!profile) return;
+      .pipe(takeUntilDestroyed())
+      .subscribe(profile => {
+        if (!profile) return;
 
-      this.originalProfile = profile;
+        this.originalProfile = profile;
 
-      // Keep form in sync when NOT editing
-      if (!this.editMode) {
-        this.profileForm.patchValue({
-          displayName: profile.displayName ?? '',
-          username: profile.username ?? '',
-          bio: profile.bio ?? ''
-        }, { emitEvent: false });
-      }
-    });
+        // Keep form in sync when NOT editing
+        if (!this.editMode) {
+          this.profileForm.patchValue({
+            displayName: profile.displayName ?? '',
+            username: profile.username ?? '',
+            bio: profile.bio ?? ''
+          }, { emitEvent: false });
+        }
+      });
 
     this.hasChanges$ = this.profileForm.valueChanges.pipe(
       map(values => {
@@ -367,7 +364,6 @@ export class Profile {
       shareReplay(1)
     );
   }
-
 
   // Profile picture selection
   onProfilePictureSelected(event: Event) {
@@ -654,10 +650,10 @@ export class Profile {
       !this.isSaving &&
       !this.checkingUsername &&
       (
-        // If username didn't change → fine
+        // If username didn't change -> fine
         !usernameChanged ||
 
-        // If changed → must explicitly be available
+        // If changed -> must explicitly be available
         this.currentUsernameStatus === 'available'
       )
     );
