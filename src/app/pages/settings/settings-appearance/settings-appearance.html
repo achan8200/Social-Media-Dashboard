@@ -1,1 +1,50 @@
-<h2 class="text-lg font-semibold">Appearance</h2>
+<div class="space-y-6">
+
+  <h2 class="text-xl font-semibold">Appearance</h2>
+
+  <p class="text-[var(--text)]/60 text-sm">
+    Choose how your app looks. This theme is only visible to you.
+  </p>
+
+  <!-- Theme Grid -->
+  <div class="grid grid-cols-2 md:grid-cols-3 gap-5">
+
+    <div *ngFor="let theme of themes"
+         class="flex flex-col items-center gap-2 cursor-pointer"
+         (mouseenter)="apply(theme)"
+         (click)="save(theme)">
+
+      <!-- Square Card -->
+      <div
+        class="w-full aspect-square rounded-2xl border transition-all duration-200 hover:scale-[1.03] p-3"
+        [ngClass]="{
+          'border-[var(--primary)] shadow-md': selectedTheme === theme,
+          'border-[var(--border)]': selectedTheme !== theme
+        }"
+      >
+
+        <!-- Inner Preview -->
+        <div
+          class="w-full h-full rounded-lg relative overflow-hidden border border-[var(--border)]"
+          [ngClass]="'theme-' + theme"
+        >
+
+          <!-- Fake UI Preview -->
+          <div class="absolute top-2 left-2 w-12 h-2 rounded bg-[var(--primary)]"></div>
+          <div class="absolute top-6 left-2 right-2 h-2 rounded bg-[var(--text)] opacity-20"></div>
+          <div class="absolute bottom-2 left-2 right-2 h-2 rounded bg-[var(--card)]"></div>
+
+        </div>
+
+      </div>
+
+      <!-- Label BELOW square -->
+      <p class="text-sm font-medium text-center capitalize text-[var(--text)]">
+        {{ theme.replaceAll('-', ' ') }}
+      </p>
+
+    </div>
+
+  </div>
+
+</div>

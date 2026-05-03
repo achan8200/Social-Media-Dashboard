@@ -2,3 +2,277 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --bg: #ffffff;
+  --text: #111827;
+  --card: #f9fafb;
+  --primary: #2563eb;
+  --border: #e5e7eb;
+  --hover: #f3f4f6;
+  --icon-filter: brightness(0) invert(0);
+}
+
+/* Light */
+.theme-light {
+  --bg: #ffffff;
+  --text: #111827;
+  --card: #f3f4f6;
+  --primary: #2563eb;
+  --border: #e5e7eb;
+  --hover: #f3f4f6;
+  --icon-filter: brightness(0) invert(0);
+}
+
+/* Ash (mid theme) */
+.theme-ash {
+  --bg: #d1d5db;
+  --text: #111827;
+  --card: #e5e7eb;
+  --primary: #6366f1;
+  --border: #9ca3af;
+  --hover: #cbd5e1;
+  --icon-filter: brightness(0) invert(0);
+}
+
+/* Dark */
+.theme-dark {
+  --bg: #111827;
+  --text: #f9fafb;
+  --card: #1f2937;
+  --primary: #3b82f6;
+  --border: #374151;
+  --hover: #2a3441;
+  --icon-filter: brightness(0) invert(1);
+}
+
+/* Onyx (true dark / near black) */
+.theme-onyx {
+  --bg: #000000;
+  --text: #e5e7eb;
+  --card: #0a0a0a;
+  --primary: #6366f1;
+  --border: #1f2937;
+  --hover: #111827;
+  --icon-filter: brightness(0) invert(1);
+}
+
+/* Mint Apple */
+.theme-mint-apple {
+  --bg: #ecfdf5;
+  --text: #064e3b;
+  --card: #d1fae5;
+  --primary: #10b981;
+  --border: #a7f3d0;
+  --hover: #bbf7d0;
+  --icon-filter: brightness(0) invert(1);
+}
+
+/* Citrus Sherbert */
+.theme-citrus-sherbert {
+  --bg: #fff7ed;
+  --text: #7c2d12;
+  --card: #ffedd5;
+  --primary: #f97316;
+  --border: #fed7aa;
+  --hover: #fdba74;
+  --icon-filter: brightness(0) invert(1);
+}
+
+/* Retro Raincloud */
+.theme-retro-raincloud {
+  --bg: #e2e8f0;
+  --text: #1e293b;
+  --card: #cbd5f5;
+  --primary: #64748b;
+  --border: #94a3b8;
+  --hover: #cbd5e1;
+  --icon-filter: brightness(0) invert(1);
+}
+
+/* Hanami (soft cherry blossom) */
+.theme-hanami {
+  --bg: #fff1f2;
+  --text: #881337;
+  --card: #ffe4e6;
+  --primary: #f43f5e;
+  --border: #fecdd3;
+  --hover: #fda4af;
+  --icon-filter: brightness(0) invert(1);
+}
+
+/* Sunrise */
+.theme-sunrise {
+  --bg: #fff7ed;
+  --text: #78350f;
+  --card: #ffedd5;
+  --primary: #fb923c;
+  --border: #fdba74;
+  --hover: #fed7aa;
+  --icon-filter: brightness(0) invert(1);
+}
+
+/* Cotton Candy */
+.theme-cotton-candy {
+  --bg: #fdf4ff;
+  --text: #701a75;
+  --card: #fae8ff;
+  --primary: #e879f9;
+  --border: #f5d0fe;
+  --hover: #f0abfc;
+  --icon-filter: brightness(0) invert(1);
+}
+
+/* LoFi Vibes */
+.theme-lofi-vibes {
+  --bg: #1e1b2e;
+  --text: #e0e7ff;
+  --card: #2a2540;
+  --primary: #818cf8;
+  --border: #3b3660;
+  --hover: #433b75;
+  --icon-filter: brightness(0) invert(1);
+}
+
+/* Desert Khaki */
+.theme-desert-khaki {
+  --bg: #fef9c3;
+  --text: #713f12;
+  --card: #fef08a;
+  --primary: #ca8a04;
+  --border: #fde047;
+  --hover: #facc15;
+  --icon-filter: brightness(0) invert(1);
+}
+
+/* Sunset */
+.theme-sunset {
+  --bg: #fff1f2;
+  --text: #7f1d1d;
+  --card: #fee2e2;
+  --primary: #ef4444;
+  --border: #fecaca;
+  --hover: #fca5a5;
+  --icon-filter: brightness(0) invert(1);
+}
+
+/* Chroma Glow (vibrant but usable) */
+.theme-chroma-glow {
+  --bg: #0f172a;
+  --text: #e0f2fe;
+  --card: #1e293b;
+  --primary: #22d3ee;
+  --border: #334155;
+  --hover: #0ea5e9;
+  --icon-filter: brightness(0) invert(1);
+}
+
+/* Forest */
+.theme-forest {
+  --bg: #ecfdf5;
+  --text: #052e16;
+  --card: #d1fae5;
+  --primary: #16a34a;
+  --border: #86efac;
+  --hover: #4ade80;
+  --icon-filter: brightness(0) invert(1);
+}
+
+/* Crimson Moon */
+.theme-crimson-moon {
+  --bg: #1f0a0a;
+  --text: #fee2e2;
+  --card: #2b0f0f;
+  --primary: #dc2626;
+  --border: #7f1d1d;
+  --hover: #991b1b;
+  --icon-filter: brightness(0) invert(1);
+}
+
+/* Mars */
+.theme-mars {
+  --bg: #2b0d0d;
+  --text: #fee2e2;
+  --card: #3b1414;
+  --primary: #f97316;
+  --border: #7c2d12;
+  --hover: #9a3412;
+  --icon-filter: brightness(0) invert(1);
+}
+
+/* Dusk */
+.theme-dusk {
+  --bg: #1e293b;
+  --text: #e2e8f0;
+  --card: #334155;
+  --primary: #6366f1;
+  --border: #475569;
+  --hover: #64748b;
+  --icon-filter: brightness(0) invert(1);
+}
+
+/* Under the Sea */
+.theme-under-the-sea {
+  --bg: #ecfeff;
+  --text: #083344;
+  --card: #cffafe;
+  --primary: #06b6d4;
+  --border: #67e8f9;
+  --hover: #22d3ee;
+  --icon-filter: brightness(0) invert(1);
+}
+
+/* Retro Storm */
+.theme-retro-storm {
+  --bg: #1f2937;
+  --text: #d1d5db;
+  --card: #374151;
+  --primary: #9ca3af;
+  --border: #4b5563;
+  --hover: #6b7280;
+  --icon-filter: brightness(0) invert(1);
+}
+
+/* Neon Nights */
+.theme-neon-nights {
+  --bg: #020617;
+  --text: #e0f2fe;
+  --card: #0f172a;
+  --primary: #22c55e;
+  --border: #1e293b;
+  --hover: #4ade80;
+  --icon-filter: brightness(0) invert(1);
+}
+
+/* Strawberry Lemonade */
+.theme-strawberry-lemonade {
+  --bg: #fff1f2;
+  --text: #7f1d1d;
+  --card: #fef9c3;
+  --primary: #f43f5e;
+  --border: #fde68a;
+  --hover: #facc15;
+  --icon-filter: brightness(0) invert(1);
+}
+
+/* Aurora */
+.theme-aurora {
+  --bg: #0f172a;
+  --text: #e0f2fe;
+  --card: #1e293b;
+  --primary: #a78bfa;
+  --border: #334155;
+  --hover: #818cf8;
+  --icon-filter: brightness(0) invert(1);
+}
+
+/* Sepia */
+.theme-sepia {
+  --bg: #fdf6e3;
+  --text: #5b4636;
+  --card: #f5e6c8;
+  --primary: #a16207;
+  --border: #e7d3a3;
+  --hover: #d6b97b;
+  --icon-filter: brightness(0) invert(1);
+}
