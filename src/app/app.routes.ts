@@ -11,6 +11,10 @@ import { Signup } from './components/signup/signup';
 import { Profile } from './pages/profile/profile';
 import { PostView } from './pages/post-view/post-view';
 import { Settings } from './pages/settings/settings';
+import { SettingsProfile } from './pages/settings/settings-profile/settings-profile';
+import { SettingsAppearance } from './pages/settings/settings-appearance/settings-appearance';
+import { SettingsSecurity } from './pages/settings/settings-security/settings-security';
+import { SettingsAccount } from './pages/settings/settings-account/settings-account';
 import { AuthGuard } from './guards/auth-guard';
 import { GuestGuard } from './guards/guest-guard';
 
@@ -28,7 +32,18 @@ export const routes: Routes = [
   { path: 'profile/:userId', component: Profile },
   { path: 'u/:username', component: Profile },
   { path: 'post/:postId', component: PostView },
-  { path: 'settings', component: Settings, canActivate: [AuthGuard]},
+  {
+    path: 'settings',
+    component: Settings,
+    canActivate: [AuthGuard],
+    children: [
+      { path: '', redirectTo: 'profile', pathMatch: 'full' },
+      { path: 'profile', component: SettingsProfile },
+      { path: 'appearance', component: SettingsAppearance },
+      { path: 'security', component: SettingsSecurity },
+      { path: 'account', component: SettingsAccount }
+    ]
+  },
   { path: '', redirectTo: 'login', pathMatch: 'full' }, // default
   { path: '**', redirectTo: 'login' }, // fallback
 ];

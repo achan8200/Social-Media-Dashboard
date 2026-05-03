@@ -1,1 +1,37 @@
-<p>settings works!</p>
+<div class="flex max-w-5xl mx-auto mt-6 bg-white rounded-xl shadow overflow-hidden">
+
+  <!-- Sidebar -->
+  <div class="w-64 border-r bg-gray-50 p-4">
+    <nav class="flex flex-col gap-2 text-sm">
+
+      <a routerLink="profile" routerLinkActive="bg-gray-200"
+         class="px-3 py-2 rounded hover:bg-gray-100">
+        Profile
+      </a>
+
+      <a routerLink="appearance" routerLinkActive="bg-gray-200"
+         class="px-3 py-2 rounded hover:bg-gray-100">
+        Appearance
+      </a>
+
+      <a routerLink="security" routerLinkActive="bg-gray-200"
+         class="px-3 py-2 rounded hover:bg-gray-100">
+        Security
+      </a>
+
+      <hr class="my-2">
+
+      <a routerLink="account" routerLinkActive="bg-red-100 text-red-600"
+         class="px-3 py-2 rounded hover:bg-red-50">
+        Account
+      </a>
+
+    </nav>
+  </div>
+
+  <!-- Content -->
+  <div class="flex-1 p-6">
+    <router-outlet></router-outlet>
+  </div>
+
+</div>
