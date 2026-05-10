@@ -24,7 +24,8 @@ export class App {
   constructor(
     public authService: AuthService,
     private firestore: Firestore,
-    private themeService: ThemeService) {}
+    private themeService: ThemeService
+  ) {}
 
   ngOnInit() {
     this.authService.user$

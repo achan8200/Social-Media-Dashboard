@@ -1,1 +1,156 @@
-<h2 class="text-lg font-semibold">Security</h2>
+<div class="space-y-8">
+
+  <div class="space-y-2">
+    <h2 class="text-xl font-semibold">Security</h2>
+    <p class="text-sm text-gray-500">
+      Manage your email and password.
+    </p>
+  </div>
+
+  <!-- Change Email -->
+  <div class="bg-white rounded-xl border p-5 space-y-4 shadow-sm">
+
+    <h3 class="font-semibold text-lg">Change Email</h3>
+
+    <div class="space-y-2">
+      <input
+        type="email"
+        [(ngModel)]="newEmail"
+        (input)="validateEmail()"
+        placeholder="New email"
+        class="w-full border rounded-lg p-3"
+      />
+      <p *ngIf="emailError" class="text-red-500 text-sm">
+        {{ emailError }}
+      </p>
+    </div>
+
+    <input
+      type="password"
+      [(ngModel)]="emailPassword"
+      placeholder="Current password"
+      class="w-full border rounded-lg p-3"
+    />
+
+    <div class="flex items-center justify-between gap-4 pt-2">
+      <button
+        (click)="updateEmail()"
+        [disabled]="loadingEmail || !isEmailFormValid"
+        class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-150
+        disabled:bg-gray-400 disabled:cursor-not-allowed">
+        Update Email
+      </button>
+
+      <!-- Messages -->
+      <div class="text-sm text-right">
+
+        <p *ngIf="updateEmailSuccess" class="text-green-600">
+          {{ updateEmailSuccess }}
+        </p>
+
+        <p *ngIf="updateEmailError" class="text-red-600">
+          {{ updateEmailError }}
+        </p>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Change Password -->
+  <div class="bg-white rounded-xl border p-5 space-y-4 shadow-sm">
+
+    <h3 class="font-semibold text-lg">Change Password</h3>
+
+    <input
+      type="password"
+      [(ngModel)]="currentPassword"
+      placeholder="Current password"
+      class="w-full border rounded-lg p-3"
+    />
+
+    <input
+      type="password"
+      [(ngModel)]="newPassword"
+      (input)="validatePassword()"
+      placeholder="New password"
+      class="w-full border rounded-lg p-3"
+    />
+
+    <input
+      type="password"
+      [(ngModel)]="confirmPassword"
+      (input)="validateConfirmPassword()"
+      placeholder="Confirm new password"
+      class="w-full border rounded-lg p-3"
+    />
+
+    <!-- Requirements -->
+    <ul class="text-sm space-y-1">
+      <li
+        [class.text-green-600]="passwordStrength.length"
+        [class.text-gray-400]="!passwordStrength.length">
+        • At least 8 characters
+      </li>
+
+      <li
+        [class.text-green-600]="passwordStrength.uppercase"
+        [class.text-gray-400]="!passwordStrength.uppercase">
+        • One uppercase letter
+      </li>
+
+      <li
+        [class.text-green-600]="passwordStrength.lowercase"
+        [class.text-gray-400]="!passwordStrength.lowercase">
+        • One lowercase letter
+      </li>
+
+      <li
+        [class.text-green-600]="passwordStrength.number"
+        [class.text-gray-400]="!passwordStrength.number">
+        • One number
+      </li>
+
+      <li
+        [class.text-green-600]="passwordStrength.special"
+        [class.text-gray-400]="!passwordStrength.special">
+        • One special character
+      </li>
+    </ul>
+
+    <!-- Errors -->
+    <p *ngIf="passwordError" class="text-red-500 text-sm">
+      {{ passwordError }}
+    </p>
+
+    <p *ngIf="confirmPasswordError" class="text-red-500 text-sm">
+      {{ confirmPasswordError }}
+    </p>
+
+    <div class="flex items-center justify-between gap-4 pt-2">
+
+      <!-- Button -->
+      <button
+        (click)="updatePassword()"
+        [disabled]="loadingPassword || !isPasswordFormValid"
+        class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-150
+        disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap">
+        Update Password
+      </button>
+
+      <!-- Messages -->
+      <div class="text-sm text-right">
+
+        <p *ngIf="updatePasswordSuccess" class="text-green-600">
+          {{ updatePasswordSuccess }}
+        </p>
+
+        <p *ngIf="updatePasswordError" class="text-red-600">
+          {{ updatePasswordError }}
+        </p>
+
+      </div>
+
+    </div>
+
+  </div>
+</div>

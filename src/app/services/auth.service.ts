@@ -1,8 +1,10 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, take } from 'rxjs';
-import { Auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, User, getAuth, fetchSignInMethodsForEmail } from '@angular/fire/auth';
+import { Auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, 
+  onAuthStateChanged, User, fetchSignInMethodsForEmail, 
+  updatePassword, verifyBeforeUpdateEmail, EmailAuthProvider, reauthenticateWithCredential } from '@angular/fire/auth';
 import { Firestore, collection, doc, getDocs, query, where, runTransaction, getDoc, setDoc, serverTimestamp } from '@angular/fire/firestore';
+import { BehaviorSubject, Observable, take } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -148,5 +150,64 @@ export class AuthService {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+  }
+
+  async reauthenticate(currentPassword: string) {
+    const user = this.auth.currentUser;
+
+    if (!user || !user.email) {
+      throw new Error('No authenticated user');
+    }
+
+    const credential = EmailAuthProvider.credential(
+      user.email,
+      currentPassword
+    );
+
+    await reauthenticateWithCredential(user, credential);
+  }
+
+  async updateUserEmail(newEmail: string, currentPassword: string) {
+    const user = this.auth.currentUser;
+
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    // Re-authenticate
+    await this.reauthenticate(currentPassword);
+
+    // Check if email already exists
+    const methods = await fetchSignInMethodsForEmail(this.auth, newEmail);
+
+    // Ignore if it's the user's current email
+    const isSameEmail =
+      user.email?.toLowerCase() === newEmail.toLowerCase();
+
+    if (methods.length > 0 && !isSameEmail) {
+      throw {
+        code: 'auth/email-already-in-use'
+      };
+    }
+
+    // Send verification email
+    await verifyBeforeUpdateEmail(user, newEmail);
+  }
+
+  async updateUserPassword(
+    newPassword: string,
+    currentPassword: string
+  ) {
+    const user = this.auth.currentUser;
+
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    // Re-authenticate
+    await this.reauthenticate(currentPassword);
+
+    // Update password
+    await updatePassword(user, newPassword);
   }
 }
