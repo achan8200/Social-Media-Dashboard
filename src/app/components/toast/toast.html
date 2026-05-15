@@ -1,0 +1,15 @@
+<ng-container *ngIf="toast$ | async as toast">
+
+  <div
+    class="fixed bottom-5 right-5 z-[9999]
+           px-4 py-3 rounded-xl shadow-lg text-white
+           animate-fade-in"
+           
+    [class.bg-green-600]="toast.type === 'success'"
+    [class.bg-red-600]="toast.type === 'error'"
+    [class.bg-gray-800]="toast.type === 'info'"
+  >
+    {{ toast.message }}
+  </div>
+
+</ng-container>

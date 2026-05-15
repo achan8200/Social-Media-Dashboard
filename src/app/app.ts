@@ -6,6 +6,7 @@ import { Navbar } from './components/navbar/navbar';
 import { Sidebar } from './components/sidebar/sidebar';
 import { AuthService } from './services/auth.service';
 import { ThemeService } from './services/theme.service';
+import { Toast } from "./components/toast/toast";
 import { switchMap } from 'rxjs';
 
 @Component({
@@ -15,7 +16,8 @@ import { switchMap } from 'rxjs';
     RouterOutlet,
     Navbar,
     Sidebar,
-    CommonModule
+    CommonModule,
+    Toast
 ],
   templateUrl: './app.html',
   styleUrls: ['./app.css']
