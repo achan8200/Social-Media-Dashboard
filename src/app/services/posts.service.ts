@@ -740,7 +740,7 @@ export class PostsService {
     const commentRef = doc(this.firestore, `posts/${postId}/comments/${commentId}`);
 
     const snap = await getDoc(likeRef);
-    const key = `${postId}_${commentId}`;
+    const key = `${uid}_${postId}_${commentId}`;
     const subj = this.commentLikesSubjects.get(key) ?? new BehaviorSubject<boolean>(false);
     this.commentLikesSubjects.set(key, subj);
 

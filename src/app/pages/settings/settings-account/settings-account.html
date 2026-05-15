@@ -1,1 +1,56 @@
-<h2 class="text-lg font-semibold">Account</h2>
+<div class="space-y-6 max-w-md">
+
+  <div class="space-y-2">
+    <h2 class="text-xl font-semibold">Account</h2>
+    <p class="text-sm text-gray-500">
+      Permanently delete your account and all associated data.
+    </p>
+  </div>
+
+  <div class="space-y-2">
+    <label class="text-sm font-medium">
+      Confirm Password
+    </label>
+
+    <input
+      type="password"
+      [(ngModel)]="password"
+      class="w-full border rounded-lg px-3 py-2"
+      placeholder="Enter password"
+    />
+  </div>
+
+  <div class="flex items-center justify-between gap-4">
+    <button
+      (click)="openDeleteModal()"
+      [disabled]="loading || !password.trim()"
+      class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+    >
+      {{ loading ? 'Deleting...' : 'Delete Account' }}
+    </button>
+
+    <p *ngIf="error" class="text-red-500 text-sm text-right">
+      {{ error }}
+    </p>
+  </div>
+
+  <app-confirm-modal
+    *ngIf="showDeleteModal"
+    title="Delete Account?"
+    confirmText="Delete"
+    cancelText="Cancel"
+    (confirmed)="confirmDeleteAccount()"
+    (cancelled)="closeDeleteModal()"
+  >
+    <div class="space-y-3">
+      <p class="text-sm text-gray-600">
+        This action cannot be undone.
+      </p>
+
+      <p class="text-sm text-gray-600">
+        Your posts, messages, notifications, groups,
+        and account data will be permanently deleted.
+      </p>
+    </div>
+  </app-confirm-modal>
+</div>
