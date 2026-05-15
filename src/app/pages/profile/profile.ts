@@ -53,6 +53,7 @@ export class Profile {
   isGuest$!: Observable<boolean>;
   userPostCount$!: Observable<number>;
   userPosts$!: Observable<Post[]>;
+  loadingProfile = true;
 
   followerCount$!: Observable<number>;
   followingCount$!: Observable<number>;
@@ -304,6 +305,7 @@ export class Profile {
 
   // Load profile based on /u/:username or /profile/:userId
   private loadProfileFromRoute() {
+    this.loadingProfile = true;
     this.profile$ = this.route.paramMap.pipe(
       switchMap(params => {
         const username = params.get('username');
@@ -360,6 +362,9 @@ export class Profile {
         }
 
         return of(null);
+      }),
+      tap(() => {
+      this.loadingProfile = false;
       }),
       shareReplay(1)
     );
