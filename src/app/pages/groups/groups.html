@@ -106,6 +106,13 @@
               {{ group.role === 'owner' ? 'Owner' :
                 group.role === 'moderator' ? 'Moderator' : 'Member' }}
             </span>
+
+            <span *ngIf="group.activeTitle"
+                  class="px-2 py-1 rounded-full text-xs"
+                  [ngStyle]="{
+                    'background-color': group.activeTitle.color,
+                    'color': '#ffffff'
+                  }">{{ group.activeTitle.name }}</span>
           </div>
 
           <!-- Bio -->

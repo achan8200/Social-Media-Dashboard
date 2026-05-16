@@ -100,27 +100,72 @@ export class Groups {
     this.userGroups$,
     this.discoverGroups$
   ]).pipe(
-    map(([tab, search, myGroups, allGroups]) => {
+    switchMap(async ([tab, search, myGroups, allGroups]) => {
 
+      const term = search.toLowerCase().trim();
+
+      // Build base list
       let base: any[];
 
       if (tab === 'my') {
         base = myGroups;
       } else {
-        // merge role info into discover
         const roleMap = new Map(myGroups.map(g => [g.id, g]));
-
         base = allGroups.map(g => ({
           ...g,
           ...(roleMap.get(g.id!) || {})
         }));
       }
 
-      const term = search.toLowerCase().trim();
+      const enriched = await Promise.all(
+        base.map(async (group) => {
 
-      if (!term) return base;
+          if (!group?.id) return group;
 
-      return base.filter(group =>
+          // only enrich if user is member
+          if (!group.isMember) return group;
+
+          try {
+            const members = await firstValueFrom(
+              this.groupsService.getMembers(group.id)
+            );
+
+            const me = members.find(
+              m => m.uid === this.viewingUserId()
+            );
+
+            if (!me?.activeTitleId) {
+              return {
+                ...group,
+                activeTitle: null
+              };
+            }
+
+            const title = await firstValueFrom(
+              this.groupsService.getGroupTitles(group.id)
+            );
+
+            const activeTitle = title.find(
+              t => t.id === me.activeTitleId
+            );
+
+            return {
+              ...group,
+              activeTitle: activeTitle || null
+            };
+
+          } catch {
+            return {
+              ...group,
+              activeTitle: null
+            };
+          }
+        })
+      );
+
+      if (!term) return enriched;
+
+      return enriched.filter(group =>
         group.name.toLowerCase().includes(term)
       );
     })
@@ -190,6 +235,10 @@ export class Groups {
 
   goToGroup(groupId: string) {
     this.router.navigate(['/group', groupId]);
+  }
+
+  private viewingUserId(): string | null {
+    return this.profileUserId;
   }
 
   // Shared avatar helpers

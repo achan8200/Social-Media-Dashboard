@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, collection, doc, setDoc, collectionData, serverTimestamp, deleteDoc, docData, writeBatch, arrayUnion, arrayRemove, getDoc, getDocs, query, where, orderBy } from '@angular/fire/firestore';
+import { Firestore, collection, doc, setDoc, collectionData, serverTimestamp, deleteDoc, docData, writeBatch, arrayUnion, arrayRemove, getDoc, getDocs, query, where, orderBy, FieldValue } from '@angular/fire/firestore';
 import { AuthService } from './auth.service';
 import { UserService } from './user.service';
 import { MessagesService } from './messages.service';
@@ -21,6 +21,19 @@ export interface GroupMember {
   uid: string;
   role: 'owner' | 'moderator' | 'member';
   joinedAt: any;
+
+  titleIds?: string[] | FieldValue;
+  activeTitleId?: string | null | FieldValue;
+}
+
+export interface GroupTitle {
+  id?: string;
+  name: string;
+  nameLower: string;
+  color: string;
+  createdAt: any;
+  createdBy: string;
+  updatedAt?: any;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -117,7 +130,7 @@ export class GroupsService {
   // ─────────────────────────────
   // Get Groups for a User with Details
   // ─────────────────────────────
-  getUserGroupsWithDetails(userId: string): Observable<(Group & { role: string })[]> {
+  getUserGroupsWithDetails(userId: string): Observable<(Group & { role: string; joinedAt: any; activeTitle?: GroupTitle | null })[]> {
     const userGroupsRef = collection(this.firestore, `users/${userId}/groups`);
 
     return collectionData(userGroupsRef).pipe(
@@ -128,25 +141,37 @@ export class GroupsService {
           memberships.map(m =>
             combineLatest([
               this.getGroup(m.groupId),
-              docData(doc(this.firestore, `groups/${m.groupId}/members/${userId}`))
+              docData(doc(this.firestore, `groups/${m.groupId}/members/${userId}`)),
+              this.getGroupTitles(m.groupId)
             ]).pipe(
-              map(([group, member]: any) => {
+              map(([group, member, titles]: any) => {
                 if (!group) return null;
+
+                const titleMap = new Map(
+                  titles.map((t: GroupTitle) => [t.id!, t])
+                );
+
+                const activeTitle =
+                  member?.activeTitleId
+                    ? titleMap.get(member.activeTitleId)
+                    : null;
 
                 return {
                   ...group,
                   role: member?.role || 'member',
                   isMember: true,
-                  joinedAt: m.joinedAt
+                  joinedAt: m.joinedAt,
+                  activeTitle
                 };
               })
             )
           )
         );
       }),
+
       map(groups =>
         groups
-          .filter((g): g is Group & { role: string; joinedAt: any } => !!g)
+          .filter((g): g is Group & { role: string; joinedAt: any; activeTitle?: GroupTitle | null } => !!g)
           .sort((a, b) => {
             const aTime = a.joinedAt?.seconds ?? 0;
             const bTime = b.joinedAt?.seconds ?? 0;
@@ -543,6 +568,9 @@ export class GroupsService {
     // Delete messages (needs membership)
     await this.deleteCollectionInChunks(`groupThreads/${groupId}/messages`);
 
+    // Delete group titles subcollection
+    await this.deleteCollectionInChunks(`groups/${groupId}/titles`);
+
     // Delete thread (needs ownership)
     await deleteDoc(threadRef);
 
@@ -666,5 +694,142 @@ export class GroupsService {
           }))
       )
     );
+  }
+
+  getGroupTitles(groupId: string): Observable<GroupTitle[]> {
+    const ref = collection(this.firestore, `groups/${groupId}/titles`);
+
+    return collectionData(ref, {
+      idField: 'id'
+    }) as Observable<GroupTitle[]>;
+  }
+
+  async createTitle(
+    groupId: string,
+    data: {
+      name: string;
+      nameLower: string;
+      color: string;
+    }
+  ) {
+    const user = await firstValueFrom(this.authService.user$);
+    if (!user) throw new Error('Not authenticated');
+
+    const titleRef = doc(
+      collection(this.firestore, `groups/${groupId}/titles`)
+    );
+
+    await setDoc(titleRef, {
+      ...data,
+      createdAt: serverTimestamp(),
+      createdBy: user.uid
+    });
+
+    // auto-grant to owner
+    const ownerMemberRef = doc(
+      this.firestore,
+      `groups/${groupId}/members/${user.uid}`
+    );
+
+    await setDoc(ownerMemberRef, {
+      titleIds: arrayUnion(titleRef.id),
+      activeTitleId: titleRef.id
+    }, { merge: true });
+  }
+
+  async updateTitle(groupId: string, titleId: string, data: Partial<GroupTitle>) {
+    const ref = doc(
+      this.firestore,
+      `groups/${groupId}/titles/${titleId}`
+    );
+
+    await setDoc(ref, {
+      ...data,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  }
+
+  async deleteTitle(groupId: string, titleId: string) {
+    const batch = writeBatch(this.firestore);
+
+    // Delete the title document
+    const titleRef = doc(
+      this.firestore,
+      `groups/${groupId}/titles/${titleId}`
+    );
+
+    batch.delete(titleRef);
+
+    // Read all members once
+    const membersSnap = await getDocs(
+      collection(this.firestore, `groups/${groupId}/members`)
+    );
+
+    // Prepare deterministic updates
+    membersSnap.forEach(memberDoc => {
+      const data = memberDoc.data() as GroupMember;
+
+      const update: Partial<GroupMember> = {
+        titleIds: arrayRemove(titleId)
+      };
+
+      // Only clear active title if it matches this title
+      if (data.activeTitleId === titleId) {
+        update.activeTitleId = null;
+      }
+
+      batch.set(memberDoc.ref, update, { merge: true });
+    });
+
+    // Commit once
+    await batch.commit();
+  }
+
+  async toggleMemberTitle(
+    groupId: string,
+    uid: string,
+    titleId: string,
+    hasTitle: boolean
+  ) {
+    const ref = doc(
+      this.firestore,
+      `groups/${groupId}/members/${uid}`
+    );
+
+    // Removing title
+    if (hasTitle) {
+
+      // Get current member data
+      const snap = await getDoc(ref);
+      const data = snap.data();
+
+      // Base updates
+      const updates: any = {
+        titleIds: arrayRemove(titleId)
+      };
+
+      // Only clear active title if removed title was active
+      if (data?.['activeTitleId'] === titleId) {
+        updates.activeTitleId = null;
+      }
+
+      await setDoc(ref, updates, { merge: true });
+
+    // Adding title
+    } else {
+
+      await setDoc(ref, {
+        titleIds: arrayUnion(titleId)
+      }, { merge: true });
+
+    }
+  }
+
+  async setActiveTitle(groupId: string, uid: string, titleId: string | null) {
+    const ref = doc(this.firestore, `groups/${groupId}/members/${uid}`);
+
+    await setDoc(ref, {
+      activeTitleId: titleId
+    }, { merge: true });
   }
 }

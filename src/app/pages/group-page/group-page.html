@@ -30,26 +30,37 @@
       <!-- Group Info -->
       <div class="flex-1 text-center sm:text-left space-y-2">
 
-        <!-- Name -->
-        <div class="flex items-center justify-center sm:justify-start gap-2">
-          <h1 class="text-2xl font-semibold">
-            {{ vm.group?.name }}
-          </h1>
+        <ng-container *ngIf="vm.currentMember as member">
+          <div class="flex items-center justify-center sm:justify-start gap-2">
+            
+            <h1 class="text-2xl font-semibold">
+              {{ vm.group?.name }}
+            </h1>
 
-          <!-- Current User Role Badge -->
-          <ng-container *ngIf="vm.isMember">
-            <span
+            <!-- Role badge -->
+            <button
               *ngIf="(currentUserRole$ | async) as role"
-              class="text-xs px-2 py-1 rounded-full"
-              title="Your role in this group"
+              (click)="openTitleSelector()"
+              class="text-xs px-2 py-1 rounded-full transition hover:opacity-80"
               [ngClass]="{
                 'bg-yellow-100 text-yellow-700': role === 'owner',
                 'bg-blue-100 text-blue-700': role === 'moderator',
                 'bg-gray-200 text-gray-700': role === 'member'
-              }"
-            >{{ role === 'owner' ? 'Owner' : role === 'moderator' ? 'Moderator' : 'Member' }}</span>
-          </ng-container>
-        </div>
+              }">
+              {{ role | titlecase }}
+            </button>
+
+            <!-- Active Title -->
+            <button
+              *ngIf="member.activeTitle as title"
+              (click)="openTitleSelector()"
+              class="text-xs px-2 py-1 rounded-full text-white transition hover:opacity-80"
+              [style.background]="title.color">
+              {{ title.name }}
+            </button>
+
+          </div>
+        </ng-container>
 
         <!-- Bio -->
         <p class="text-gray-700 max-w-xl break-words whitespace-pre-wrap max-h-[150px] overflow-y-auto">{{ vm.group?.bio || 'No description' }}</p>
@@ -223,12 +234,77 @@
   </app-post-modal>
 </ng-container>
 
+<!-- Title Selector Modal -->
+<div
+  *ngIf="showTitleSelector"
+  @overlayFade
+  class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+>
+  <div
+    @modalScale
+    class="bg-white rounded-xl p-6 w-full max-w-sm space-y-4 max-h-[80vh] overflow-y-auto"
+  >
+
+    <div class="flex items-center justify-between">
+      <h2 class="text-lg font-semibold">
+        Display Active Title
+      </h2>
+
+      <button (click)="showTitleSelector = false">
+        ✕
+      </button>
+    </div>
+
+    <!-- Titles -->
+    <div class="space-y-2">
+
+      <ng-container *ngIf="ownedTitles$ | async as ownedTitles">
+
+        <!-- EMPTY STATE -->
+        <ng-container *ngIf="ownedTitles.length === 0; else hasTitles">
+          <div class="text-center py-6 text-gray-500">
+            You don't have any titles yet.
+          </div>
+        </ng-container>
+
+        <!-- HAS TITLES -->
+        <ng-template #hasTitles>
+
+          <button
+            *ngFor="let title of ownedTitles"
+            (click)="displayActiveTitle(title)"
+            class="w-full flex items-center justify-between px-4 py-3 rounded-lg border hover:bg-gray-50 transition"
+          >
+            <span
+              class="px-2 py-1 rounded-full text-xs text-white"
+              [style.background]="title.color"
+            >
+              {{ title.name }}
+            </span>
+          </button>
+
+          <!-- Remove -->
+          <button
+            (click)="displayActiveTitle(null)"
+            class="w-full px-4 py-3 rounded-lg border text-red-600 hover:bg-red-50 transition"
+          >
+            Remove Active Title
+          </button>
+
+        </ng-template>
+
+      </ng-container>
+
+    </div>
+  </div>
+</div>
+
 <!-- Member List Modal -->
 <ng-container *ngIf="vm$ | async as vm">
   <div
     *ngIf="showMembersModal" @overlayFade
     class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <div @modalScale class="bg-white w-full max-w-md rounded-xl shadow-lg p-6 space-y-4">
+    <div @modalScale class="bg-white w-full max-w-md rounded-xl shadow-lg p-6 space-y-4 max-h-[80vh] overflow-y-auto">
 
       <!-- Header -->
       <div class="flex justify-between items-center">
@@ -263,15 +339,24 @@
           <!-- Right -->
           <div class="flex items-center gap-2">
 
-            <!-- Role Badge -->
-            <span
-              *ngIf="member.role"
-              class="text-xs px-2 py-1 rounded-full"
-              [ngClass]="{
-                'bg-yellow-100 text-yellow-700': member.role === 'owner',
-                'bg-blue-100 text-blue-700': member.role === 'moderator',
-                'bg-gray-200 text-gray-700': member.role === 'member'
-              }">{{ member.role === 'owner' ? 'Owner' : member.role === 'moderator' ? 'Moderator' : 'Member' }}</span>
+            <div class="flex items-center gap-2">
+
+              <!-- Role -->
+              <span
+                class="text-xs px-2 py-1 rounded-full"
+                [ngClass]="{
+                  'bg-yellow-100 text-yellow-700': member.role === 'owner',
+                  'bg-blue-100 text-blue-700': member.role === 'moderator',
+                  'bg-gray-200 text-gray-700': member.role === 'member'
+                }">{{ member.role === 'owner' ? 'Owner' : member.role === 'moderator' ? 'Moderator' : 'Member' }}</span>
+
+              <!-- Custom Title -->
+              <span
+                *ngIf="member.activeTitle"
+                class="text-xs px-2 py-1 rounded-full text-white"
+                [style.background]="member.activeTitle.color">{{ member.activeTitle.name }}</span>
+
+            </div>
 
             <!-- Actions -->
             <ng-container *ngIf="(currentUserRole$ | async) as currentRole">
@@ -295,6 +380,10 @@
 
                     <!-- OWNER MENU -->
                     <ng-container *ngIf="(currentUserRole$ | async) === 'owner'">
+
+                      <button (click)="openManageTitles(member)" class="dropdown-item">
+                        Manage titles
+                      </button>
 
                       <button (click)="openConfirm('remove', member)" class="dropdown-item">
                         Remove user
@@ -384,9 +473,12 @@
 <ng-container *ngIf="showSettingsModal && (group$ | async) as group">
   <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @overlayFade>
 
-    <div @modalScale class="bg-white rounded-xl p-6 w-full max-w-md space-y-4">
+    <div @modalScale class="bg-white rounded-xl p-6 w-full max-w-md space-y-4 max-h-[80vh] overflow-y-auto">
 
-      <h2 class="text-lg font-semibold">Group Settings</h2>
+      <div class="flex justify-between items-center">
+        <h2 class="text-lg font-semibold">Group Settings</h2>
+        <button (click)="closeSettings()">✕</button>
+      </div>
 
       <!-- Avatar -->
       <div class="flex justify-center">
@@ -442,9 +534,7 @@
 
       <!-- Name -->
       <div class="space-y-1">
-        <label class="text-sm font-medium text-gray-700">
-          Name
-        </label>
+        <h3 class="font-medium">Name</h3>
         <input
           [(ngModel)]="groupForm.name"
           class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -454,14 +544,69 @@
 
       <!-- Bio -->
       <div class="space-y-1">
-        <label class="text-sm font-medium text-gray-700">
-          Bio
-        </label>
+        <h3 class="font-medium">Bio</h3>
         <textarea
           [(ngModel)]="groupForm.bio"
           class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="Group bio"
         ></textarea>
+      </div>
+
+      <!-- Titles Section -->
+      <div class="border-t pt-4 space-y-3">
+
+        <div class="flex items-center justify-between">
+          <h3 class="font-medium flex items-center gap-2">
+            Custom Titles
+            <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">Owner only</span>
+          </h3>
+
+          <button
+            *ngIf="isOwner$ | async"
+            (click)="openCreateTitleModal()"
+            class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-150">
+            Add Title
+          </button>
+        </div>
+
+        <div
+          *ngFor="let title of (titles$ | async)"
+          class="flex items-center justify-between border rounded-lg p-2 hover:bg-gray-50 transition">
+
+          <div class="flex items-center gap-2">
+
+            <span
+              class="px-2 py-1 rounded-full text-xs text-white shadow-sm"
+              [style.background]="title.color">
+
+              {{ title.name }}
+            </span>
+
+          </div>
+
+          <div *ngIf="isOwner$ | async" class="flex gap-1">
+
+            <!-- Edit -->
+            <button
+              (click)="openEditTitle(title)"
+              class="w-8 h-8 flex items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-150 "
+              title="Edit title"
+            >
+              ✎
+            </button>
+
+            <!-- Delete -->
+            <button
+              (click)="deleteTitle(title)"
+              class="w-8 h-8 flex items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 hover:text-red-600 transition-colors duration-150 "
+              title="Delete title"
+            >
+              ✕
+            </button>
+
+          </div>
+        </div>
+
       </div>
 
       <!-- Delete Group Section -->
@@ -474,10 +619,6 @@
           disabled:bg-gray-400 disabled:text-gray-500 disabled:cursor-not-allowed">
           Delete Group
         </button>
-
-        <p class="text-xs text-gray-500 text-center">
-          (Owner only)
-        </p>
 
       </div>
 
@@ -500,6 +641,196 @@
     </div>
   </div>
 </ng-container>
+
+<!-- Title Editor Modal -->
+<div
+  *ngIf="showTitleEditor"
+  @overlayFade
+  class="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]"
+>
+  <div
+    @modalScale
+    class="bg-white rounded-xl p-6 w-full max-w-sm space-y-4"
+  >
+
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+
+      <h2 class="text-lg font-semibold">
+        {{ editingTitle ? 'Edit Title' : 'Create Title' }}
+      </h2>
+
+      <button (click)="closeTitleEditor()">
+        ✕
+      </button>
+
+    </div>
+
+    <!-- Name -->
+    <div class="space-y-1">
+
+      <label class="text-sm font-medium text-gray-700">
+        Title Name
+      </label>
+
+      <input
+        [(ngModel)]="titleForm.name"
+        maxlength="24"
+        class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        placeholder="Example: Elite Member"
+      />
+
+      <div class="text-xs text-gray-500 text-right">
+        {{ titleForm.name.length }}/24
+      </div>
+
+    </div>
+
+    <!-- Color -->
+    <div class="space-y-1">
+
+      <label class="text-sm font-medium text-gray-700">
+        Color
+      </label>
+
+      <div class="flex items-center gap-3">
+
+        <input
+          type="color"
+          [(ngModel)]="titleForm.color"
+          class="w-14 h-10 border rounded cursor-pointer"
+        />
+
+        <!-- Preview -->
+        <span
+          class="px-2 py-1 rounded-full text-xs text-white"
+          [style.background]="titleForm.color"
+        >
+          {{ titleForm.name || 'Preview' }}
+        </span>
+
+      </div>
+
+    </div>
+
+    <!-- Error -->
+    <p
+      *ngIf="titleError"
+      class="text-sm text-red-600"
+    >
+      {{ titleError }}
+    </p>
+
+    <!-- Actions -->
+    <div class="flex justify-end gap-2">
+
+      <button
+        (click)="closeTitleEditor()"
+        class="px-4 py-2 text-gray-500 hover:text-gray-700"
+      >
+        Cancel
+      </button>
+
+      <button
+        (click)="saveTitle()"
+        [disabled]="!titleForm.name.trim()"
+        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition-colors duration-150 disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Save
+      </button>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- Delete Title Confirm Modal -->
+<app-confirm-modal
+  *ngIf="showDeleteTitleConfirm && titleToDelete"
+  title="Delete Title"
+  [message]="'Delete ' + titleToDelete.name + '?'"
+  confirmText="Delete"
+  cancelText="Cancel"
+  (confirmed)="confirmDeleteTitle()"
+  (cancelled)="cancelDeleteTitle()">
+</app-confirm-modal>
+
+<!-- Manage Member Titles Modal -->
+<div
+  *ngIf="selectedTitleMember"
+  @overlayFade
+  class="fixed inset-0 bg-black/50 flex items-center justify-center z-[70]"
+>
+  <div
+    @modalScale
+    class="bg-white rounded-xl p-6 w-full max-w-sm space-y-4 max-h-[80vh] overflow-y-auto"
+  >
+
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <h2 class="text-lg font-semibold">
+        Manage Titles
+      </h2>
+
+      <button (click)="selectedTitleMember = null">
+        ✕
+      </button>
+    </div>
+
+    <!-- Member info -->
+    <div class="text-sm text-gray-600">
+      Assign titles to
+      <span class="font-medium text-gray-900">
+        {{ selectedTitleMember.user?.displayName || selectedTitleMember.user?.username }}
+      </span>
+    </div>
+
+    <!-- Titles list -->
+    <div class="space-y-2 max-h-64 overflow-y-auto">
+      <button
+        *ngFor="let title of (titles$ | async)"
+        (click)="toggleSelectedTitle(title.id!)"
+        class="w-full flex items-center justify-between px-3 py-2 rounded-lg border transition"
+        [ngClass]="{
+          'bg-gray-100': selectedTitleIds.has(title.id!),
+          'hover:bg-gray-50': !selectedTitleIds.has(title.id!)
+        }"
+      >
+
+        <span
+          class="px-2 py-1 rounded-full text-xs text-white"
+          [style.background]="title.color"
+        >
+          {{ title.name }}
+        </span>
+
+        <!-- check indicator -->
+        <span *ngIf="selectedTitleIds.has(title.id!)" class="text-green-600 text-sm">
+          ✓
+        </span>
+
+      </button>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex justify-end gap-2">
+      <button
+        (click)="selectedTitleMember = null"
+        class="px-4 py-2 text-gray-500 hover:text-gray-700"
+      >
+        Cancel
+      </button>
+
+      <button
+        (click)="saveMemberTitles()"
+        class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors duration-150"
+      >
+        Save
+      </button>
+    </div>
+
+  </div>
+</div>
 
 <!-- Crop Modal -->
 <div *ngIf="cropImageSrc && (canEditGroup$ | async)" @overlayFade

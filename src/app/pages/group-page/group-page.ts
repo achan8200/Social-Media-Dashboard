@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { GroupsService, Group, GroupMember } from '../../services/groups.service';
+import { GroupsService, Group, GroupMember, GroupTitle } from '../../services/groups.service';
 import { PostsService } from '../../services/posts.service';
 import { Post } from '../../models/post.model';
 import { PostModal } from "../../components/post-modal/post-modal";
@@ -14,16 +14,19 @@ import { Avatar } from "../../components/avatar/avatar";
 import { GroupChatWindow } from './group-chat-window/group-chat-window';
 import { getInitial, getAvatarColor } from '../../utils/avatar';
 import { trigger, transition, style, animate } from '@angular/animations';
-import { combineLatest, map, Observable, of, shareReplay, switchMap, take } from 'rxjs';
+import { catchError, combineLatest, firstValueFrom, map, Observable, of, shareReplay, switchMap, take } from 'rxjs';
+import { doc, Firestore, updateDoc } from '@angular/fire/firestore';
+import { ConfirmModal } from "../../components/confirm-modal/confirm-modal";
 
 type MemberVM = GroupMember & {
   user: any;
+  activeTitle?: GroupTitle | null;
 };
 
 @Component({
   selector: 'app-group-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, Avatar, PostModal, CreatePostModal, GroupChatWindow],
+  imports: [CommonModule, FormsModule, Avatar, PostModal, CreatePostModal, GroupChatWindow, ConfirmModal],
   templateUrl: './group-page.html',
   styleUrl: './group-page.css',
   animations: [
@@ -38,6 +41,7 @@ type MemberVM = GroupMember & {
   ]
 })
 export class GroupPage {
+  private firestore = inject(Firestore);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private authService = inject(AuthService);
@@ -57,6 +61,22 @@ export class GroupPage {
   members$!: Observable<GroupMember[]>;
   memberCount$!: Observable<number>;
   groupUnreadCount$!: Observable<number>;
+  titles$!: Observable<GroupTitle[]>;
+  showTitleSelector = false;
+  ownedTitles: GroupTitle[] = [];
+
+  showTitleEditor = false;
+  editingTitle: GroupTitle | null = null;
+
+  titleForm = {
+    name: '',
+    color: '#3b82f6'
+  };
+
+  titleError = '';
+
+  titleToDelete: GroupTitle | null = null;
+  showDeleteTitleConfirm = false;
 
   groupId!: string;
 
@@ -67,6 +87,7 @@ export class GroupPage {
     members: MemberVM[];
     memberCount: number;
     postCount: number;
+    currentMember: MemberVM | undefined;
   }>;
 
   membersVM$!: Observable<MemberVM[]>;
@@ -77,6 +98,10 @@ export class GroupPage {
   openMenuDirection: { [uid: string]: 'up' | 'down' } = {};
   menuPosition: Record<string, { top: number; left: number }> = {};
   activeMenuEl: HTMLElement | null = null;
+
+  selectedTitleMember: MemberVM | null = null;
+  selectedTitleIds = new Set<string>();
+  ownedTitles$!: Observable<GroupTitle[]>;
 
   confirmAction:
   | { type: 'remove' | 'promote' | 'demote' | 'transfer'; member: MemberVM }
@@ -157,25 +182,6 @@ export class GroupPage {
       map(members => members.length)
     );
 
-    this.membersVM$ = this.members$.pipe(
-      switchMap(members => {
-        if (!members.length) return of([]);
-
-        const uids = [...new Set(members.map(m => m.uid))];
-
-        return this.userService.getUsersByUids(uids).pipe(
-          map(users => {
-            const userMap = new Map(users.map(u => [u.uid, u]));
-
-            return members.map(m => ({
-              ...m,
-              user: userMap.get(m.uid) || null
-            }));
-          })
-        );
-      })
-    );
-
     this.isMember$ = combineLatest([
       groupId$,
       this.authService.user$
@@ -183,6 +189,72 @@ export class GroupPage {
       switchMap(([groupId, user]) => {
         if (!user) return of(false);
         return this.groupsService.isMember(groupId, user.uid);
+      })
+    );
+
+    this.titles$ = combineLatest([
+      groupId$,
+      this.isMember$
+    ]).pipe(
+      switchMap(([groupId, isMember]) => {
+        if (!isMember) return of([]);
+        return this.groupsService.getGroupTitles(groupId);
+      }),
+      shareReplay(1)
+    );
+
+    this.ownedTitles$ = combineLatest([
+      this.authService.user$,
+      this.members$,
+      this.titles$
+    ]).pipe(
+      map(([user, members, titles]) => {
+        if (!user) return [];
+
+        const currentMember = members.find(m => m.uid === user.uid);
+        if (!currentMember) return [];
+
+        const ownedIds = this.normalizeTitleIds(currentMember.titleIds);
+
+        return titles.filter(t => ownedIds.includes(t.id!));
+      }),
+      shareReplay(1)
+    );
+
+    this.membersVM$ = combineLatest([
+      this.members$,
+      this.titles$
+    ]).pipe(
+      switchMap(([members, titles]) => {
+
+        if (!members.length) return of([]);
+
+        const titleMap = new Map(
+          titles.map(t => [t.id, t])
+        );
+
+        const uids = [...new Set(members.map(m => m.uid))];
+
+        return this.userService.getUsersByUids(uids).pipe(
+          map(users => {
+            const userMap = new Map(
+              users.map(u => [u.uid, u])
+            );
+
+            return members.map(member => ({
+              ...member,
+
+              user: userMap.get(member.uid) || null,
+
+              activeTitle:
+                titleMap.get(
+                  typeof member.activeTitleId === 'string'
+                    ? member.activeTitleId
+                    : ''
+                ) || null
+            }));
+          })
+        );
       })
     );
 
@@ -228,22 +300,28 @@ export class GroupPage {
     );
 
     this.vm$ = combineLatest([
-      this.group$,
-      this.membersVM$,
-      this.memberCount$,
-      this.groupPosts$,
-      this.isMember$,
-      this.currentUser$
-    ]).pipe(
-      map(([group, members, memberCount, posts, isMember, user]) => ({
+    this.group$,
+    this.membersVM$,
+    this.memberCount$,
+    this.groupPosts$,
+    this.isMember$,
+    this.currentUser$
+  ]).pipe(
+    map(([group, members, memberCount, posts, isMember, user]) => {
+
+      const currentMember = members.find(m => m.uid === user?.uid);
+
+      return {
         group,
         members,
         memberCount,
         postCount: posts.length,
         isMember,
-        user
-      }))
-    );
+        user,
+        currentMember
+      };
+    })
+  );
 
     groupId$.subscribe(id => this.groupId = id);
   }
@@ -396,6 +474,190 @@ export class GroupPage {
     if (type === 'transfer') {
       await this.groupsService.transferOwnership(groupId, vm.user.uid, member.uid);
     }
+  }
+
+  async openCreateTitleModal() {
+    const titles = await firstValueFrom(this.titles$);
+
+    if (titles.length >= 25) {
+      this.titleError = 'Maximum of 25 titles reached.';
+      return;
+    }
+
+    this.editingTitle = null;
+
+    this.titleForm = {
+      name: '',
+      color: '#3b82f6'
+    };
+
+    this.titleError = '';
+    this.showTitleEditor = true;
+  }
+
+  openEditTitle(title: GroupTitle) {
+    this.editingTitle = title;
+
+    this.titleForm = {
+      name: title.name,
+      color: title.color
+    };
+
+    this.titleError = '';
+    this.showTitleEditor = true;
+  }
+
+  closeTitleEditor() {
+    this.showTitleEditor = false;
+
+    this.editingTitle = null;
+
+    this.titleForm = {
+      name: '',
+      color: '#3b82f6'
+    };
+
+    this.titleError = '';
+  }
+
+  async saveTitle() {
+    const trimmed = this.titleForm.name.trim();
+
+    // validation
+    if (!trimmed) {
+      this.titleError = 'Title name is required.';
+      return;
+    }
+
+    if (trimmed.length > 24) {
+      this.titleError = 'Title name must be 24 characters or less.';
+      return;
+    }
+
+    const titles = await firstValueFrom(this.titles$);
+
+    const duplicate = titles.find(t =>
+      t.nameLower === trimmed.toLowerCase() &&
+      t.id !== this.editingTitle?.id
+    );
+
+    if (duplicate) {
+      this.titleError = 'A title with this name already exists.';
+      return;
+    }
+
+    const payload = {
+      name: trimmed,
+      nameLower: trimmed.toLowerCase(),
+      color: this.titleForm.color
+    };
+
+    if (this.editingTitle?.id) {
+      await this.groupsService.updateTitle(
+        this.groupId,
+        this.editingTitle.id,
+        payload
+      );
+    } else {
+      await this.groupsService.createTitle(
+        this.groupId,
+        payload
+      );
+    }
+
+    this.closeTitleEditor();
+  }
+
+  deleteTitle(title: GroupTitle) {
+    this.titleToDelete = title;
+    this.showDeleteTitleConfirm = true;
+  }
+
+  async confirmDeleteTitle() {
+    if (!this.titleToDelete) return;
+
+    await this.groupsService.deleteTitle(
+      this.groupId,
+      this.titleToDelete.id!
+    );
+
+    this.titleToDelete = null;
+    this.showDeleteTitleConfirm = false;
+  }
+
+  cancelDeleteTitle() {
+    this.titleToDelete = null;
+    this.showDeleteTitleConfirm = false;
+  }
+
+  private normalizeTitleIds(input: any): string[] {
+    if (!Array.isArray(input)) return [];
+    return input.filter((x): x is string => typeof x === 'string');
+  }
+
+  openManageTitles(member: MemberVM) {
+    this.selectedTitleMember = member;
+
+    this.selectedTitleIds = new Set(
+      this.normalizeTitleIds(member.titleIds)
+    );
+
+    this.openMenuUid = null;
+  }
+
+  toggleSelectedTitle(titleId: string) {
+    if (this.selectedTitleIds.has(titleId)) {
+      this.selectedTitleIds.delete(titleId);
+    } else {
+      this.selectedTitleIds.add(titleId);
+    }
+  }
+
+  async saveMemberTitles() {
+    if (!this.selectedTitleMember) return;
+
+    const member = this.selectedTitleMember;
+
+    const current = new Set(
+      this.normalizeTitleIds(member.titleIds)
+    );
+    const selected = this.selectedTitleIds;
+
+    const titles$ = await firstValueFrom(this.titles$);
+
+    for (const title of titles$) {
+
+      const hasNow = current.has(title.id!);
+      const shouldHave = selected.has(title.id!);
+
+      if (hasNow !== shouldHave) {
+        await this.groupsService.toggleMemberTitle(
+          this.groupId,
+          member.uid,
+          title.id!,
+          hasNow
+        );
+      }
+    }
+
+    this.selectedTitleMember = null;
+  }
+
+  openTitleSelector() {
+    this.showTitleSelector = true;
+  }
+
+  async displayActiveTitle(title: GroupTitle | null): Promise<void> {
+    const user = await firstValueFrom(this.authService.user$);
+    if (!user) throw new Error('Not authenticated');
+
+    await this.groupsService.setActiveTitle(
+      this.groupId,
+      user.uid,
+      title?.id ?? null
+    );
+
+    this.showTitleSelector = false;
   }
 
   openSettings() {

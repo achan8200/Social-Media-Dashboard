@@ -2,7 +2,7 @@ import { Component, ElementRef, HostListener, Input, OnChanges, ViewChild } from
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Auth } from '@angular/fire/auth';
-import { Group, GroupMember, GroupsService } from '../../../services/groups.service';
+import { Group, GroupMember, GroupsService, GroupTitle } from '../../../services/groups.service';
 import { MessagesService } from '../../../services/messages.service';
 import { Message } from '../../../models/messages.model';
 import { UserService } from '../../../services/user.service';
@@ -17,6 +17,7 @@ interface MessageWithSender extends Message {
   senderUsername?: string;
   senderUserId?: string;
   senderRole?: string;
+  senderActiveTitle?: GroupTitle | null;
 }
 
 interface Participant {
@@ -99,6 +100,10 @@ export class GroupChatWindow implements OnChanges {
     
     this.members$ = this.groupsService.getMembers(this.groupId);
 
+    const titles$ = this.groupsService.getGroupTitles(this.groupId).pipe(
+      map(titles => new Map(titles.map(t => [t.id!, t])))
+    );
+
     this.currentUserRole$ = this.members$.pipe(
       map((members: GroupMember[]) => {
         const me = members.find(m => m.uid === this.currentUserId);
@@ -167,20 +172,46 @@ export class GroupChatWindow implements OnChanges {
       })
     );
 
-    this.messages$ = combineLatest([rawMessages$, userMap$]).pipe(
-      map(([messages, userMap]) =>
-        messages.map(msg => {
-          const user = userMap.get(msg.senderId);
+    this.messages$ = combineLatest([
+      rawMessages$,
+      this.membersWithProfile$,
+      this.members$,
+      this.groupsService.getGroupTitles(this.groupId)
+    ]).pipe(
+      map(([messages, profiles, members, titles]) => {
+
+        const profileMap = new Map(
+          profiles.map(p => [p.uid, p])
+        );
+
+        const memberMap = new Map(
+          members.map(m => [m.uid, m])
+        );
+
+        const titleMap = new Map(
+          titles.map(t => [t.id!, t])
+        );
+
+        return messages.map(msg => {
+          const profile = profileMap.get(msg.senderId);
+          const member = memberMap.get(msg.senderId);
+
+          const activeTitle =
+            member?.activeTitleId
+              ? titleMap.get(member.activeTitleId as string)
+              : null;
 
           return {
             ...msg,
-            senderProfilePicture: user?.profilePicture || '',
-            senderUsername: user?.username || 'Unknown',
-            senderUserId: user?.userId || '',
-            senderRole: user?.role || 'member'
+            senderProfilePicture: profile?.profilePicture || '',
+            senderUsername: profile?.username || 'Unknown',
+            senderUserId: profile?.userId || '',
+            senderRole: member?.role || 'member',
+            senderActiveTitle: activeTitle || null
           };
-        })
-      ),
+        });
+      }),
+
       tap((messages) => {
         const last = messages[messages.length - 1];
 

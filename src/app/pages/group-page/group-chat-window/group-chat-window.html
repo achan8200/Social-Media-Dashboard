@@ -75,6 +75,14 @@
 												'bg-gray-200 text-gray-700': msg.senderRole === 'member'
 											}">{{ msg.senderRole }}</span>
 
+											<!-- Active Title badge -->
+											<span *ngIf="msg.senderActiveTitle"
+												class="px-2 py-[2px] rounded-full text-[10px] font-medium"
+												[ngStyle]="{
+													'background-color': msg.senderActiveTitle.color,
+													'color': '#ffffff'
+												}">{{ msg.senderActiveTitle.name }}</span>
+
 									</div>
 
 									<!-- Avatar and bubble only -->
