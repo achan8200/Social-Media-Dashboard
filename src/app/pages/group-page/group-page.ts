@@ -12,11 +12,10 @@ import { MessagesService } from '../../services/messages.service';
 import { UserService } from '../../services/user.service';
 import { Avatar } from "../../components/avatar/avatar";
 import { GroupChatWindow } from './group-chat-window/group-chat-window';
+import { ConfirmModal } from "../../components/confirm-modal/confirm-modal";
 import { getInitial, getAvatarColor } from '../../utils/avatar';
 import { trigger, transition, style, animate } from '@angular/animations';
-import { catchError, combineLatest, firstValueFrom, map, Observable, of, shareReplay, switchMap, take } from 'rxjs';
-import { doc, Firestore, updateDoc } from '@angular/fire/firestore';
-import { ConfirmModal } from "../../components/confirm-modal/confirm-modal";
+import { combineLatest, firstValueFrom, map, Observable, of, shareReplay, switchMap, take } from 'rxjs';
 
 type MemberVM = GroupMember & {
   user: any;
@@ -41,7 +40,6 @@ type MemberVM = GroupMember & {
   ]
 })
 export class GroupPage {
-  private firestore = inject(Firestore);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private authService = inject(AuthService);
