@@ -26,7 +26,7 @@ export class NotificationsService {
   }
 
   async createNotification(notification: Partial<Notification>) {
-    const { recipientUid, actorUid, postOwnerUid, type, postId, commentId, threadId, groupId } = notification;
+    const { recipientUid, actorUid, postOwnerUid, type, postId, commentId, threadId, groupId, inviteId } = notification;
 
     if (!recipientUid || !actorUid || !type) {
       console.warn('createNotification: missing required fields', notification);
@@ -44,6 +44,8 @@ export class NotificationsService {
         id = `${recipientUid}_${type}_${threadId}`;
       } else if (type === 'promote' && groupId) {
         id = `${recipientUid}_${type}_${groupId}`;
+      } else if (type === 'group_invite' && groupId && inviteId) {
+        id = `${recipientUid}_${type}_${groupId}_${inviteId}`;
       } else {
         id += `_${actorUid}`;
         if (postId) id += `_${postId}`;
@@ -81,6 +83,11 @@ export class NotificationsService {
         case 'promote':
           payload.groupId = groupId;
           break;
+
+        case 'group_invite':
+          payload.groupId = groupId;
+          payload.inviteId = inviteId;
+          break;
       }
 
       console.log('Creating notification:', id, payload);
@@ -112,7 +119,7 @@ export class NotificationsService {
   }
 
   async deleteNotification(notification: Partial<Notification>) {
-    const { recipientUid, actorUid, type, postId, commentId, threadId, groupId } = notification;
+    const { recipientUid, actorUid, type, postId, commentId, threadId, groupId, inviteId } = notification;
 
     if (!recipientUid || !type) {
       console.warn('deleteNotification: missing required fields', notification);
@@ -127,6 +134,8 @@ export class NotificationsService {
         id = `${recipientUid}_${type}_${threadId}`;
       } else if (type === 'promote' && groupId) {
         id = `${recipientUid}_${type}_${groupId}`;
+      } else if (type === 'group_invite' && groupId && inviteId) {
+        id = `${recipientUid}_${type}_${groupId}_${inviteId}`;
       } else {
         id += `_${actorUid}`;
         if (postId) id += `_${postId}`;

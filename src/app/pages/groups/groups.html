@@ -64,7 +64,19 @@
         <div
           *ngFor="let group of groups"
           (click)="goToGroup(group.id!)"
-          class="bg-white rounded-xl shadow-sm p-4 cursor-pointer hover:shadow-md transition-transform duration-200 transform hover:-translate-y-1">
+          class="relative bg-white rounded-xl shadow-sm p-4 cursor-pointer hover:shadow-md transition-transform duration-200 transform hover:-translate-y-1">
+
+          <!-- Private Badge -->
+          <div
+            *ngIf="group.isPrivate"
+            class="absolute top-3 right-3 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full w-7 h-7 flex items-center justify-center shadow-sm"
+          >
+            <img
+              src="assets/icons/private.svg"
+              alt="Private Group"
+              class="w-4 h-4 opacity-80"
+            />
+          </div>
 
           <!-- Avatar -->
           <div class="relative w-12 h-12">
@@ -153,6 +165,22 @@
       placeholder="Group bio (optional)"
       class="w-full border rounded p-2"></textarea>
 
+    <!-- Privacy Toggle -->
+    <label class="flex items-center justify-between border rounded-lg p-3">
+      <div>
+        <p class="font-medium">Private Group</p>
+        <p class="text-sm text-gray-500">
+          Only invited users can join
+        </p>
+      </div>
+
+      <input
+        type="checkbox"
+        [(ngModel)]="isPrivateGroup"
+        class="w-5 h-5"
+      />
+    </label>
+
     <div class="flex justify-end gap-2">
       <button (click)="showCreateModal = false"
               class="px-4 py-2 text-gray-500 hover:text-gray-800 transition-colors duration-150">
@@ -160,7 +188,7 @@
       </button>
 
       <button
-        (click)="createGroup(nameInput.value, bioInput.value)"
+        (click)="createGroup(nameInput.value, bioInput.value, isPrivateGroup)"
         [disabled]="!groupName.trim() || isCreating"
         class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-150 disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed">
         {{ isCreating ? 'Creating...' : 'Create' }}

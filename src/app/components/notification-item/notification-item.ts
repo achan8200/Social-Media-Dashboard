@@ -102,6 +102,7 @@ export class NotificationItem implements OnChanges {
         break;
 
       case 'promote':
+      case 'group_invite':
         if (n.groupId) {
           this.router.navigate(['/group', n.groupId]);
         }

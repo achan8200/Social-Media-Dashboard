@@ -36,6 +36,9 @@ export class NotificationUtilsService {
         case 'promote':
           key = 'promote';
           break;
+        case 'group_invite':
+          key = 'group_invite';
+          break;
       }
 
       // Find existing group

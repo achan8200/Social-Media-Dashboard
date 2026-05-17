@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Firestore, collection, doc, docData, documentId, getDocs, query, where } from '@angular/fire/firestore';
 import { from, map, Observable, of, shareReplay } from 'rxjs';
+
 export interface User {
   uid?: string;
   username: string;

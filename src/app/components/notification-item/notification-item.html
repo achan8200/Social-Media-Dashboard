@@ -49,6 +49,10 @@
             <b>{{ formatActorsText(actors) }}</b> promoted you to moderator
           </span>
 
+          <span *ngSwitchCase="'group_invite'">
+            <b>{{ formatActorsText(actors) }}</b> invited you to a group
+          </span>
+
           <span *ngSwitchDefault>
             <b>{{ actors[0]?.username }}</b> sent a notification
           </span>

@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, collection, doc, setDoc, collectionData, serverTimestamp, deleteDoc, docData, writeBatch, arrayUnion, arrayRemove, getDoc, getDocs, query, where, orderBy, FieldValue } from '@angular/fire/firestore';
+import { Firestore, collection, doc, setDoc, collectionData, serverTimestamp, deleteDoc, docData, writeBatch, arrayUnion, arrayRemove, getDoc, getDocs, query, where, orderBy, FieldValue, updateDoc } from '@angular/fire/firestore';
 import { AuthService } from './auth.service';
 import { UserService } from './user.service';
 import { MessagesService } from './messages.service';
@@ -36,6 +36,22 @@ export interface GroupTitle {
   updatedAt?: any;
 }
 
+export interface GroupInvite {
+  id?: string;
+
+  uid: string;
+  userId?: string;
+  username?: string;
+  displayName?: string;
+  profilePicture?: string;
+  invitedBy: string;
+
+  status: 'pending' | 'accepted' | 'declined';
+
+  createdAt: any;
+  respondedAt?: any;
+}
+
 @Injectable({ providedIn: 'root' })
 export class GroupsService {
   private firestore = inject(Firestore);
@@ -50,7 +66,7 @@ export class GroupsService {
   // ─────────────────────────────
   // Create Group
   // ─────────────────────────────
-  async createGroup(name: string, bio: string = ''): Promise<string> {
+  async createGroup(name: string, bio: string = '', isPrivate: boolean = false): Promise<string> {
     const trimmedName = name?.trim();
 
     if (!trimmedName) {
@@ -68,6 +84,7 @@ export class GroupsService {
       name,
       nameLower: name.toLowerCase(),
       bio,
+      isPrivate,
       createdAt: serverTimestamp()
     });
 
@@ -196,6 +213,16 @@ export class GroupsService {
   async joinGroup(groupId: string): Promise<void> {
     const user = await firstValueFrom(this.authService.user$);
     if (!user) throw new Error('Not authenticated');
+
+    const groupSnap = await getDoc(
+      doc(this.firestore, `groups/${groupId}`)
+    );
+
+    const group = groupSnap.data() as Group;
+
+    if (group?.isPrivate) {
+      throw new Error('Private groups require invitation');
+    }
 
     // Group side
     const memberRef = doc(this.firestore, `groups/${groupId}/members/${user.uid}`);
@@ -471,6 +498,13 @@ export class GroupsService {
       updatedAt: serverTimestamp()
     }, { merge: true });
 
+    if (
+      typeof data.isPrivate === 'boolean' &&
+      data.isPrivate !== oldData.isPrivate
+    ) {
+      await this.handlePrivacyChange(groupId, data.isPrivate);
+    }
+
     const authUser = await firstValueFrom(this.authService.user$);
     if (!authUser) return;
 
@@ -570,6 +604,9 @@ export class GroupsService {
 
     // Delete group titles subcollection
     await this.deleteCollectionInChunks(`groups/${groupId}/titles`);
+
+    // Delete invitations subcollection
+    await this.deleteCollectionInChunks(`groups/${groupId}/invitations`);
 
     // Delete thread (needs ownership)
     await deleteDoc(threadRef);
@@ -831,5 +868,219 @@ export class GroupsService {
     await setDoc(ref, {
       activeTitleId: titleId
     }, { merge: true });
+  }
+
+  getInvite(groupId: string, uid: string): Observable<GroupInvite | null> {
+    const ref = collection(this.firestore, `groups/${groupId}/invitations`);
+
+    const q = query(
+      ref,
+      where('uid', '==', uid),
+      where('status', '==', 'pending')
+    );
+
+    return collectionData(q, {
+      idField: 'id'
+    }).pipe(
+      map((invites: any[]) => invites[0] ?? null)
+    );
+  }
+
+  getGroupInvites(groupId: string): Observable<GroupInvite[]> {
+
+    const ref = collection(
+      this.firestore,
+      `groups/${groupId}/invitations`
+    );
+
+    const q = query(
+      ref,
+      orderBy('createdAt', 'desc')
+    );
+
+    return collectionData(q, {
+      idField: 'id'
+    }) as Observable<GroupInvite[]>;
+  }
+
+  async createInvite(groupId: string, targetUid: string) {
+    const authUser = await firstValueFrom(this.authService.user$);
+    if (!authUser) throw new Error('Not authenticated');
+
+    // prevent duplicate pending invite
+    const existing = await firstValueFrom(
+      this.getInvite(groupId, targetUid)
+    );
+
+    if (existing) return;
+
+    // prevent inviting existing member
+    const memberSnap = await getDoc(
+      doc(this.firestore, `groups/${groupId}/members/${targetUid}`)
+    );
+
+    if (memberSnap.exists()) return;
+
+    const targetUser = await firstValueFrom(
+      this.userService.getUserByUid(targetUid)
+    );
+
+    const inviteRef = doc(
+      collection(this.firestore, `groups/${groupId}/invitations`)
+    );
+
+    await setDoc(inviteRef, {
+      uid: targetUid,
+      userId: targetUser?.userId || 0,
+      username: targetUser?.username || '',
+      displayName: targetUser?.displayName || '',
+      profilePicture: targetUser?.profilePicture || '',
+      invitedBy: authUser.uid,
+      status: 'pending',
+      createdAt: serverTimestamp()
+    });
+
+    await this.notificationsService.createNotification({
+      recipientUid: targetUid,
+      actorUid: authUser.uid,
+      type: 'group_invite',
+      groupId,
+      inviteId: inviteRef.id
+    });
+  }
+
+  async acceptInvite(groupId: string, inviteId: string) {
+
+    const user = await firstValueFrom(this.authService.user$);
+    if (!user) throw new Error('Not authenticated');
+
+    const db = this.firestore;
+
+    const inviteRef = doc(db, `groups/${groupId}/invitations/${inviteId}`);
+    const memberRef = doc(db, `groups/${groupId}/members/${user.uid}`);
+    const userGroupRef = doc(db, `users/${user.uid}/groups/${groupId}`);
+    const threadRef = doc(db, `groupThreads/${groupId}`);
+
+    const inviteSnap = await getDoc(inviteRef);
+
+    if (!inviteSnap.exists()) return;
+
+    const invite = inviteSnap.data();
+
+    if (invite['uid'] !== user.uid) throw new Error('Unauthorized');
+
+    if (invite['status'] !== 'pending') return;
+
+    // Create member
+    await setDoc(memberRef, {
+      uid: user.uid,
+      role: 'member',
+      joinedAt: serverTimestamp()
+    });
+
+    // User group mapping
+    await setDoc(userGroupRef, {
+      groupId,
+      joinedAt: serverTimestamp()
+    });
+
+    // Thread update
+    await setDoc(threadRef, {
+      participants: arrayUnion(user.uid)
+    }, { merge: true });
+
+    // Mark invite accepted
+    await updateDoc(inviteRef, {
+      status: 'accepted',
+      respondedAt: serverTimestamp()
+    });
+
+    const actor = await firstValueFrom(
+      this.userService.getUserByUid(user.uid)
+    );
+
+    const actorName = actor?.displayName || actor?.username || 'Someone';
+    
+    const threadId = groupId;
+
+    await this.messagesService.sendGroupMessage(
+      threadId,
+      `${actorName} accepted an invite and joined the group`,
+      'system'
+    );
+  }
+
+  async declineInvite(groupId: string, inviteId: string) {
+
+    const user = await firstValueFrom(this.authService.user$);
+    if (!user) throw new Error('Not authenticated');
+
+    const inviteRef = doc(
+      this.firestore,
+      `groups/${groupId}/invitations/${inviteId}`
+    );
+
+    await setDoc(inviteRef, {
+      status: 'declined',
+      respondedAt: serverTimestamp()
+    }, { merge: true });
+  }
+
+  async deleteInvite(groupId: string, inviteId: string) {
+
+    const inviteRef = doc(
+      this.firestore,
+      `groups/${groupId}/invitations/${inviteId}`
+    );
+
+    // get invite data first
+    const inviteSnap = await getDoc(inviteRef);
+
+    if (!inviteSnap.exists()) return;
+
+    const invite = inviteSnap.data() as GroupInvite;
+
+    await deleteDoc(inviteRef);
+
+    await this.notificationsService.deleteNotification({
+      recipientUid: invite.uid,
+      type: 'group_invite',
+      groupId,
+      inviteId
+    });
+  }
+
+  private async handlePrivacyChange(groupId: string, isPrivate: boolean) {
+    const groupRef = doc(this.firestore, `groups/${groupId}`);
+
+    await setDoc(groupRef, {
+      isPrivate,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+
+    if (!isPrivate) {
+      const invitesSnap = await getDocs(
+        collection(this.firestore, `groups/${groupId}/invitations`)
+      );
+
+      const batch = writeBatch(this.firestore);
+
+      invitesSnap.forEach(docSnap => {
+        batch.delete(docSnap.ref);
+      });
+
+      await batch.commit();
+
+      for (const docSnap of invitesSnap.docs) {
+        const invite = docSnap.data() as GroupInvite;
+
+        await this.notificationsService.deleteNotification({
+          recipientUid: invite.uid,
+          type: 'group_invite',
+          groupId,
+          inviteId: docSnap.id
+        });
+      }
+    }
   }
 }

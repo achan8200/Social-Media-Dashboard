@@ -19,6 +19,7 @@ export interface Notification {
   commentId?: string;
   threadId?: string;
   groupId?: string;
+  inviteId?: string;
 
   createdAt: any;
   read: boolean;

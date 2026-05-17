@@ -53,6 +53,7 @@ export class Groups {
   groupName = '';
   showCreateModal = false;
   isCreating = false;
+  isPrivateGroup = false;
 
   profileUserId: string | null = null;
   currentUserId: string | null = null;
@@ -216,15 +217,16 @@ export class Groups {
     this.searchSubject.next(value);
   }
 
-  async createGroup(name: string, bio: string) {
+  async createGroup(name: string, bio: string, isPrivate: boolean) {
     if (this.isCreating) return;
 
     this.isCreating = true;
 
     try {
-      await this.groupsService.createGroup(name, bio);
+      await this.groupsService.createGroup(name, bio, isPrivate);
       this.showCreateModal = false;
       this.groupName = '';
+      this.isPrivateGroup = false;
       this.cdr.detectChanges();
     } catch (err) {
       console.error(err);

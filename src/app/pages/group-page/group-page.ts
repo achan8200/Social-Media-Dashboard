@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { GroupsService, Group, GroupMember, GroupTitle } from '../../services/groups.service';
+import { GroupsService, Group, GroupMember, GroupTitle, GroupInvite } from '../../services/groups.service';
 import { PostsService } from '../../services/posts.service';
 import { Post } from '../../models/post.model';
 import { PostModal } from "../../components/post-modal/post-modal";
@@ -15,11 +15,15 @@ import { GroupChatWindow } from './group-chat-window/group-chat-window';
 import { ConfirmModal } from "../../components/confirm-modal/confirm-modal";
 import { getInitial, getAvatarColor } from '../../utils/avatar';
 import { trigger, transition, style, animate } from '@angular/animations';
-import { combineLatest, firstValueFrom, map, Observable, of, shareReplay, switchMap, take } from 'rxjs';
+import { BehaviorSubject, combineLatest, firstValueFrom, map, Observable, of, shareReplay, switchMap, take } from 'rxjs';
 
 type MemberVM = GroupMember & {
   user: any;
   activeTitle?: GroupTitle | null;
+};
+
+type GroupInviteVM = GroupInvite & {
+  inviter?: any;
 };
 
 @Component({
@@ -76,6 +80,18 @@ export class GroupPage {
   titleToDelete: GroupTitle | null = null;
   showDeleteTitleConfirm = false;
 
+  showInviteSection = false;
+  showInvitesModal = false;
+
+  inviteSearch$ = new BehaviorSubject<string>('');
+  inviteResults$!: Observable<any[]>;
+  inviteSearchValue = '';
+
+  canViewPrivateGroup$!: Observable<boolean>;
+  invite$!: Observable<GroupInvite | null>;
+  hasInvite$!: Observable<boolean>;
+  groupInvites$!: Observable<GroupInviteVM[]>;
+
   groupId!: string;
 
   vm$!: Observable<{
@@ -111,7 +127,8 @@ export class GroupPage {
   groupForm = {
     name: '',
     bio: '',
-    avatar: ''
+    avatar: '',
+    isPrivate: false
   };
 
   showRemoveConfirm = false;
@@ -176,6 +193,37 @@ export class GroupPage {
       switchMap(groupId => this.groupsService.getMembers(groupId))
     );
 
+    this.inviteResults$ = this.inviteSearch$.pipe(
+      map(q => q.trim()),
+      switchMap(query => {
+        if (!query) return of([]);
+
+        return combineLatest([
+          this.userService.searchUsers(query),
+          this.members$,
+          this.groupInvites$,
+          this.currentUser$
+        ]).pipe(
+          map(([users, members, invites, currentUser]) => {
+            const memberIds = new Set(members.map(m => m.uid));
+            const invitedIds = new Set(invites.map(i => i.uid));
+
+            return users
+              .filter(user =>
+                user.uid !== currentUser?.uid &&
+                !memberIds.has(user.uid) &&
+                !invitedIds.has(user.uid)
+              )
+              .map(user => ({
+                ...user,
+                profilePicture: user.imageUrl || null
+              }));
+          })
+        );
+      }),
+      shareReplay(1)
+    );
+
     this.memberCount$ = this.members$.pipe(
       map(members => members.length)
     );
@@ -190,14 +238,65 @@ export class GroupPage {
       })
     );
 
-    this.titles$ = combineLatest([
+    this.invite$ = combineLatest([
       groupId$,
-      this.isMember$
+      this.authService.user$
     ]).pipe(
-      switchMap(([groupId, isMember]) => {
-        if (!isMember) return of([]);
-        return this.groupsService.getGroupTitles(groupId);
+      switchMap(([groupId, user]) => {
+        if (!user) return of(null);
+
+        return this.groupsService.getInvite(
+          groupId,
+          user.uid
+        );
       }),
+      shareReplay(1)
+    );
+
+    this.hasInvite$ = this.invite$.pipe(
+      map(invite => !!invite)
+    );
+
+    this.groupInvites$ = groupId$.pipe(
+      switchMap(groupId =>
+        this.groupsService.getGroupInvites(groupId)
+      ),
+
+      switchMap(invites => {
+        if (!invites.length) return of([]);
+
+        return combineLatest(
+          invites.map(invite =>
+            this.getUser(invite.invitedBy).pipe(
+              map(inviter => ({
+                ...invite,
+                inviter
+              }))
+            )
+          )
+        );
+      }),
+
+      shareReplay(1)
+    );
+
+    this.canViewPrivateGroup$ = combineLatest([
+      this.group$,
+      this.isMember$,
+      this.hasInvite$
+    ]).pipe(
+      map(([group, isMember, hasInvite]) => {
+
+        if (!group?.isPrivate) return true;
+
+        return isMember || hasInvite;
+      })
+    );
+
+    this.titles$ = groupId$.pipe(
+      switchMap(groupId =>
+        this.groupsService.getGroupTitles(groupId)
+      ),
       shareReplay(1)
     );
 
@@ -667,7 +766,8 @@ export class GroupPage {
       this.originalGroupForm = {
         name: group.name,
         bio: group.bio || '',
-        avatar: group.avatar || ''
+        avatar: group.avatar || '',
+        isPrivate: !!group.isPrivate
       };
 
       this.groupForm = { ...this.originalGroupForm };
@@ -689,14 +789,67 @@ export class GroupPage {
       return;
     }
 
-    await this.groupsService.updateGroup(this.groupId, {
+    const updateData: any = {
       name: trimmedName,
       nameLower: trimmedName.toLowerCase(),
       bio: this.groupForm.bio,
       avatar: this.groupForm.avatar
-    });
+    };
+
+    const isOwner = await firstValueFrom(this.isOwner$);
+
+    if (isOwner) {
+      updateData.isPrivate = this.groupForm.isPrivate;
+    }
+
+    await this.groupsService.updateGroup(
+      this.groupId,
+      updateData
+    );
 
     this.showSettingsModal = false;
+    this.cdr.detectChanges();
+  }
+
+  onInviteSearch(value: string) {
+    this.inviteSearchValue = value;
+    this.inviteSearch$.next(value);
+  }
+
+  async sendInvite(user: any) {
+    await this.groupsService.createInvite(this.groupId, user.uid);
+    this.inviteSearchValue = '';
+    this.inviteSearch$.next('');
+  }
+
+  async revokeInvite(invite: GroupInvite) {
+    await this.groupsService.deleteInvite(this.groupId, invite.id!);
+  }
+
+  async acceptInvite(invite: GroupInvite) {
+    await this.groupsService.acceptInvite(
+      this.groupId,
+      invite.id!
+    );
+  }
+
+  async declineInvite(invite: GroupInvite) {
+    await this.groupsService.declineInvite(
+      this.groupId,
+      invite.id!
+    );
+  }
+
+  openInvitesModal() {
+    this.showInvitesModal = true;
+
+    this.inviteSearch$.next('');
+  }
+
+  closeInvitesModal() {
+    this.showInvitesModal = false;
+
+    this.inviteSearch$.next('');
   }
 
   // Group picture selection

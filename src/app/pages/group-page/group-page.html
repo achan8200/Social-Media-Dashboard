@@ -30,13 +30,13 @@
       <!-- Group Info -->
       <div class="flex-1 text-center sm:text-left space-y-2">
 
-        <ng-container *ngIf="vm.currentMember as member">
-          <div class="flex items-center justify-center sm:justify-start gap-2">
+        <div class="flex items-center justify-center sm:justify-start gap-2">
             
-            <h1 class="text-2xl font-semibold">
-              {{ vm.group?.name }}
-            </h1>
+          <h1 class="text-2xl font-semibold">
+            {{ vm.group?.name }}
+          </h1>
 
+          <ng-container *ngIf="vm.currentMember as member">
             <!-- Role badge -->
             <button
               *ngIf="(currentUserRole$ | async) as role"
@@ -58,9 +58,8 @@
               [style.background]="title.color">
               {{ title.name }}
             </button>
-
-          </div>
-        </ng-container>
+          </ng-container>
+        </div>
 
         <!-- Bio -->
         <p class="text-gray-700 max-w-xl break-words whitespace-pre-wrap max-h-[150px] overflow-y-auto">{{ vm.group?.bio || 'No description' }}</p>
@@ -69,21 +68,72 @@
 
       <div class="absolute top-4 right-4 flex items-center gap-2">
 
+        <!-- Private Badge -->
+        <div
+          *ngIf="vm.group?.isPrivate"
+          class="w-9 h-9 rounded-full flex items-center justify-center bg-white/80 backdrop-blur-md border border-gray-200 shadow-sm"
+          title="Private Group - Invite only"
+        >
+          <img
+            src="assets/icons/private.svg"
+            class="w-5 h-5 opacity-80"
+          />
+        </div>
+
+        <ng-container *ngIf="(invite$ | async) as invite">
+          <div
+            *ngIf="!vm.isMember"
+            class="flex items-center gap-2"
+          >
+
+            <!-- Decline -->
+            <button
+              (click)="declineInvite(invite)"
+              class="px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-700
+              hover:bg-gray-100 transition-colors duration-150 text-sm"
+            >
+              Decline
+            </button>
+
+            <!-- Accept -->
+            <button
+              (click)="acceptInvite(invite)"
+              class="px-3 py-1.5 rounded-lg bg-blue-600 text-white
+              hover:bg-blue-700 transition-colors duration-150 text-sm"
+            >
+              Accept
+            </button>
+
+          </div>
+        </ng-container>
+
         <!-- Settings (owner/mod only) -->
         <button
           *ngIf="canEditGroup$ | async"
           (click)="openSettings(); $event.stopPropagation()"
-          class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-gray-100 shadow transition-colors duration-200">
-
-          <img src="assets/icons/setting-lines.svg" class="w-5 h-5" />
-
+          class="w-9 h-9 rounded-full flex items-center justify-center
+                bg-white/80 backdrop-blur-md border border-gray-200
+                shadow-sm hover:bg-gray-100 transition-colors duration-150"
+          title="Group Settings"
+        >
+          <img
+            src="assets/icons/setting-lines.svg"
+            class="w-5 h-5 opacity-80"
+          />
         </button>
 
         <!-- Join / Leave -->
         <button
-          *ngIf="vm.group?.ownerId !== vm.user?.uid && !(isGuest$ | async)"
+          *ngIf="
+            vm.group?.ownerId !== vm.user?.uid &&
+            !(isGuest$ | async) &&
+            (
+              vm.isMember ||
+              !vm.group?.isPrivate
+            )
+          "
           (click)="toggleMembership(vm.isMember)"
-          class="px-4 py-2 rounded-lg text-white transition-colors duration-200"
+          class="px-3 py-1.5 text-sm rounded-lg text-white transition-colors duration-150"
           [ngClass]="{
             'bg-blue-600 hover:bg-blue-700': !vm.isMember,
             'bg-gray-400 hover:bg-gray-500': vm.isMember
@@ -103,16 +153,17 @@
         <p class="text-gray-500 text-sm">Posts</p>
       </div>
 
-      <div
-        class="bg-white rounded-lg shadow p-4 cursor-pointer"
-        (click)="showMembersModal = true">
+      <button
+        class="bg-white rounded-lg shadow p-4 cursor-pointer disabled:cursor-not-allowed"
+        (click)="showMembersModal = true"
+        [disabled]="!vm.isMember && vm.group?.isPrivate">
 
         <p class="text-xl font-bold hover:text-gray-400">
           {{ vm.memberCount }}
         </p>
         <p class="text-gray-500 text-sm">Members</p>
 
-      </div>
+      </button>
 
     </div>
 
@@ -557,7 +608,7 @@
 
         <div class="flex items-center justify-between">
           <h3 class="font-medium flex items-center gap-2">
-            Custom Titles
+            <span [class.opacity-50]="!(isOwner$ | async)">Custom Titles</span>
             <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">Owner only</span>
           </h3>
 
@@ -609,6 +660,49 @@
 
       </div>
 
+      <!-- Privacy Toggle -->
+      <label class="flex items-center justify-between border rounded-lg p-3"
+        [class.opacity-50]="!(isOwner$ | async)">
+        <div>
+          <p class="font-medium">Private Group</p>
+          <p class="text-sm text-gray-500">
+            Only invited users can join
+          </p>
+        </div>
+
+        <input class="disabled:cursor-not-allowed"
+          type="checkbox"
+          [disabled]="!(isOwner$ | async)"
+          [(ngModel)]="groupForm.isPrivate"
+          class="w-5 h-5"
+        />
+      </label>
+
+      <!-- Invitations -->
+      <div
+        *ngIf="originalGroupForm.isPrivate"
+        class="border-t pt-4"
+      >
+        <button
+          (click)="openInvitesModal()"
+          class="w-full flex items-center justify-between border rounded-lg p-3 hover:bg-gray-50 transition"
+        >
+          <div class="text-left">
+            <p class="font-medium">
+              Invitations
+            </p>
+
+            <p class="text-sm text-gray-500">
+              Manage invites and invite users
+            </p>
+          </div>
+
+          <span class="text-gray-400 text-lg">
+            →
+          </span>
+        </button>
+      </div>
+
       <!-- Delete Group Section -->
       <div class="border-t pt-4 mt-4 space-y-2">
 
@@ -631,7 +725,8 @@
             !groupForm.name.trim() ||
             (groupForm.name === originalGroupForm?.name &&
             groupForm.bio === originalGroupForm?.bio &&
-            groupForm.avatar === originalGroupForm?.avatar)
+            groupForm.avatar === originalGroupForm?.avatar &&
+            groupForm.isPrivate === originalGroupForm?.isPrivate)
           "
           class="bg-green-600 hover:bg-green-700 transition-colors duration-150 text-white px-4 py-2 rounded disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed">
           Save
@@ -641,6 +736,176 @@
     </div>
   </div>
 </ng-container>
+
+<!-- Invitations Modal -->
+<div
+  *ngIf="showInvitesModal"
+  @overlayFade
+  class="fixed inset-0 bg-black/50 flex items-center justify-center z-[70]"
+>
+  <div
+    @modalScale
+    class="bg-white rounded-xl w-full max-w-lg p-6 space-y-4 max-h-[80vh] overflow-y-auto flex flex-col"
+  >
+
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <h2 class="text-lg font-semibold">
+        Invitations
+      </h2>
+
+      <button (click)="closeInvitesModal()">
+        ✕
+      </button>
+    </div>
+
+    <!-- Search -->
+    <div class="space-y-2">
+
+      <input
+        (input)="onInviteSearch($event.target.value)"
+        [value]="inviteSearchValue"
+        placeholder="Search users to invite"
+        class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+
+      <!-- Search Results -->
+      <ng-container *ngIf="inviteResults$ | async as results">
+
+        <div
+          *ngIf="results.length > 0"
+          class="border rounded-lg max-h-[20vh] overflow-y-auto"
+        >
+
+          <button
+            *ngFor="let user of results"
+            (click)="sendInvite(user)"
+            class="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition border-b last:border-b-0"
+          >
+
+            <div class="flex items-center gap-3">
+
+              <app-avatar
+                [username]="user.displayName || user.username"
+                [imageUrl]="user.profilePicture"
+                size="sm">
+              </app-avatar>
+
+              <div class="text-left">
+                <p class="font-medium">
+                  {{ user.displayName || user.username }}
+                </p>
+
+                <p class="text-sm text-gray-500">
+                  @{{ user.username }}
+                </p>
+              </div>
+
+            </div>
+
+            <span class="text-blue-600 text-sm font-medium">
+              Invite
+            </span>
+
+          </button>
+
+        </div>
+
+        <!-- Empty state (only show when user has typed something) -->
+        <div
+          *ngIf="results?.length === 0 && inviteSearchValue.trim().length > 0"
+          class="text-center text-sm text-gray-500 py-6 border rounded-lg"
+        >
+          No users found.
+        </div>
+
+      </ng-container>
+
+    </div>
+
+    <!-- Invite List -->
+    <div class="flex-1 min-h-0 overflow-y-auto space-y-2">
+
+      <ng-container *ngIf="groupInvites$ | async as invites">
+
+        <!-- Empty -->
+        <div
+          *ngIf="invites.length === 0"
+          class="text-center text-sm text-gray-500 py-8"
+        >
+          No invitations yet.
+        </div>
+
+        <!-- Invite rows -->
+        <div
+          *ngFor="let invite of invites"
+          class="flex items-center justify-between border rounded-lg px-4 py-3"
+        >
+
+          <div class="flex items-center gap-3 min-w-0">
+
+            <app-avatar
+              [userId]="invite.userId"
+              [username]="invite.displayName || invite.username"
+              [imageUrl]="invite.profilePicture"
+              size="sm">
+            </app-avatar>
+
+            <div class="min-w-0">
+
+              <p class="font-medium truncate">
+                {{ invite.displayName || invite.username || invite.userId }}
+              </p>
+
+              <div class="flex items-center gap-2 flex-wrap">
+
+                <span class="text-sm text-gray-500">
+                  @{{ invite.username || 'unknown' }}
+                </span>
+
+                <!-- Status -->
+                <span
+                  class="text-xs px-2 py-0.5 rounded-full"
+                  [ngClass]="{
+                    'bg-yellow-100 text-yellow-700': invite.status === 'pending',
+                    'bg-green-100 text-green-700': invite.status === 'accepted',
+                    'bg-red-100 text-red-700': invite.status === 'declined'
+                  }"
+                >
+                  {{ invite.status | titlecase }}
+                </span>
+
+                <p
+                  *ngIf="invite.inviter"
+                  class="text-xs text-gray-400 mt-0.5 truncate"
+                >
+                  Invited by
+                  {{ invite.inviter.displayName || invite.inviter.username }}
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Delete -->
+          <button
+            (click)="revokeInvite(invite)"
+            class="w-8 h-8 rounded-full hover:bg-red-50 text-gray-500 hover:text-red-600 transition flex items-center justify-center"
+            title="Delete invite"
+          >
+            ✕
+          </button>
+
+        </div>
+
+      </ng-container>
+
+    </div>
+
+  </div>
+</div>
 
 <!-- Title Editor Modal -->
 <div
