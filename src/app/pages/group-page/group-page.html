@@ -620,43 +620,56 @@
           </button>
         </div>
 
-        <div
-          *ngFor="let title of (titles$ | async)"
-          class="flex items-center justify-between border rounded-lg p-2 hover:bg-gray-50 transition">
+        <ng-container *ngIf="titles$ | async as titles">
 
-          <div class="flex items-center gap-2">
-
-            <span
-              class="px-2 py-1 rounded-full text-xs text-white shadow-sm"
-              [style.background]="title.color">
-
-              {{ title.name }}
-            </span>
-
+          <!-- Empty State -->
+          <div
+            *ngIf="titles.length === 0"
+            class="text-center text-sm text-gray-500 py-5 border rounded-lg"
+          >
+            No custom titles created.
           </div>
 
-          <div *ngIf="isOwner$ | async" class="flex gap-1">
+          <!-- Title List -->
+          <div
+            *ngFor="let title of titles"
+            class="flex items-center justify-between border rounded-lg p-2 hover:bg-gray-50 transition">
 
-            <!-- Edit -->
-            <button
-              (click)="openEditTitle(title)"
-              class="w-8 h-8 flex items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-150 "
-              title="Edit title"
-            >
-              ✎
-            </button>
+            <div class="flex items-center gap-2">
 
-            <!-- Delete -->
-            <button
-              (click)="deleteTitle(title)"
-              class="w-8 h-8 flex items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 hover:text-red-600 transition-colors duration-150 "
-              title="Delete title"
-            >
-              ✕
-            </button>
+              <span
+                class="px-2 py-1 rounded-full text-xs text-white shadow-sm"
+                [style.background]="title.color">
 
+                {{ title.name }}
+              </span>
+
+            </div>
+
+            <div *ngIf="isOwner$ | async" class="flex gap-1">
+
+              <!-- Edit -->
+              <button
+                (click)="openEditTitle(title)"
+                class="w-8 h-8 flex items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-150"
+                title="Edit title"
+              >
+                ✎
+              </button>
+
+              <!-- Delete -->
+              <button
+                (click)="deleteTitle(title)"
+                class="w-8 h-8 flex items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 hover:text-red-600 transition-colors duration-150"
+                title="Delete title"
+              >
+                ✕
+              </button>
+
+            </div>
           </div>
-        </div>
+
+        </ng-container>
 
       </div>
 
