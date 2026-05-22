@@ -497,8 +497,15 @@ export class GroupsService {
       'system'
     );
 
+    // Get all title IDs
+    const titlesSnap = await getDocs(
+      collection(this.firestore, `groups/${groupId}/titles`)
+    );
+
+    const allTitleIds = titlesSnap.docs.map(doc => doc.id);
+
     batch.set(ownerRef, { role: 'moderator' }, { merge: true });
-    batch.set(targetRef, { role: 'owner' }, { merge: true });
+    batch.set(targetRef, { role: 'owner', titleIds: arrayUnion(...allTitleIds) }, { merge: true });
     batch.set(groupRef, { ownerId: targetUid, updatedAt: serverTimestamp() }, { merge: true });
 
     await batch.commit();
