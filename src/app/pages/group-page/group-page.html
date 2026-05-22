@@ -858,22 +858,22 @@
           <div class="flex items-center gap-3 min-w-0">
 
             <app-avatar
-              [userId]="invite.userId"
-              [username]="invite.displayName || invite.username"
-              [imageUrl]="invite.profilePicture"
+              [userId]="invite.user?.userId"
+              [username]="invite.user?.displayName || invite.user?.username"
+              [imageUrl]="invite.user?.profilePicture"
               size="sm">
             </app-avatar>
 
             <div class="min-w-0">
 
               <p class="font-medium truncate">
-                {{ invite.displayName || invite.username || invite.userId }}
+                {{ invite.user?.displayName || invite.user?.username || invite.user?.userId }}
               </p>
 
               <div class="flex items-center gap-2 flex-wrap">
 
                 <span class="text-sm text-gray-500">
-                  @{{ invite.username || 'unknown' }}
+                  @{{ invite.user?.username || 'unknown' }}
                 </span>
 
                 <!-- Status -->

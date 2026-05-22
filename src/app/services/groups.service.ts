@@ -40,10 +40,6 @@ export interface GroupInvite {
   id?: string;
 
   uid: string;
-  userId?: string;
-  username?: string;
-  displayName?: string;
-  profilePicture?: string;
   invitedBy: string;
 
   status: 'pending' | 'accepted' | 'declined';
@@ -428,11 +424,6 @@ export class GroupsService {
         type: 'promote',
         groupId
       });
-      await this.messagesService.sendGroupMessage(
-        threadId,
-        `${targetName} was promoted to moderator`,
-        'system'
-      );
     }
 
     if (role === 'member') {
@@ -921,20 +912,12 @@ export class GroupsService {
 
     if (memberSnap.exists()) return;
 
-    const targetUser = await firstValueFrom(
-      this.userService.getUserByUid(targetUid)
-    );
-
     const inviteRef = doc(
       collection(this.firestore, `groups/${groupId}/invitations`)
     );
 
     await setDoc(inviteRef, {
       uid: targetUid,
-      userId: targetUser?.userId || 0,
-      username: targetUser?.username || '',
-      displayName: targetUser?.displayName || '',
-      profilePicture: targetUser?.profilePicture || '',
       invitedBy: authUser.uid,
       status: 'pending',
       createdAt: serverTimestamp()

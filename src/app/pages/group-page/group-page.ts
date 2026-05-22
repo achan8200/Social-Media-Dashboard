@@ -23,6 +23,7 @@ type MemberVM = GroupMember & {
 };
 
 type GroupInviteVM = GroupInvite & {
+  user?: any;
   inviter?: any;
 };
 
@@ -267,9 +268,13 @@ export class GroupPage {
 
         return combineLatest(
           invites.map(invite =>
-            this.getUser(invite.invitedBy).pipe(
-              map(inviter => ({
+            combineLatest([
+              this.getUser(invite.uid),
+              this.getUser(invite.invitedBy)
+            ]).pipe(
+              map(([user, inviter]) => ({
                 ...invite,
+                user,
                 inviter
               }))
             )
