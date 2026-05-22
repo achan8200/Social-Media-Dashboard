@@ -78,7 +78,8 @@ export class GroupPage {
 
   titleForm = {
     name: '',
-    color: '#3b82f6'
+    color: '#3b82f6',
+    color2: '#64eaea'
   };
 
   titleError = '';
@@ -675,7 +676,8 @@ export class GroupPage {
 
     this.titleForm = {
       name: '',
-      color: '#3b82f6'
+      color: '#3b82f6',
+      color2: '#64eaea'
     };
 
     this.titleError = '';
@@ -687,7 +689,8 @@ export class GroupPage {
 
     this.titleForm = {
       name: title.name,
-      color: title.color
+      color: title.color,
+      color2: title.color2
     };
 
     this.titleError = '';
@@ -701,7 +704,8 @@ export class GroupPage {
 
     this.titleForm = {
       name: '',
-      color: '#3b82f6'
+      color: '#3b82f6',
+      color2: '#64eaea'
     };
 
     this.titleError = '';
@@ -736,7 +740,8 @@ export class GroupPage {
     const payload = {
       name: trimmed,
       nameLower: trimmed.toLowerCase(),
-      color: this.titleForm.color
+      color: this.titleForm.color,
+      color2: this.titleForm.color2
     };
 
     if (this.editingTitle?.id) {

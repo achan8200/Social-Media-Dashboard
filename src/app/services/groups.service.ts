@@ -31,6 +31,7 @@ export interface GroupTitle {
   name: string;
   nameLower: string;
   color: string;
+  color2: string;
   createdAt: any;
   createdBy: string;
   updatedAt?: any;
@@ -765,10 +766,20 @@ export class GroupsService {
       name: string;
       nameLower: string;
       color: string;
+      color2: string;
     }
   ) {
     const user = await firstValueFrom(this.authService.user$);
     if (!user) throw new Error('Not authenticated');
+
+    // Enforce 25 title limit
+    const titlesSnap = await getDocs(
+      collection(this.firestore, `groups/${groupId}/titles`)
+    );
+
+    if (titlesSnap.size >= 25) {
+      throw new Error('Group title limit reached (25 max)');
+    }
 
     const titleRef = doc(
       collection(this.firestore, `groups/${groupId}/titles`)

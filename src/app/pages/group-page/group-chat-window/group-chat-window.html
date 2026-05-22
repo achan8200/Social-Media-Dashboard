@@ -68,20 +68,22 @@
 
 										<!-- Role badge -->
 										<span *ngIf="msg.senderRole"
-											class="px-2 py-[2px] rounded-full text-[10px] font-medium capitalize"
-											[ngClass]="{
-												'bg-yellow-100 text-yellow-700': msg.senderRole === 'owner',
-												'bg-blue-100 text-blue-700': msg.senderRole === 'moderator',
-												'bg-gray-200 text-gray-700': msg.senderRole === 'member'
-											}">{{ msg.senderRole }}</span>
+											class="px-2 py-[2px] rounded-full text-[10px] text-white font-medium capitalize"
+											style="text-shadow: 0 1px 2px rgba(0,0,0,0.35)"
+											[style.background]="
+												msg.senderRole === 'owner'
+													? 'linear-gradient(135deg, #cba234, #f2f48e)'
+													: msg.senderRole === 'moderator'
+													? 'linear-gradient(135deg, #1f4e7c, #98cde7)'
+													: 'linear-gradient(135deg, #4b5563, #b8bdc5)'
+											">{{ msg.senderRole }}</span>
 
 											<!-- Active Title badge -->
 											<span *ngIf="msg.senderActiveTitle"
-												class="px-2 py-[2px] rounded-full text-[10px] font-medium"
-												[ngStyle]="{
-													'background-color': msg.senderActiveTitle.color,
-													'color': '#ffffff'
-												}">{{ msg.senderActiveTitle.name }}</span>
+												class="px-2 py-[2px] rounded-full text-[10px] text-white font-medium"
+												style="text-shadow: 0 1px 2px rgba(0,0,0,0.35)"
+              					[style.background]="'linear-gradient(135deg, ' + msg.senderActiveTitle.color + ', ' + msg.senderActiveTitle.color2 + ')'"
+											>{{ msg.senderActiveTitle.name }}</span>
 
 									</div>
 

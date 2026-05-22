@@ -108,23 +108,25 @@
             <!-- Role Badge -->
             <span
               *ngIf="group.isMember && group.role"
-              class="text-xs px-2 py-1 rounded-full flex-shrink-0"
-              [ngClass]="{
-                'bg-yellow-100 text-yellow-700': group.role === 'owner',
-                'bg-blue-100 text-blue-700': group.role === 'moderator',
-                'bg-gray-200 text-gray-700': group.role === 'member'
-              }"
+              class="text-xs text-white px-2 py-1 rounded-full flex-shrink-0"
+              style="text-shadow: 0 1px 2px rgba(0,0,0,0.35)"
+              [style.background]="
+                group.role === 'owner'
+                  ? 'linear-gradient(135deg, #cba234, #f2f48e)'
+                  : group.role === 'moderator'
+                  ? 'linear-gradient(135deg, #1f4e7c, #98cde7)'
+                  : 'linear-gradient(135deg, #4b5563, #b8bdc5)'
+              "
             >
               {{ group.role === 'owner' ? 'Owner' :
                 group.role === 'moderator' ? 'Moderator' : 'Member' }}
             </span>
 
             <span *ngIf="group.activeTitle"
-                  class="px-2 py-1 rounded-full text-xs"
-                  [ngStyle]="{
-                    'background-color': group.activeTitle.color,
-                    'color': '#ffffff'
-                  }">{{ group.activeTitle.name }}</span>
+              class="px-2 py-1 rounded-full text-xs text-white"
+              style="text-shadow: 0 1px 2px rgba(0,0,0,0.35)"
+              [style.background]="'linear-gradient(135deg, ' + group.activeTitle.color + ', ' + group.activeTitle.color2 + ')'"
+            >{{ group.activeTitle.name }}</span>
           </div>
 
           <!-- Bio -->
