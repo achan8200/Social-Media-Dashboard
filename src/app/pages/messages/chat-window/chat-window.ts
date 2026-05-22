@@ -22,6 +22,7 @@ interface MessageWithSender extends Message {
 
 interface Participant {
   uid: string;
+  displayName: string;
   username: string;
   userId: string;
   profilePicture: string;
@@ -160,7 +161,8 @@ export class ChatWindow implements OnChanges {
             map(user => ({
               uid,
               userId: user?.userId || '',
-              username: user?.displayName || user?.username || 'Someone',
+              displayName: user?.displayName || 'Someone',
+              username: user?.username || 'Someone',
               profilePicture: user?.profilePicture || ''
             }))
           )

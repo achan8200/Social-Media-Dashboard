@@ -64,6 +64,31 @@
         <!-- Bio -->
         <p class="text-gray-700 max-w-xl break-words whitespace-pre-wrap max-h-[150px] overflow-y-auto">{{ vm.group?.bio || 'No description' }}</p>
 
+        <!-- Banned notice -->
+        <div
+          *ngIf="vm.isBanned"
+          class="mt-4 w-full rounded-xl border border-red-200 bg-gradient-to-r from-red-50 to-red-100 px-5 py-4 flex items-start gap-3 shadow-sm"
+        >
+          <!-- Icon -->
+          <div class="flex-shrink-0 mt-0.5">
+            <div class="w-10 h-10 rounded-full bg-red-200 flex items-center justify-center">
+              <svg class="w-5 h-5 text-red-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 9v2m0 4h.01M10.29 3.86l-8.3 14.37A2 2 0 003.7 21h16.6a2 2 0 001.71-2.77L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+            </div>
+          </div>
+
+          <!-- Text -->
+          <div class="flex-1">
+            <p class="font-semibold text-red-800">
+              You've been banned from this group
+            </p>
+            <p class="text-sm text-red-700 mt-1">
+              You can still view basic information, but you can't interact, post, or join conversations.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div class="absolute top-4 right-4 flex items-center gap-2">
@@ -125,6 +150,7 @@
         <!-- Join / Leave -->
         <button
           *ngIf="
+            !vm.isBanned &&
             vm.group?.ownerId !== vm.user?.uid &&
             !(isGuest$ | async) &&
             (
@@ -180,7 +206,7 @@
 
       <button
         (click)="openMessagesTab()"
-        [disabled]="!vm.isMember"
+        [disabled]="!vm.isMember || vm.isBanned"
         class="flex-1 py-3 text-sm font-medium transition disabled:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
         [ngClass]="activeTab === 'messages'
             ? 'bg-gray-900 text-white'
@@ -204,51 +230,53 @@
     <div class="flex-1 min-h-0 overflow-hidden">
       <!-- POSTS TAB -->
       <ng-container *ngIf="activeTab === 'posts'">
-      <!-- Group Posts Grid -->
-      <div class="grid grid-cols-3 gap-2">
-        <ng-container *ngIf="groupPosts$ | async as posts">
-          <ng-container *ngIf="posts.length > 0; else noPosts">
-            <ng-container *ngFor="let post of posts; trackBy: trackByPostId">
-              <!-- media post -->
-              <div *ngIf="post.media!.length > 0; else captionOnlyPost" 
-                (click)="openPostModal(post)"
-                class="relative aspect-square bg-gray-100 overflow-hidden rounded cursor-pointer">
-                <!-- Stack icon (only if multiple media) -->
-                <img *ngIf="(post?.media?.length ?? 0) > 1"
-                  src="assets/icons/stack.svg"
-                  class="absolute top-2 right-2 w-6 h-6 p-1 rounded-md"/>
-                <img *ngIf="post.media![0].type === 'image'" [src]="post.media![0].url" class="w-full h-full object-cover"/>
-                <video *ngIf="post.media![0].type === 'video'" [src]="post.media![0].url" class="w-full h-full object-cover" muted loop playsinline></video>
-              </div>
+        <!-- Group Posts Grid -->
+        <ng-container *ngIf="!vm.isBanned && (vm.isMember || (invite$ | async) || !vm.group?.isPrivate)">
+          <div class="grid grid-cols-3 gap-2">
+            <ng-container *ngIf="groupPosts$ | async as posts">
+              <ng-container *ngIf="posts.length > 0; else noPosts">
+                <ng-container *ngFor="let post of posts; trackBy: trackByPostId">
+                  <!-- media post -->
+                  <div *ngIf="post.media!.length > 0; else captionOnlyPost" 
+                    (click)="openPostModal(post)"
+                    class="relative aspect-square bg-gray-100 overflow-hidden rounded cursor-pointer">
+                    <!-- Stack icon (only if multiple media) -->
+                    <img *ngIf="(post?.media?.length ?? 0) > 1"
+                      src="assets/icons/stack.svg"
+                      class="absolute top-2 right-2 w-6 h-6 p-1 rounded-md"/>
+                    <img *ngIf="post.media![0].type === 'image'" [src]="post.media![0].url" class="w-full h-full object-cover"/>
+                    <video *ngIf="post.media![0].type === 'video'" [src]="post.media![0].url" class="w-full h-full object-cover" muted loop playsinline></video>
+                  </div>
 
-              <!-- Caption-only post -->
-              <ng-template #captionOnlyPost>
-                <div
-                  (click)="openPostModal(post)"
-                  class="relative aspect-square bg-white rounded overflow-hidden cursor-pointer">
-                  <div class="absolute inset-3 flex items-center justify-center p-2">
-                    <p class="text-center text-sm text-gray-700 whitespace-pre-wrap break-words">
-                      {{ post.caption }}
-                    </p>
-                  </div>
-                  <!-- Top fade overlay -->
-                  <div class="pointer-events-none absolute top-0 left-0 right-0 h-16
-                              bg-gradient-to-b from-white to-transparent">
-                  </div>
-                  <!-- Bottom fade overlay -->
-                  <div class="pointer-events-none absolute bottom-0 left-0 right-0 h-16
-                              bg-gradient-to-t from-white to-transparent">
-                  </div>
-                </div>
-              </ng-template>
+                  <!-- Caption-only post -->
+                  <ng-template #captionOnlyPost>
+                    <div
+                      (click)="openPostModal(post)"
+                      class="relative aspect-square bg-white rounded overflow-hidden cursor-pointer">
+                      <div class="absolute inset-3 flex items-center justify-center p-2">
+                        <p class="text-center text-sm text-gray-700 whitespace-pre-wrap break-words">
+                          {{ post.caption }}
+                        </p>
+                      </div>
+                      <!-- Top fade overlay -->
+                      <div class="pointer-events-none absolute top-0 left-0 right-0 h-16
+                                  bg-gradient-to-b from-white to-transparent">
+                      </div>
+                      <!-- Bottom fade overlay -->
+                      <div class="pointer-events-none absolute bottom-0 left-0 right-0 h-16
+                                  bg-gradient-to-t from-white to-transparent">
+                      </div>
+                    </div>
+                  </ng-template>
+                </ng-container>
+              </ng-container>
             </ng-container>
-          </ng-container>
-        </ng-container>
 
-        <ng-template #noPosts>
-          <p class="text-center col-span-3 text-gray-500">No group posts yet.</p>
-        </ng-template>
-      </div>
+            <ng-template #noPosts>
+              <p class="text-center col-span-3 text-gray-500">No group posts yet.</p>
+            </ng-template>
+          </div>
+        </ng-container>
       </ng-container>
 
       <!-- MESSAGES TAB -->
@@ -378,13 +406,19 @@
               size="sm">
             </app-avatar>
 
-            <span class="text-base font-medium truncate">
-              {{ member.user?.displayName || member.user?.username }}
+            <div class="flex flex-col">
+              <span class="text-base font-medium text-gray-900 truncate">
+                {{ member.user?.displayName || member.user?.username }}
 
-              <span *ngIf="member.uid === vm.user?.uid" class="text-xs text-gray-500 ml-1">
-                (You)
+                <span *ngIf="member.uid === vm.user?.uid" class="text-xs text-gray-500 ml-1">
+                  (You)
+                </span>
               </span>
-            </span>
+
+              <span class="text-xs text-gray-400">
+                @{{ member.user?.username }}
+              </span>
+            </div>
           </div>
 
           <!-- Right -->
@@ -455,6 +489,13 @@
                       </button>
 
                       <button
+                        *ngIf="canBanMember(vm.currentMember?.role || null, member.role)"
+                        (click)="openConfirm('ban', member)"
+                        class="dropdown-item text-red-600">
+                        Ban user
+                      </button>
+
+                      <button
                         *ngIf="member.role !== 'owner'"
                         (click)="openConfirm('transfer', member)"
                         class="dropdown-item text-red-600">
@@ -467,6 +508,13 @@
                     <ng-container *ngIf="(currentUserRole$ | async) === 'moderator'">
                       <button (click)="openConfirm('remove', member)" class="dropdown-item">
                         Remove user
+                      </button>
+
+                      <button
+                        *ngIf="canBanMember(vm.currentMember?.role || null, member.role)"
+                        (click)="openConfirm('ban', member)"
+                        class="dropdown-item text-red-600">
+                        Ban user
                       </button>
                     </ng-container>
 
@@ -494,6 +542,42 @@
       <h3 class="text-lg font-semibold capitalize">
         {{ confirmAction.type }} {{ confirmAction.member.user?.username }}
       </h3>
+
+      <!-- Ban reason (only for ban action) -->
+      <div *ngIf="confirmAction.type === 'ban'">
+        <label class="block text-sm text-gray-600 mb-1">
+          Reason for ban
+        </label>
+
+        <select
+          [(ngModel)]="selectedBanReason"
+          class="w-full rounded-lg border px-3 py-2 bg-white"
+        >
+          <option
+            *ngFor="let reason of banReasons"
+            [value]="reason"
+          >
+            {{ reason }}
+          </option>
+        </select>
+
+        <!-- Custom reason -->
+        <div *ngIf="selectedBanReason === 'Other'" class="mt-3 animate-in fade-in duration-150">
+          <input
+            [(ngModel)]="customBanReason"
+            type="text"
+            maxlength="100"
+            placeholder="Enter custom reason"
+            class="w-full rounded-lg border border-gray-300 px-3 py-2
+              focus:outline-none focus:ring-2 focus:ring-red-200
+            focus:border-red-400 transition"
+          />
+
+          <p class="mt-1 text-xs text-gray-400 text-right">
+            {{ customBanReason.length }}/100
+          </p>
+        </div>
+      </div>
 
       <p class="text-sm text-gray-600">
         Type to confirm:
@@ -716,6 +800,30 @@
         </button>
       </div>
 
+      <!-- Blacklist -->
+      <div class="border-t pt-4">
+        <button
+          (click)="showBlacklistModal = true"
+          class="w-full flex items-center justify-between border rounded-lg p-3 hover:bg-gray-50 transition"
+        >
+
+          <div class="text-left">
+            <p class="font-medium">
+              Blacklist
+            </p>
+
+            <p class="text-sm text-gray-500">
+              Manage banned users
+            </p>
+          </div>
+
+          <span class="text-gray-400 text-lg">
+            →
+          </span>
+
+        </button>
+      </div>
+
       <!-- Delete Group Section -->
       <div class="border-t pt-4 mt-4 space-y-2">
 
@@ -893,7 +1001,7 @@
                   class="text-xs text-gray-400 mt-0.5 truncate"
                 >
                   Invited by
-                  {{ invite.inviter.displayName || invite.inviter.username }}
+                  @{{ invite.inviter.username }}
                 </p>
 
               </div>
@@ -919,6 +1027,92 @@
 
   </div>
 </div>
+
+<!-- Blacklist Modal -->
+<ng-container *ngIf="showBlacklistModal">
+  <div
+    @overlayFade
+    class="fixed inset-0 bg-black/50 flex items-center justify-center z-[70]"
+  >
+    <div
+      @modalScale
+      class="bg-white rounded-xl w-full max-w-lg p-6 space-y-4 max-h-[80vh] overflow-y-auto flex flex-col"
+    >
+
+      <!-- Header -->
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold">
+          Blacklisted Users
+        </h2>
+
+        <button (click)="showBlacklistModal = false">
+          ✕
+        </button>
+      </div>
+
+      <!-- User List -->
+      <div class="flex-1 min-h-0 overflow-y-auto space-y-2">
+
+        <ng-container *ngIf="groupBlacklist$ | async as users">
+
+          <div
+            *ngIf="users.length === 0"
+            class="text-center text-sm text-gray-500 py-8"
+          >
+            No blacklisted users.
+          </div>
+
+          <div
+            *ngFor="let ban of users"
+            class="flex items-center justify-between border rounded-lg px-4 py-3"
+          >
+
+            <div class="flex items-center gap-3 min-w-0">
+              <app-avatar
+                [userId]="ban.user?.userId"
+                [username]="ban.user?.displayName || ban.user?.username"
+                [imageUrl]="ban.user?.profilePicture"
+                size="sm">
+              </app-avatar>
+
+              <div class="min-w-0">
+                <p class="font-medium truncate">
+                  {{ ban.user?.displayName || ban.user?.username }}
+                </p>
+
+                <p class="text-sm text-gray-500">
+                  @{{ ban.user?.username }}
+                </p>
+
+                <p class="text-xs text-red-500 mt-1">
+                  Reason: {{ ban.reason }}
+                </p>
+
+                <p
+                  *ngIf="ban.bannedByUser"
+                  class="text-xs text-gray-400"
+                >
+                  Banned by @{{ ban.bannedByUser.username }}
+                </p>
+              </div>
+            </div>
+
+            <button
+              (click)="unbanUser(ban)"
+              class="px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors duration-150 text-sm"
+            >
+              Unban
+            </button>
+
+          </div>
+
+        </ng-container>
+
+      </div>
+
+    </div>
+  </div>
+</ng-container>
 
 <!-- Title Editor Modal -->
 <div

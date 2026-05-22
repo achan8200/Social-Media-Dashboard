@@ -48,6 +48,27 @@ export interface GroupInvite {
   respondedAt?: any;
 }
 
+export interface GroupBan {
+  uid: string;
+
+  bannedBy: string;
+  bannedAt: any;
+
+  reason: string;
+}
+
+export const GROUP_BAN_REASONS = [
+  'Spam',
+  'Harassment',
+  'Hate speech',
+  'NSFW content',
+  'Scam or fraud',
+  'Impersonation',
+  'Repeated rule violations',
+  'Toxic behavior',
+  'Other'
+] as const;
+
 @Injectable({ providedIn: 'root' })
 export class GroupsService {
   private firestore = inject(Firestore);
@@ -213,6 +234,12 @@ export class GroupsService {
     const groupSnap = await getDoc(
       doc(this.firestore, `groups/${groupId}`)
     );
+
+    const banned = await this.isUserBanned(groupId, user.uid);
+
+    if (banned) {
+      throw new Error('You are banned from this group');
+    }
 
     const group = groupSnap.data() as Group;
 
@@ -912,6 +939,12 @@ export class GroupsService {
 
     if (memberSnap.exists()) return;
 
+    const banned = await this.isUserBanned(groupId, targetUid);
+
+    if (banned) {
+      throw new Error('User is banned');
+    }
+
     const inviteRef = doc(
       collection(this.firestore, `groups/${groupId}/invitations`)
     );
@@ -953,6 +986,12 @@ export class GroupsService {
     if (invite['uid'] !== user.uid) throw new Error('Unauthorized');
 
     if (invite['status'] !== 'pending') return;
+
+    const banned = await this.isUserBanned(groupId, user.uid);
+
+    if (banned) {
+      throw new Error('User is banned');
+    }
 
     // Create member
     await setDoc(memberRef, {
@@ -1065,5 +1104,168 @@ export class GroupsService {
         });
       }
     }
+  }
+
+  async isUserBanned(groupId: string, uid: string): Promise<boolean> {
+
+    const banRef = doc(this.firestore, `groups/${groupId}/blacklist/${uid}`);
+
+    const snap = await getDoc(banRef);
+
+    return snap.exists();
+  }
+
+  getBlacklist(groupId: string): Observable<GroupBan[]> {
+
+    const ref = collection(this.firestore, `groups/${groupId}/blacklist`);
+
+    const q = query(
+      ref,
+      orderBy('bannedAt', 'desc')
+    );
+
+    return collectionData(q, {
+      idField: 'uid'
+    }) as Observable<GroupBan[]>;
+  }
+
+  canBanUser(currentRole: string | null, targetRole: string): boolean {
+
+    if (!currentRole) return false;
+
+    // Owner
+    if (currentRole === 'owner') {
+      return targetRole !== 'owner';
+    }
+
+    // Moderator
+    if (currentRole === 'moderator') {
+      return targetRole === 'member';
+    }
+
+    return false;
+  }
+
+  async banUserFromGroup(groupId: string, targetUid: string, reason: string) {
+
+    const authUser = await firstValueFrom(this.authService.user$);
+
+    if (!authUser) {
+      throw new Error('Not authenticated');
+    }
+
+    // prevent duplicate bans
+    const alreadyBanned = await this.isUserBanned(
+      groupId,
+      targetUid
+    );
+
+    if (alreadyBanned) return;
+
+    const batch = writeBatch(this.firestore);
+
+    // refs
+    const memberRef = doc(this.firestore, `groups/${groupId}/members/${targetUid}`);
+
+    const userGroupRef = doc(this.firestore, `users/${targetUid}/groups/${groupId}`);
+
+    const threadRef = doc(this.firestore, `groupThreads/${groupId}`);
+
+    const blacklistRef = doc(this.firestore, `groups/${groupId}/blacklist/${targetUid}`);
+
+    // target user
+    const target = await firstValueFrom(
+      this.userService.getUserByUid(targetUid)
+    );
+
+    const targetName =
+      target?.displayName ||
+      target?.username ||
+      'Someone';
+
+    // actor
+    const actor = await firstValueFrom(
+      this.userService.getUserByUid(authUser.uid)
+    );
+
+    const actorName =
+      actor?.displayName ||
+      actor?.username ||
+      'Someone';
+
+    // remove pending invites
+    const invitesSnap = await getDocs(
+      query(
+        collection(
+          this.firestore,
+          `groups/${groupId}/invitations`
+        ),
+        where('uid', '==', targetUid),
+      )
+    );
+
+    for (const inviteDoc of invitesSnap.docs) {
+
+      const invite = inviteDoc.data() as GroupInvite;
+
+      await this.notificationsService.deleteNotification({
+        recipientUid: invite.uid,
+        type: 'group_invite',
+        groupId,
+        inviteId: inviteDoc.id
+      });
+
+      batch.delete(inviteDoc.ref);
+    }
+
+    // remove membership
+    batch.delete(memberRef);
+
+    // remove user group mapping
+    batch.delete(userGroupRef);
+
+    // remove from group thread
+    batch.set(threadRef, {
+      participants: arrayRemove(targetUid)
+    }, { merge: true });
+
+    // add blacklist entry
+    batch.set(blacklistRef, {
+      uid: targetUid,
+
+      bannedBy: authUser.uid,
+      bannedAt: serverTimestamp(),
+
+      reason
+    });
+
+    // cleanup promote notification
+    const memberSnap = await getDoc(memberRef);
+    const role = memberSnap.data()?.['role'];
+
+    await batch.commit();
+
+    if (role === 'moderator') {
+
+      await this.notificationsService.deleteNotification({
+        recipientUid: targetUid,
+        type: 'promote',
+        groupId
+      });
+    }
+
+    // system message
+    await this.messagesService.sendGroupMessage(
+      groupId,
+      `${actorName} banned ${targetName} (${reason})`,
+      'system'
+    );
+  }
+
+  async unbanUserFromGroup(groupId: string, targetUid: string) {
+
+    const ref = doc(this.firestore, `groups/${groupId}/blacklist/${targetUid}`);
+
+    await deleteDoc(ref);
   }
 }

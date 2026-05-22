@@ -461,9 +461,15 @@
 							size="sm">
 						</app-avatar>
 
-						<span class="truncate">
-							{{ p.username }}
-						</span>
+						<div class="flex flex-col">
+              <span class="text-base font-medium text-gray-900 truncate">
+                {{ p.displayName }}
+              </span>
+
+              <span class="text-xs text-gray-400">
+                @{{ p.username }}
+              </span>
+            </div>
 					</div>
 					<div class="flex items-center gap-2 relative">
 						<!-- Following badge -->

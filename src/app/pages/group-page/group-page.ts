@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { GroupsService, Group, GroupMember, GroupTitle, GroupInvite } from '../../services/groups.service';
+import { GroupsService, Group, GroupMember, GroupTitle, GroupInvite, GroupBan, GROUP_BAN_REASONS } from '../../services/groups.service';
 import { PostsService } from '../../services/posts.service';
 import { Post } from '../../models/post.model';
 import { PostModal } from "../../components/post-modal/post-modal";
@@ -25,6 +25,11 @@ type MemberVM = GroupMember & {
 type GroupInviteVM = GroupInvite & {
   user?: any;
   inviter?: any;
+};
+
+type GroupBanVM = GroupBan & {
+  user?: any;
+  bannedByUser?: any;
 };
 
 @Component({
@@ -93,6 +98,13 @@ export class GroupPage {
   hasInvite$!: Observable<boolean>;
   groupInvites$!: Observable<GroupInviteVM[]>;
 
+  groupBlacklist$!: Observable<GroupBanVM[]>;
+  showBlacklistModal = false;
+  readonly banReasons = GROUP_BAN_REASONS;
+  selectedBanReason: string = GROUP_BAN_REASONS[0];
+  isExecutingBan = false;
+  customBanReason: string = '';
+
   groupId!: string;
 
   vm$!: Observable<{
@@ -103,6 +115,7 @@ export class GroupPage {
     memberCount: number;
     postCount: number;
     currentMember: MemberVM | undefined;
+    isBanned: boolean;
   }>;
 
   membersVM$!: Observable<MemberVM[]>;
@@ -119,7 +132,7 @@ export class GroupPage {
   ownedTitles$!: Observable<GroupTitle[]>;
 
   confirmAction:
-  | { type: 'remove' | 'promote' | 'demote' | 'transfer'; member: MemberVM }
+  | { type: 'remove' | 'promote' | 'demote' | 'transfer' | 'ban'; member: MemberVM }
   | null = null;
 
   confirmInput = '';
@@ -194,6 +207,65 @@ export class GroupPage {
       switchMap(groupId => this.groupsService.getMembers(groupId))
     );
 
+    this.currentUserRole$ = combineLatest([
+      this.members$,
+      this.authService.user$
+    ]).pipe(
+      map(([members, user]) => {
+        if (!user) return null;
+        return members.find(m => m.uid === user.uid)?.role ?? null;
+      }),
+      shareReplay(1)
+    );
+
+    this.groupInvites$ = groupId$.pipe(
+      switchMap((groupId): Observable<GroupInvite[]> =>
+        this.groupsService.getGroupInvites(groupId)
+      ),
+      switchMap((invites: GroupInvite[]) => {
+        if (!invites.length) return of([] as GroupInviteVM[]);
+
+        return combineLatest(
+          invites.map(invite =>
+            combineLatest([
+              this.getUser(invite.uid),
+              this.getUser(invite.invitedBy)
+            ]).pipe(
+              map(([user, inviter]) => ({
+                ...invite,
+                user,
+                inviter
+              } as GroupInviteVM))
+            )
+          )
+        );
+      }),
+      shareReplay(1)
+    );
+
+    this.groupBlacklist$ = groupId$.pipe(
+      switchMap(groupId => this.groupsService.getBlacklist(groupId)),
+      switchMap(bans => {
+        if (!bans.length) return of([]);
+
+        return combineLatest(
+          bans.map(ban =>
+            combineLatest([
+              this.getUser(ban.uid),
+              this.getUser(ban.bannedBy)
+            ]).pipe(
+              map(([user, bannedByUser]) => ({
+                ...ban,
+                user,
+                bannedByUser
+              }))
+            )
+          )
+        );
+      }),
+      shareReplay(1)
+    );
+
     this.inviteResults$ = this.inviteSearch$.pipe(
       map(q => q.trim()),
       switchMap(query => {
@@ -203,17 +275,20 @@ export class GroupPage {
           this.userService.searchUsers(query),
           this.members$,
           this.groupInvites$,
+          this.groupBlacklist$,
           this.currentUser$
         ]).pipe(
-          map(([users, members, invites, currentUser]) => {
+          map(([users, members, invites, blacklist, currentUser]) => {
             const memberIds = new Set(members.map(m => m.uid));
             const invitedIds = new Set(invites.map(i => i.uid));
+            const bannedIds = new Set(blacklist.map(b => b.uid));
 
             return users
               .filter(user =>
                 user.uid !== currentUser?.uid &&
                 !memberIds.has(user.uid) &&
-                !invitedIds.has(user.uid)
+                !invitedIds.has(user.uid) &&
+                !bannedIds.has(user.uid)
               )
               .map(user => ({
                 ...user,
@@ -256,33 +331,6 @@ export class GroupPage {
 
     this.hasInvite$ = this.invite$.pipe(
       map(invite => !!invite)
-    );
-
-    this.groupInvites$ = groupId$.pipe(
-      switchMap(groupId =>
-        this.groupsService.getGroupInvites(groupId)
-      ),
-
-      switchMap(invites => {
-        if (!invites.length) return of([]);
-
-        return combineLatest(
-          invites.map(invite =>
-            combineLatest([
-              this.getUser(invite.uid),
-              this.getUser(invite.invitedBy)
-            ]).pipe(
-              map(([user, inviter]) => ({
-                ...invite,
-                user,
-                inviter
-              }))
-            )
-          )
-        );
-      }),
-
-      shareReplay(1)
     );
 
     this.canViewPrivateGroup$ = combineLatest([
@@ -373,17 +421,6 @@ export class GroupPage {
       map(thread => thread?.unreadCount || 0)
     );
 
-    this.currentUserRole$ = combineLatest([
-      this.members$,
-      this.authService.user$
-    ]).pipe(
-      map(([members, user]) => {
-        if (!user) return null;
-        return members.find(m => m.uid === user.uid)?.role ?? null;
-      }),
-      shareReplay(1)
-    );
-
     this.isOwner$ = this.currentUserRole$.pipe(
       map(role => role === 'owner')
     );
@@ -402,28 +439,32 @@ export class GroupPage {
     );
 
     this.vm$ = combineLatest([
-    this.group$,
-    this.membersVM$,
-    this.memberCount$,
-    this.groupPosts$,
-    this.isMember$,
-    this.currentUser$
-  ]).pipe(
-    map(([group, members, memberCount, posts, isMember, user]) => {
+      this.group$,
+      this.membersVM$,
+      this.memberCount$,
+      this.groupPosts$,
+      this.isMember$,
+      this.currentUser$,
+      this.groupBlacklist$
+    ]).pipe(
+      map(([group, members, memberCount, posts, isMember, user, blacklist]) => {
 
-      const currentMember = members.find(m => m.uid === user?.uid);
+        const currentMember = members.find(m => m.uid === user?.uid);
 
-      return {
-        group,
-        members,
-        memberCount,
-        postCount: posts.length,
-        isMember,
-        user,
-        currentMember
-      };
-    })
-  );
+        const isBanned = !!user && blacklist.some(b => b.uid === user.uid);
+
+        return {
+          group,
+          members,
+          memberCount,
+          postCount: posts.length,
+          isMember,
+          user,
+          currentMember,
+          isBanned
+        };
+      })
+    );
 
     groupId$.subscribe(id => this.groupId = id);
   }
@@ -431,10 +472,19 @@ export class GroupPage {
   toggleMembership(isMember: boolean) {
     combineLatest([
       this.route.paramMap.pipe(map(p => p.get('groupId')!)),
-      this.authService.user$
-    ]).pipe(take(1))
-    .subscribe(async ([groupId, user]) => {
+      this.authService.user$,
+      this.groupBlacklist$
+    ])
+    .pipe(take(1))
+    .subscribe(async ([groupId, user, blacklist]) => {
       if (!user) return;
+
+      const isBanned = blacklist.some(b => b.uid === user.uid);
+
+      if (!isMember && isBanned) {
+        console.warn('You are banned from this group');
+        return;
+      }
 
       if (isMember) {
         await this.groupsService.leaveGroup(groupId);
@@ -495,6 +545,8 @@ export class GroupPage {
   openConfirm(type: any, member: MemberVM) {
     this.confirmAction = { type, member };
     this.confirmInput = '';
+    this.selectedBanReason = GROUP_BAN_REASONS[0];
+    this.customBanReason = '';
     this.openMenuUid = null;
   }
 
@@ -530,6 +582,9 @@ export class GroupPage {
       case 'transfer':
         return this.confirmInput === `${vmUser.username}/${targetName}`;
 
+      case 'ban':
+        return this.confirmInput === `BAN ${this.confirmAction.member.user?.username}`;
+
       default:
         return true;
     }
@@ -547,6 +602,10 @@ export class GroupPage {
     if (this.confirmAction.type === 'transfer') {
       if (!currentUsername || !targetName) return 'Loading...';
       return `${currentUsername}/${targetName}`;
+    }
+
+    if (this.confirmAction?.type === 'ban') {
+      return `BAN ${this.confirmAction.member.user?.username}`;
     }
 
     return targetName || '';
@@ -576,6 +635,32 @@ export class GroupPage {
     if (type === 'transfer') {
       await this.groupsService.transferOwnership(groupId, vm.user.uid, member.uid);
     }
+
+    if (type === 'ban') {
+      this.isExecutingBan = true;
+      try {
+        const finalReason =
+          this.selectedBanReason === 'Other'
+            ? this.customBanReason.trim() || 'Other'
+            : this.selectedBanReason;
+
+        await this.groupsService.banUserFromGroup(
+          groupId,
+          member.uid,
+          finalReason
+        );
+      } finally {
+        this.isExecutingBan = false;
+      }
+    }
+  }
+
+  async unbanUser(ban: GroupBanVM) {
+    await this.groupsService.unbanUserFromGroup(this.groupId,ban.uid);
+  }
+
+  canBanMember(currentRole: string | null,targetRole: string): boolean {
+    return this.groupsService.canBanUser(currentRole,targetRole);
   }
 
   async openCreateTitleModal() {
@@ -822,6 +907,14 @@ export class GroupPage {
   }
 
   async sendInvite(user: any) {
+    const blacklist = await firstValueFrom(this.groupBlacklist$);
+
+    const isBanned = blacklist.some(b => b.uid === user.uid);
+    if (isBanned) {
+      console.warn('Cannot invite banned user');
+      return;
+    }
+    
     await this.groupsService.createInvite(this.groupId, user.uid);
     this.inviteSearchValue = '';
     this.inviteSearch$.next('');
