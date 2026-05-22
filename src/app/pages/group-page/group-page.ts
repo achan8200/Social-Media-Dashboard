@@ -90,6 +90,9 @@ export class GroupPage {
   showInviteSection = false;
   showInvitesModal = false;
 
+  inviteToDelete: GroupInviteVM | null = null;
+  showDeleteInviteConfirm = false;
+
   inviteSearch$ = new BehaviorSubject<string>('');
   inviteResults$!: Observable<any[]>;
   inviteSearchValue = '';
@@ -105,6 +108,9 @@ export class GroupPage {
   selectedBanReason: string = GROUP_BAN_REASONS[0];
   isExecutingBan = false;
   customBanReason: string = '';
+
+  userToUnban: GroupBanVM | null = null;
+  showUnbanUserConfirm = false;
 
   groupId!: string;
 
@@ -656,8 +662,23 @@ export class GroupPage {
     }
   }
 
-  async unbanUser(ban: GroupBanVM) {
-    await this.groupsService.unbanUserFromGroup(this.groupId,ban.uid);
+  unbanUser(ban: GroupBan) {
+    this.userToUnban = ban;
+    this.showUnbanUserConfirm = true;
+  }
+
+  async confirmUnbanUser() {
+    if (!this.userToUnban) return;
+
+    await this.groupsService.unbanUserFromGroup(this.groupId, this.userToUnban.uid!);
+
+    this.userToUnban = null;
+    this.showUnbanUserConfirm = false;
+  }
+
+  cancelUnbanUser() {
+    this.userToUnban = null;
+    this.showUnbanUserConfirm = false;
   }
 
   canBanMember(currentRole: string | null,targetRole: string): boolean {
@@ -925,8 +946,23 @@ export class GroupPage {
     this.inviteSearch$.next('');
   }
 
-  async revokeInvite(invite: GroupInvite) {
-    await this.groupsService.deleteInvite(this.groupId, invite.id!);
+  deleteInvite(invite: GroupInvite) {
+    this.inviteToDelete = invite;
+    this.showDeleteInviteConfirm = true;
+  }
+
+  async confirmDeleteInvite() {
+    if (!this.inviteToDelete) return;
+
+    await this.groupsService.deleteInvite(this.groupId, this.inviteToDelete.id!);
+
+    this.inviteToDelete = null;
+    this.showDeleteInviteConfirm = false;
+  }
+
+  cancelDeleteInvite() {
+    this.inviteToDelete = null;
+    this.showDeleteInviteConfirm = false;
   }
 
   async acceptInvite(invite: GroupInvite) {

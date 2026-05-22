@@ -1036,7 +1036,7 @@
 
           <!-- Delete -->
           <button
-            (click)="revokeInvite(invite)"
+            (click)="deleteInvite(invite)"
             class="w-8 h-8 rounded-full hover:bg-red-50 text-gray-500 hover:text-red-600 transition flex items-center justify-center"
             title="Delete invite"
           >
@@ -1351,6 +1351,36 @@
     </div>
 
   </div>
+</div>
+
+<!-- Delete Invite Confirm Modal -->
+<div
+  *ngIf="showDeleteInviteConfirm && inviteToDelete"
+  class="fixed inset-0 z-[80]"
+>
+  <app-confirm-modal
+    title="Delete Invite"
+    [message]="'Delete ' + (inviteToDelete.user?.displayName || inviteToDelete.user?.username || 'this user') + '\'s invite?'"
+    confirmText="Delete"
+    cancelText="Cancel"
+    (confirmed)="confirmDeleteInvite()"
+    (cancelled)="cancelDeleteInvite()">
+  </app-confirm-modal>
+</div>
+
+<!-- Unban User Confirm Modal -->
+<div
+  *ngIf="showUnbanUserConfirm && userToUnban"
+  class="fixed inset-0 z-[80]"
+>
+  <app-confirm-modal
+    title="Unban User"
+    [message]="'Unban ' + (userToUnban.user?.displayName || userToUnban.user?.username || 'this user') + '?'"
+    confirmText="Unban"
+    cancelText="Cancel"
+    (confirmed)="confirmUnbanUser()"
+    (cancelled)="cancelUnbanUser()">
+  </app-confirm-modal>
 </div>
 
 <!-- Crop Modal -->
