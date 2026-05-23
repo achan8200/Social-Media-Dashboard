@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Firestore, collection, query, where, orderBy, getDocs, 
   addDoc, serverTimestamp, updateDoc, doc, collectionData, getDoc, 
-  docData, deleteDoc, writeBatch } from '@angular/fire/firestore';
+  docData, deleteDoc, writeBatch, 
+  deleteField} from '@angular/fire/firestore';
 import { Auth, authState } from '@angular/fire/auth';
 import { Observable, from, map, switchMap, of } from 'rxjs';
 import { Thread, Message } from '../models/messages.model';
@@ -600,6 +601,34 @@ export class MessagesService {
     });
   }
 
+  async reactToMessage(threadId: string, messageId: string, emoji: string) {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) throw new Error('Not authenticated');
+
+    const ref = doc(
+      this.firestore,
+      `threads/${threadId}/messages/${messageId}`
+    );
+
+    await updateDoc(ref, {
+      [`reactions.${uid}`]: emoji
+    });
+  }
+
+  async removeReaction(threadId: string, messageId: string) {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) throw new Error('Not authenticated');
+
+    const ref = doc(
+      this.firestore,
+      `threads/${threadId}/messages/${messageId}`
+    );
+
+    await updateDoc(ref, {
+      [`reactions.${uid}`]: deleteField()
+    });
+  }
+
   getGroupMessages(groupId: string): Observable<Message[]> {
     return this.withAuth(userId => {
       const ref = collection(this.firestore, `groupThreads/${groupId}/messages`);
@@ -793,6 +822,34 @@ export class MessagesService {
     await updateDoc(threadRef, {
       'lastMessage.text': '',
       'lastMessage.isDeleted': true
+    });
+  }
+
+  async reactToGroupMessage(groupId: string, messageId: string, emoji: string) {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) throw new Error('Not authenticated');
+
+    const ref = doc(
+      this.firestore,
+      `groupThreads/${groupId}/messages/${messageId}`
+    );
+
+    await updateDoc(ref, {
+      [`reactions.${uid}`]: emoji
+    });
+  }
+
+  async removeGroupReaction(groupId: string, messageId: string) {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) throw new Error('Not authenticated');
+
+    const ref = doc(
+      this.firestore,
+      `groupThreads/${groupId}/messages/${messageId}`
+    );
+
+    await updateDoc(ref, {
+      [`reactions.${uid}`]: deleteField()
     });
   }
 }

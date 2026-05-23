@@ -8,6 +8,7 @@ export interface Message {
   type: 'text' | 'system';
   isEdited?: boolean;
   isDeleted?: boolean;
+  reactions?: Record<string, string>;
 }
 
 export interface Thread {

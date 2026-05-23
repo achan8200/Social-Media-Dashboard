@@ -86,7 +86,7 @@
 			class="flex-1 overflow-y-auto overflow-x-visible px-4 py-2 min-h-0 flex flex-col">
 			<div class="flex flex-col flex-1 justify-end">
 				<div *ngIf="messagesWithSender$ | async as messages" class="flex flex-col">
-					<ng-container *ngFor="let msg of messages; let i = index">
+					<ng-container *ngFor="let msg of messages; let i = index; trackBy: trackByMessageId">
 						<div [ngClass]="getMessageSpacing(messages, i)">
 
 							<!-- Date Separator -->
@@ -115,7 +115,7 @@
 
 									<!-- Avatar (only for last in group) -->
 									<div class="w-8" *ngIf="msg.senderId !== currentUserId">
-										<ng-container *ngIf="msg.senderId !== currentUserId && shouldRoundBottom(messages, i)">
+										<ng-container *ngIf="shouldShowAvatar(messages, i)">
 											<app-avatar 
 												[imageUrl]="msg.senderProfilePicture"
 												[username]="msg.senderUsername"
@@ -127,26 +127,46 @@
 									</div>
 
 									<div class="relative max-w-[60%] break-words group"
-										[ngClass]="openMessageMenuId === msg.id ? 'z-50' : 'z-0'">
-										<!-- Menu button for your messages -->
-										<div *ngIf="msg.senderId === currentUserId && !editingMessageId && !msg.isDeleted"
-												class="absolute top-1/2 -translate-y-1/2 -left-8 transition"
-												[ngClass]="{
-													'opacity-100': openMessageMenuId === msg.id,
-													'opacity-0 group-hover:opacity-100': openMessageMenuId !== msg.id
-												}">
+										[ngClass]="{
+											'z-50': openMessageMenuId === msg.id,
+											'z-0': openMessageMenuId !== msg.id,
+											'mb-5': hasReactions(msg) && shouldShowTimestamp(messages, i)
+										}">
 
+										<div class="absolute top-1/2 -translate-y-1/2 flex items-center gap-1 transition"
+											[ngClass]="{
+												'flex-row': msg.senderId === currentUserId,
+    										'flex-row-reverse': msg.senderId !== currentUserId,
+												'-left-[68px]': msg.senderId === currentUserId,
+												'-right-8': msg.senderId !== currentUserId,
+												'opacity-100': openMessageMenuId === msg.id,
+												'opacity-0 group-hover:opacity-100': openMessageMenuId !== msg.id
+											}"
+										>
+
+											<!-- Reaction button -->
 											<button
+												*ngIf="!msg.isDeleted && !editingMessageId"
+												(click)="openReactionPicker(msg, $event)"
+												class="opacity-0 group-hover:opacity-100 transition w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center">
+												<img src="assets/icons/emoji-2.svg"
+														class="w-5 h-5"
+														style="filter: invert(0.5);" />
+											</button>
+
+											<!-- Menu button -->
+											<button
+												*ngIf="msg.senderId === currentUserId && !editingMessageId && !msg.isDeleted"
 												(click)="toggleMessageMenu(msg.id, $event)"
 												class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"
 												[class.bg-gray-200]="openMessageMenuId === msg.id">
-												<span class="relative -top-[0.5px]">⋮</span>
+												<span class="relative -top-[0.5px] text-gray-500">⋮</span>
 											</button>
 
 											<!-- Dropdown -->
 											<div *ngIf="openMessageMenuId === msg.id"
-													class="message-menu absolute -left-14 bg-white border rounded shadow w-20 text-sm z-50"
-													[ngClass]="messageMenuDirection[msg.id] === 'up' ? 'bottom-full mb-1 animate-slide-up' : 'top-full mt-1 animate-slide-down'">
+												class="message-menu absolute -left-5 bg-white border rounded shadow w-20 text-sm z-50"
+												[ngClass]="messageMenuDirection[msg.id] === 'up' ? 'bottom-full mb-1 animate-slide-up' : 'top-full mt-1 animate-slide-down'">
 
 												<button
 													(click)="startEdit(msg)"
@@ -211,6 +231,41 @@
 													[class]="getEditedLabelClass(msg)">(edited)</span>
 
 											</ng-template>
+										</div>
+
+										<!-- Reactions -->
+										<div *ngIf="msg.reactions"
+											class="absolute -bottom-5 z-10 flex items-center gap-1"
+											[ngClass]="msg.senderId === currentUserId ? 'left-2' : 'right-2'"
+										>
+
+											<div *ngFor="let reaction of getGroupedReactions(msg); trackBy: trackByReaction" class="relative group/reaction">
+
+												<button
+													(mouseenter)="hoveredReactionKey = msg.id + '-' + reaction.emoji"
+  												(mouseleave)="!keepHoverDuringClick && (hoveredReactionKey = null)"
+													(mousedown)="$event.preventDefault()"
+													(click)="toggleReaction(msg, reaction.emoji)"
+													class="bg-white px-[3px] py-[2px] rounded-full shadow border
+													hover:bg-gray-100 transition text-sm">
+
+													{{ reaction.emoji }}
+													<span *ngIf="reaction.count >= 2" class="pr-1">{{ reaction.count }}</span>
+
+												</button>
+
+												<!-- Tooltip -->
+												<div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 transition z-50"
+													[class.opacity-0]="hoveredReactionKey !== (msg.id + '-' + reaction.emoji)"
+													[class.opacity-100]="hoveredReactionKey === (msg.id + '-' + reaction.emoji)">
+
+													<div class="bg-black text-white text-xs px-2 py-1 rounded-lg shadow-lg
+       											w-max max-w-[200px] whitespace-nowrap overflow-hidden text-ellipsis text-center">
+														{{ getReactionTooltip(reaction.uids, reaction.emoji) }}
+													</div>
+
+												</div>
+											</div>
 										</div>
 									</div>
 								</div>
@@ -307,6 +362,21 @@
       (emojiSelect)="addEmoji($event)">
       </emoji-mart>
   </div>
+
+	<!-- Reaction Picker -->
+	<div *ngIf="showReactionPicker"
+		#reactionPicker
+		class="fixed z-[100] shadow-lg"
+		[style.top.px]="reactionPickerPosition.top"
+		[style.left.px]="reactionPickerPosition.left">
+
+		<emoji-mart
+			[perLine]="9"
+			[emojiSize]="24"
+			(emojiSelect)="addReaction($event)">
+		</emoji-mart>
+
+	</div>
 </div>
 
 <app-confirm-modal

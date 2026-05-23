@@ -42,6 +42,7 @@ export class GroupChatWindow implements OnChanges {
   @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('emojiButton', { static: false }) emojiButton!: ElementRef;
   @ViewChild('emojiPickerContainer', { static: false }) emojiPickerContainer!: ElementRef;
+  @ViewChild('reactionPicker') reactionPicker!: ElementRef;
 
   group$!: Observable<Group | null>;
   members$!: Observable<any[]>;
@@ -62,6 +63,13 @@ export class GroupChatWindow implements OnChanges {
   emojiPickerPosition = { top: 0, left: 0 };
   emojiOnlyRegex = emojiRegex();
   currentUserId!: string;
+
+  showReactionPicker = false;
+  reactionPickerMessageId: string | null = null;
+  reactionPickerPosition = { top: 0, left: 0 };
+  hoveredReactionKey: string | null = null;
+  keepHoverDuringClick = false;
+  private reactionCache = new WeakMap<Message, any[]>();
 
   wasNearBottom = true;
   pendingScroll = false;
@@ -214,7 +222,6 @@ export class GroupChatWindow implements OnChanges {
 
       tap((messages) => {
         const last = messages[messages.length - 1];
-
         this.wasNearBottom = this.isNearBottom?.() ?? true;
         this.pendingScroll = true;
 
@@ -298,10 +305,23 @@ export class GroupChatWindow implements OnChanges {
 
   shouldGroupWithPrevious(messages: Message[], index: number): boolean {
     const current = messages[index];
-    if (index === 0 || current.type === 'system') return false;
+
+    if (index === 0 || current.type === 'system') {
+      return false;
+    }
 
     const prev = this.getPrevUserMessage(messages, index);
+
     if (!prev) return false;
+
+    // NEW:
+    // if previous message has reactions,
+    // visually separate the next bubble
+    const prevIndex = messages.indexOf(prev);
+
+    if (this.shouldBreakGroupAfter(messages, prevIndex)) {
+      return false;
+    }
 
     const sameSender = prev.senderId === current.senderId;
 
@@ -315,10 +335,22 @@ export class GroupChatWindow implements OnChanges {
 
   shouldRoundBottom(messages: Message[], index: number): boolean {
     const current = messages[index];
-    if (current.type === 'system') return true;
+
+    if (current.type === 'system') {
+      return true;
+    }
+
+    // NEW:
+    // reactions visually terminate the bubble group
+    if (this.hasReactions(current)) {
+      return true;
+    }
 
     const next = this.getNextUserMessage(messages, index);
-    if (!next) return true;
+
+    if (!next) {
+      return true;
+    }
 
     const sameSender = next.senderId === current.senderId;
 
@@ -437,6 +469,12 @@ export class GroupChatWindow implements OnChanges {
 
     const prev = messages[i - 1];
 
+    // NEW:
+    // add extra space if previous message has reactions
+    if (this.hasReactions(prev)) {
+      return 'mt-6';
+    }
+
     const sameSender = current.senderId === prev.senderId;
 
     const diff =
@@ -445,10 +483,10 @@ export class GroupChatWindow implements OnChanges {
     const withinWindow = diff < 30 * 60 * 1000;
 
     if (sameSender && withinWindow) {
-      return 'mt-[2px]'; // tight grouping
+      return 'mt-[2px]';
     }
 
-    return 'mt-3'; // new group
+    return 'mt-3';
   }
   
   shouldShowSenderName(messages: Message[], index: number): boolean {
@@ -657,6 +695,20 @@ export class GroupChatWindow implements OnChanges {
     if (!clickedInsideMessageMenu) {
       this.openMessageMenuId = null;
     }
+
+    // Close reaction picker
+    const clickedInsideReactionButton =
+      this.reactionPickerMessageId &&
+      this.showReactionPicker &&
+      this.emojiButton?.nativeElement.contains(target);
+
+    const clickedInsideReactionPicker =
+      this.reactionPicker?.nativeElement.contains(target);
+
+    if (!clickedInsideReactionButton && !clickedInsideReactionPicker) {
+      this.showReactionPicker = false;
+      this.reactionPickerMessageId = null;
+    }
   }
 
   isNearScrollBottom(element: HTMLElement): boolean {
@@ -795,5 +847,155 @@ export class GroupChatWindow implements OnChanges {
 
     this.messageMenuDirection[id] = shouldOpenUp ? 'up' : 'down';
     this.openMessageMenuId = this.openMessageMenuId === id ? null : id;
+  }
+
+  openReactionPicker(message: Message, event: Event) {
+    event.stopPropagation();
+
+    const button = event.currentTarget as HTMLElement;
+    const rect = button.getBoundingClientRect();
+
+    const pickerWidth = 330;
+    const pickerHeight = 435;
+
+    this.reactionPickerPosition = {
+      top: Math.max(10, rect.top - pickerHeight),
+      left: Math.max(10, rect.left - pickerWidth / 2)
+    };
+
+    this.reactionPickerMessageId = message.id!;
+    this.showReactionPicker = true;
+  }
+
+  async addReaction(event: any) {
+    if (!this.groupId || !this.reactionPickerMessageId) return;
+
+    const emoji = event.emoji.native;
+
+    await this.messagesService.reactToGroupMessage(
+      this.groupId,
+      this.reactionPickerMessageId,
+      emoji
+    );
+
+    this.showReactionPicker = false;
+    this.reactionPickerMessageId = null;
+  }
+
+  getGroupedReactions(msg: Message) {
+    if (!msg.reactions) return [];
+
+    const cached = this.reactionCache.get(msg);
+    if (cached) return cached;
+
+    const grouped: Record<string, string[]> = {};
+
+    Object.entries(msg.reactions).forEach(([uid, emoji]) => {
+      (grouped[emoji] ||= []).push(uid);
+    });
+
+    const result = Object.entries(grouped).map(([emoji, uids]) => ({
+      emoji,
+      count: uids.length,
+      uids
+    }));
+
+    this.reactionCache.set(msg, result);
+    return result;
+  }
+
+  toggleReaction(message: Message, emoji: string) {
+    const uid = this.currentUserId;
+
+    const hoverKey = message.id + '-' + emoji;
+
+    // Preserve tooltip during re-render
+    this.keepHoverDuringClick = true;
+    this.hoveredReactionKey = hoverKey;
+
+    const action =
+      message.reactions?.[uid] === emoji
+        ? this.messagesService.removeGroupReaction(
+            this.groupId!,
+            message.id!
+          )
+        : this.messagesService.reactToGroupMessage(
+            this.groupId!,
+            message.id!,
+            emoji
+          );
+
+    Promise.resolve(action).finally(() => {
+      requestAnimationFrame(() => {
+        this.hoveredReactionKey = hoverKey;
+        this.keepHoverDuringClick = false;
+      });
+    });
+
+    return action;
+  }
+
+  getReactionTooltip(uids: string[], emoji: string): string {
+    const names = uids.map(uid =>
+      uid === this.currentUserId
+        ? 'You'
+        : this.participantMap.get(uid) || 'Someone'
+    );
+
+    return names.join(', ');
+  }
+
+  hasReactions(msg: Message): boolean {
+    return !!msg.reactions && Object.keys(msg.reactions).length > 0;
+  }
+
+  shouldBreakGroupAfter(messages: Message[], index: number): boolean {
+    const current = messages[index];
+
+    if (!current || current.type === 'system') {
+      return false;
+    }
+
+    return this.hasReactions(current);
+  }
+
+  shouldShowAvatar(messages: Message[], index: number): boolean {
+    const current = messages[index];
+
+    if (!current || current.type === 'system') {
+      return false;
+    }
+
+    if (current.senderId === this.currentUserId) {
+      return false;
+    }
+
+    const next = this.getNextUserMessage(messages, index);
+
+    // Last message in thread
+    if (!next) {
+      return true;
+    }
+
+    // Different sender → show avatar
+    if (next.senderId !== current.senderId) {
+      return true;
+    }
+
+    const currentTime = current.createdAt.toDate().getTime();
+    const nextTime = next.createdAt.toDate().getTime();
+
+    const diffMinutes = (nextTime - currentTime) / (1000 * 60);
+
+    // Time break → show avatar
+    return diffMinutes > 30;
+  }
+
+  trackByMessageId(index: number, msg: Message) {
+    return msg.id;
+  }
+
+  trackByReaction(index: number, reaction: any) {
+    return reaction.emoji;
   }
 }
