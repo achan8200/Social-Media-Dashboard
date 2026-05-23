@@ -9,6 +9,16 @@ export interface Message {
   isEdited?: boolean;
   isDeleted?: boolean;
   reactions?: Record<string, string>;
+  replyTo?: MessageReply | null;
+}
+
+export interface MessageReply {
+  id: string;
+  text: string;
+  senderId: string;
+  senderName: string;
+  isDeleted?: boolean;
+  isEdited?: boolean;
 }
 
 export interface Thread {

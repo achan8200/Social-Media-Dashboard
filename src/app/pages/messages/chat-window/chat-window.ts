@@ -101,6 +101,8 @@ export class ChatWindow implements OnChanges {
   keepHoverDuringClick = false;
   private reactionCache = new WeakMap<Message, any[]>();
 
+  replyingToMessage: Message | null = null;
+
   filteredAddPeople$!: Observable<User[]>;
   addPeopleSearch$ = new BehaviorSubject<string>('');
   addPeopleSearchText = '';
@@ -208,19 +210,48 @@ export class ChatWindow implements OnChanges {
       this.messages$,
       this.participants$
     ]).pipe(
-      map(([messages, participants]) =>
-        messages.map(msg => {
+      map(([messages, participants]) => {
+        return messages.map(msg => {
           const participant = participants.find(p => p.uid === msg.senderId);
+
+          // Resolve reply-to message (if any)
+          let enrichedReplyTo = undefined;
+
+          if (msg.replyTo?.id) {
+            const original = messages.find(m => m.id === msg.replyTo!.id);
+
+            if (original) {
+              enrichedReplyTo = {
+                id: original.id,
+                text: original.isDeleted ? 'Message deleted' : original.text,
+                senderId: original.senderId,
+                senderName: original.senderName,
+                isDeleted: original.isDeleted,
+                isEdited: original.isEdited
+              };
+            } else {
+              enrichedReplyTo = {
+                id: msg.replyTo.id,
+                text: 'Message deleted',
+                senderName: 'Unknown',
+                senderId: '',
+                isDeleted: true,
+                isEdited: true
+              };
+            }
+          }
 
           return {
             ...msg,
             senderProfilePicture: participant?.profilePicture,
             senderUsername: participant?.username,
-            senderUserId: participant?.userId
+            senderUserId: participant?.userId,
+            replyTo: enrichedReplyTo
           };
-        })
-      )
+        });
+      })
     );
+
     this.typing$ = this.messagesService.getTyping(this.threadId);
     this.messagesService.markMessagesAsRead(this.threadId);
 
@@ -261,9 +292,10 @@ export class ChatWindow implements OnChanges {
   async sendMessage() {
     if (!this.threadId || !this.newMessage.trim()) return;
 
-    await this.messagesService.sendMessage(this.threadId, this.newMessage);
+    await this.messagesService.sendMessage(this.threadId, this.newMessage, 'text', this.replyingToMessage || null);
 
     this.newMessage = '';
+    this.replyingToMessage = null;
 
     const el = this.messageInput.nativeElement;
     el.style.height = 'auto';
@@ -1319,5 +1351,17 @@ export class ChatWindow implements OnChanges {
 
   trackByReaction(index: number, reaction: any) {
     return reaction.emoji;
+  }
+
+  replyToMessage(msg: Message) {
+    this.replyingToMessage = msg;
+
+    setTimeout(() => {
+      this.messageInput?.nativeElement?.focus();
+    });
+  }
+
+  cancelReply() {
+    this.replyingToMessage = null;
   }
 }

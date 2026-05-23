@@ -115,11 +115,23 @@
 												[ngClass]="{
 													'flex-row': msg.senderId === currentUserId,
     											'flex-row-reverse': msg.senderId !== currentUserId,
-													'-left-[68px]': msg.senderId === currentUserId,
-													'-right-[68px]': msg.senderId !== currentUserId,
+													'-left-[104px]': msg.senderId === currentUserId,
+													'-right-[104px]': msg.senderId !== currentUserId,
+													'-right-[68px]': msg.senderId !== currentUserId && !canDeleteMessage(msg),
 													'opacity-100': openMessageMenuId === msg.id,
 													'opacity-0 group-hover:opacity-100': openMessageMenuId !== msg.id
-												}">
+												}"
+											>
+												
+												<!-- Reply button -->
+												<button
+													*ngIf="!msg.isDeleted && !editingMessageId"
+													(click)="replyToMessage(msg)"
+													class="opacity-0 group-hover:opacity-100 transition w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center">
+													<img src="assets/icons/reply.svg"
+															class="w-5 h-5"
+															style="filter: invert(0.5);" />
+												</button>
 
 												<!-- Reaction button -->
 												<button
@@ -133,7 +145,7 @@
 
 												<!-- Menu button -->
 												<button
-													*ngIf="(msg.senderId === currentUserId || (currentUserRole$ | async) === 'owner' || (currentUserRole$ | async) === 'moderator') && !editingMessageId && !msg.isDeleted"
+													*ngIf="canDeleteMessage(msg) && !editingMessageId && !msg.isDeleted"
 													(click)="toggleMessageMenu(msg.id, $event)"
 													class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"
 													[class.bg-gray-200]="openMessageMenuId === msg.id">
@@ -146,17 +158,17 @@
 														[ngClass]="{
 															'bottom-full mb-1 animate-slide-up': messageMenuDirection[msg.id] === 'up',
 															'top-full mt-1 animate-slide-down': messageMenuDirection[msg.id] !== 'up',
-															'-left-5': msg.senderId === currentUserId,
-															'-right-5': msg.senderId !== currentUserId
+															'right-2': msg.senderId === currentUserId,
+															'left-2': msg.senderId !== currentUserId
 														}">
 
-													<button *ngIf="(msg.senderId === currentUserId && !editingMessageId && !msg.isDeleted)"
+													<button *ngIf="msg.senderId === currentUserId && !editingMessageId && !msg.isDeleted"
 														(click)="startEdit(msg)"
 														class="block w-full text-left px-3 py-2 hover:bg-gray-100">
 														Edit
 													</button>
 
-													<button *ngIf="(msg.senderId === currentUserId || (currentUserRole$ | async) === 'owner' || (currentUserRole$ | async) === 'moderator') && !editingMessageId && !msg.isDeleted"
+													<button *ngIf="canDeleteMessage(msg) && !editingMessageId && !msg.isDeleted"
 														(click)="confirmDelete(msg)"
 														class="block w-full text-left px-3 py-2 text-red-500 hover:bg-gray-100">
 														Delete
@@ -205,12 +217,44 @@
 														class="italic opacity-80">Message deleted</span>
 
 													<!-- Normal -->
-													<span *ngIf="!msg.isDeleted"
-														class="whitespace-pre-wrap break-words">{{ msg.text }}</span>
+													<div *ngIf="!msg.isDeleted" class="flex flex-col gap-1">
 
-													<!-- Edited label -->
-													<span *ngIf="msg.isEdited && !msg.isDeleted"
-														[class]="getEditedLabelClass(msg)">(edited)</span>
+														<!-- Reply Preview -->
+														<div *ngIf="msg.replyTo"
+															class="rounded-xl px-3 py-2 border-l-4 text-sm backdrop-blur-sm"
+															[ngClass]="msg.senderId === currentUserId
+																? 'bg-blue-300/30 border-blue-100 text-blue-50'
+																: 'bg-gray-100 border-gray-300 text-gray-700'">
+
+															<div class="font-semibold text-xs opacity-90 mb-0.5">
+																{{
+																	msg.replyTo.senderId === currentUserId
+																		? 'You'
+																		: msg.replyTo.senderName
+																}}
+															</div>
+
+															<div class="opacity-80 line-clamp-2 whitespace-pre-wrap break-words"
+																>{{ 
+																	msg.replyTo.isDeleted ? 'Message deleted' : msg.replyTo.text 
+																}}<span *ngIf="msg.replyTo.isEdited && !msg.replyTo.isDeleted" [class]="getEditedLabelClass(msg)">(edited)</span>
+															</div>
+															
+														</div>
+
+														<div>
+
+															<!-- Actual Message -->
+															<span *ngIf="!msg.isDeleted" 
+																class="whitespace-pre-wrap break-words">{{ msg.text }}</span>
+
+															<!-- Edited label -->
+															<span *ngIf="msg.isEdited && !msg.isDeleted"
+																[class]="getEditedLabelClass(msg)">(edited)</span>
+														
+														</div>
+
+													</div>
 
 												</ng-template>
 											</div>
@@ -237,7 +281,7 @@
 													</button>
 
 													<!-- Tooltip -->
-													<div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 transition z-50"
+													<div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 transition z-50 pointer-events-none"
 														[class.opacity-0]="hoveredReactionKey !== (msg.id + '-' + reaction.emoji)"
 														[class.opacity-100]="hoveredReactionKey === (msg.id + '-' + reaction.emoji)">
 
@@ -296,40 +340,72 @@
 			</div>
 
 			<!-- Input Area -->
-			<div class="p-3 border-t flex items-end space-x-2 relative">
+			<div class="border-t">
 
-				<!-- Textarea + Emoji Wrapper -->
-				<div class="flex-1 relative">
-					
-					<!-- Textarea -->
-					<textarea
-						#messageInput
-						[(ngModel)]="newMessage"
-						(keydown.enter)="handleEnter($event)"
-						(input)="onInputChange($event)"
-						placeholder="Type a message..."
-						rows="1"
-						class="w-full border rounded px-3 py-1.5 pr-10 resize-none overflow-hidden"></textarea>
+				<!-- Reply Preview -->
+				<div
+					*ngIf="replyingToMessage"
+					class="bg-white px-4 py-2 flex items-start justify-between border-b">
 
-					<div #emojiPickerContainer>
-						<!-- Emoji Button -->
-						<button
-							#emojiButton
-							type="button"
-							(click)="toggleEmojiPicker($event)"
-							(mousedown)="$event.preventDefault()"
-							class="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:scale-105">
-							<img src="assets/icons/emoji-1.svg" alt="Emoji" class="w-5 h-5" style="filter: invert(0.6);"/>
-						</button>
+					<div class="min-w-0">
+						<div class="text-xs font-medium text-gray-400">
+							{{ replyingToMessage.senderId === currentUserId
+								? 'You'
+								: replyingToMessage.senderName }}
+						</div>
+
+						<div class="text-sm text-gray-600 whitespace-pre-wrap break-words line-clamp-2 max-w-[600px]"
+							>{{
+								replyingToMessage.isDeleted
+									? 'Message deleted'
+									: replyingToMessage.text
+							}}
+						</div>
 					</div>
+
+					<button
+						(click)="cancelReply()"
+						class="ml-3 text-gray-500 hover:text-gray-700">
+						✕
+					</button>
 				</div>
 
-				<!-- Send Button -->
-				<button
-					(click)="sendMessage()"
-					class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-					Send
-				</button>
+				<!-- Input Row -->
+				<div class="p-3 flex items-end space-x-2">
+
+					<!-- Textarea + Emoji Wrapper -->
+					<div class="flex-1 relative">
+						
+						<!-- Textarea -->
+						<textarea
+							#messageInput
+							[(ngModel)]="newMessage"
+							(keydown.enter)="handleEnter($event)"
+							(input)="onInputChange($event)"
+							placeholder="Type a message..."
+							rows="1"
+							class="w-full border rounded px-3 py-1.5 pr-10 resize-none overflow-hidden"></textarea>
+
+						<div #emojiPickerContainer>
+							<!-- Emoji Button -->
+							<button
+								#emojiButton
+								type="button"
+								(click)="toggleEmojiPicker($event)"
+								(mousedown)="$event.preventDefault()"
+								class="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:scale-105">
+								<img src="assets/icons/emoji-1.svg" alt="Emoji" class="w-5 h-5" style="filter: invert(0.6);"/>
+							</button>
+						</div>
+					</div>
+
+					<!-- Send Button -->
+					<button
+						(click)="sendMessage()"
+						class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+						Send
+					</button>
+				</div>
 			</div>
 		</div>
 

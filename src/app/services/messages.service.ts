@@ -191,7 +191,7 @@ export class MessagesService {
   }
 
   /** Send a message */
-  async sendMessage(threadId: string, text: string, type: string = "text") {
+  async sendMessage(threadId: string, text: string, type: string = "text", replyTo: any = null) {
     const currentUser = this.auth.currentUser;
     if (!currentUser?.uid) throw new Error('User not authenticated');
 
@@ -210,6 +210,12 @@ export class MessagesService {
 
     const messageRef = collection(this.firestore, `threads/${threadId}/messages`);
     const createdAt = serverTimestamp();
+
+    const replyData = replyTo
+      ? {
+          id: replyTo.id,
+        }
+      : null;
     
     // Add the new message
     const newMsgRef = await addDoc(messageRef, {
@@ -218,7 +224,8 @@ export class MessagesService {
       text,
       createdAt,
       readBy: [currentUser.uid],
-      type
+      type,
+      replyTo: replyData
     });
 
     // Compute unreadCount per participant
@@ -642,7 +649,7 @@ export class MessagesService {
     });
   }
 
-  async sendGroupMessage(groupId: string, text: string, type: string = "text") {
+  async sendGroupMessage(groupId: string, text: string, type: string = "text", replyTo: any = null) {
     const currentUser = this.auth.currentUser;
     if (!currentUser?.uid) throw new Error('Not authenticated');
 
@@ -652,13 +659,20 @@ export class MessagesService {
 
     const messageRef = collection(this.firestore, `groupThreads/${groupId}/messages`);
 
+    const replyData = replyTo
+      ? {
+          id: replyTo.id,
+        }
+      : null;
+
     const newMsgRef = await addDoc(messageRef, {
       senderId: currentUser.uid,
       senderName: userData?.['displayName'],
       text,
       type,
       readBy: [currentUser.uid],
-      createdAt: serverTimestamp()
+      createdAt: serverTimestamp(),
+      replyTo: replyData
     });
 
     const threadRef = doc(this.firestore, `groupThreads/${groupId}`);

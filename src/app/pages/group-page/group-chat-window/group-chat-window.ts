@@ -71,6 +71,9 @@ export class GroupChatWindow implements OnChanges {
   keepHoverDuringClick = false;
   private reactionCache = new WeakMap<Message, any[]>();
 
+  replyingToMessage: Message | null = null;
+  currentUserRole = 'member';
+
   wasNearBottom = true;
   pendingScroll = false;
   justSentMessage = false;
@@ -118,6 +121,12 @@ export class GroupChatWindow implements OnChanges {
         return me?.role || 'member';
       })
     );
+
+    this.currentUserRole$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(role => {
+        this.currentUserRole = role;
+      });
 
     this.membersWithProfile$ = this.members$.pipe(
       switchMap((members: GroupMember[]) => {
@@ -209,13 +218,41 @@ export class GroupChatWindow implements OnChanges {
               ? titleMap.get(member.activeTitleId as string)
               : null;
 
+          // Resolve reply-to message (if any)
+          let enrichedReplyTo = undefined;
+
+          if (msg.replyTo?.id) {
+            const original = messages.find(m => m.id === msg.replyTo!.id);
+
+            if (original) {
+              enrichedReplyTo = {
+                id: original.id,
+                text: original.isDeleted ? 'Message deleted' : original.text,
+                senderId: original.senderId,
+                senderName: original.senderName,
+                isDeleted: original.isDeleted,
+                isEdited: original.isEdited
+              };
+            } else {
+              enrichedReplyTo = {
+                id: msg.replyTo.id,
+                text: 'Message deleted',
+                senderName: 'Unknown',
+                senderId: '',
+                isDeleted: true,
+                isEdited: true
+              };
+            }
+          }
+          
           return {
             ...msg,
             senderProfilePicture: profile?.profilePicture || '',
             senderUsername: profile?.username || 'Unknown',
             senderUserId: profile?.userId || '',
             senderRole: member?.role || 'member',
-            senderActiveTitle: activeTitle || null
+            senderActiveTitle: activeTitle || null,
+            replyTo: enrichedReplyTo
           };
         });
       }),
@@ -255,9 +292,10 @@ export class GroupChatWindow implements OnChanges {
   async sendMessage() {
     if (!this.groupId || !this.newMessage.trim()) return;
 
-    await this.messagesService.sendGroupMessage(this.groupId, this.newMessage);
+    await this.messagesService.sendGroupMessage(this.groupId, this.newMessage, 'text', this.replyingToMessage || null);
 
     this.newMessage = '';
+    this.replyingToMessage = null;
 
     const el = this.messageInput.nativeElement;
     el.style.height = 'auto';
@@ -777,6 +815,29 @@ export class GroupChatWindow implements OnChanges {
       : 'text-gray-500 text-[0.65rem] ml-1';
   }
 
+  canDeleteMessage(msg: any): boolean {
+    const currentRole = this.currentUserRole;
+    const senderRole = msg.senderRole;
+
+    // Everyone can delete their own messages
+    if (msg.senderId === this.currentUserId) {
+      return true;
+    }
+
+    // Owner can delete anyone
+    if (currentRole === 'owner') {
+      return true;
+    }
+
+    // Moderator can delete members only
+    if (currentRole === 'moderator') {
+      return senderRole === 'member';
+    }
+
+    // Members cannot delete others
+    return false;
+  }
+
   confirmDelete(message: any) {
     this.openMessageMenuId = null;
     this.messageToDelete = message;
@@ -997,5 +1058,17 @@ export class GroupChatWindow implements OnChanges {
 
   trackByReaction(index: number, reaction: any) {
     return reaction.emoji;
+  }
+
+  replyToMessage(msg: Message) {
+    this.replyingToMessage = msg;
+
+    setTimeout(() => {
+      this.messageInput?.nativeElement?.focus();
+    });
+  }
+
+  cancelReply() {
+    this.replyingToMessage = null;
   }
 }
