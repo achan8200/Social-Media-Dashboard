@@ -944,12 +944,11 @@ export class PostView implements AfterViewInit {
     const target = event.target as HTMLElement;
 
     // Close emoji picker
-    const clickedInsidePicker =
-      this.emojiPickerContainer?.nativeElement.contains(target);
-    const clickedButton =
-      this.emojiButton?.nativeElement.contains(target);
+    const clickedInsideEmojiContainer = this.emojiPickerContainer?.nativeElement.contains(target);
+    const clickedInsidePicker = target.closest('emoji-mart') !== null;
+    const clickedButton = this.emojiButton?.nativeElement.contains(target);
 
-    if (!clickedInsidePicker && !clickedButton) {
+    if (!clickedInsideEmojiContainer && !clickedInsidePicker && !clickedButton) {
       this.showEmojiPicker = false;
     }
 
