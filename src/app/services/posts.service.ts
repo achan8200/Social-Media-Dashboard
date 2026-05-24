@@ -208,6 +208,11 @@ export class PostsService {
     const user = this.auth.currentUser;
     if (!user) throw new Error('Not authenticated');
 
+    // Prevent excessive uploads
+    if (files && files.length > 15) {
+      throw new Error('Maximum 15 media items allowed per post');
+    }
+
     const uid = user.uid;
 
     // Create temporary optimistic post

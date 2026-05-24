@@ -23,44 +23,54 @@
       (keydown)="handlePostKeydown($event)"></textarea>
 
     <!-- File Input -->
-    <label class="w-full border rounded p-2 cursor-pointer bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors duration-150 flex items-center justify-center">
+    <label *ngIf="selectedMedia.length < MAX_MEDIA_ITEMS"
+      class="w-full border rounded p-2 cursor-pointer bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors duration-150 flex items-center justify-center">
         Browse Files
         <input type="file" multiple (change)="onFileChange($event)" class="hidden" />
     </label>
 
+    <!-- Media Counter -->
+    <p class="text-sm text-gray-400 text-right">
+      {{ selectedMedia.length }}/{{ MAX_MEDIA_ITEMS }} media selected
+    </p>
+
     <!-- Preview Grid -->
-    <div
-        *ngIf="selectedMedia.length > 0"
-        cdkDropList
-        (cdkDropListDropped)="drop($event)"
-        [cdkDropListDisabled]="isUploading"
-        class="grid grid-cols-3 gap-2 mt-2">
-      <div *ngFor="let media of selectedMedia; let i = index"
-            cdkDrag
-            [cdkDragDisabled]="isUploading"
-            class="relative border rounded overflow-hidden cursor-move">
-            
-        <button *ngIf="media.progress < 100"
-                (click)="removeMedia(i)"
-                class="absolute top-1 right-1 bg-black bg-opacity-60 text-white text-xs px-1 rounded">✕</button>
+    <div *ngIf="selectedMedia.length > 0"
+      class="max-h-72 overflow-y-auto pr-1 mt-2">
+  
+      <div
+          *ngIf="selectedMedia.length > 0"
+          cdkDropList
+          (cdkDropListDropped)="drop($event)"
+          [cdkDropListDisabled]="isUploading"
+          class="grid grid-cols-3 gap-2">
+        <div *ngFor="let media of selectedMedia; let i = index"
+              cdkDrag
+              [cdkDragDisabled]="isUploading"
+              class="relative border rounded overflow-hidden cursor-move">
+              
+          <button *ngIf="media.progress < 100"
+                  (click)="removeMedia(i)"
+                  class="absolute top-1 right-1 bg-black bg-opacity-60 text-white text-xs px-1 rounded">✕</button>
 
-        <img *ngIf="media.file.type.startsWith('image')" 
-            [src]="media.previewUrl"
-            class="w-full h-24 object-cover transition-all duration-300"
-            [class.blur-sm]="media.progress > 0 && media.progress < 100" />
-        <video *ngIf="media.file.type.startsWith('video')" 
-            [src]="media.previewUrl"
-            class="w-full h-24 object-cover transition-all duration-300"
-            [class.blur-sm]="media.progress > 0 && media.progress < 100"
-            muted></video>
+          <img *ngIf="media.file.type.startsWith('image')" 
+              [src]="media.previewUrl"
+              class="w-full h-24 object-cover transition-all duration-300"
+              [class.blur-sm]="media.progress > 0 && media.progress < 100" />
+          <video *ngIf="media.file.type.startsWith('video')" 
+              [src]="media.previewUrl"
+              class="w-full h-24 object-cover transition-all duration-300"
+              [class.blur-sm]="media.progress > 0 && media.progress < 100"
+              muted></video>
 
-        <div *ngIf="media.progress > 0 && media.progress < 100"
-            class="absolute inset-0 flex items-center justify-center bg-black/30 text-white text-xs font-medium">
-            Uploading {{media.progress}}%
-        </div>
+          <div *ngIf="media.progress > 0 && media.progress < 100"
+              class="absolute inset-0 flex items-center justify-center bg-black/30 text-white text-xs font-medium">
+              Uploading {{media.progress}}%
+          </div>
 
-        <div *ngIf="media.progress > 0 && media.progress < 100" class="absolute bottom-0 left-0 w-full bg-gray-200 h-1">
-          <div class="bg-blue-500 h-1 transition-all duration-150 ease-linear" [style.width.%]="media.progress"></div>
+          <div *ngIf="media.progress > 0 && media.progress < 100" class="absolute bottom-0 left-0 w-full bg-gray-200 h-1">
+            <div class="bg-blue-500 h-1 transition-all duration-150 ease-linear" [style.width.%]="media.progress"></div>
+          </div>
         </div>
       </div>
     </div>

@@ -29,6 +29,8 @@ interface SelectedMedia {
   ]
 })
 export class CreatePostModal {
+  readonly MAX_MEDIA_ITEMS = 15;
+
   caption: string = '';
   selectedMedia: SelectedMedia[] = [];
 
@@ -91,7 +93,17 @@ export class CreatePostModal {
 
     const files: File[] = Array.from(input.files);
 
-    const newFiles: SelectedMedia[] = files.map((file: File) => ({
+    // Prevent exceeding max
+    const remainingSlots = this.MAX_MEDIA_ITEMS - this.selectedMedia.length;
+
+    if (remainingSlots <= 0) {
+      input.value = '';
+      return;
+    }
+
+    const limitedFiles = files.slice(0, remainingSlots);
+
+    const newFiles: SelectedMedia[] = limitedFiles.map((file: File) => ({
       file,
       previewUrl: URL.createObjectURL(file),
       progress: 0
