@@ -1,8 +1,52 @@
 <section class="flex-1 p-6 space-y-6 relative">
 
-  <!-- Header -->
-  <div class="flex items-center justify-between mb-4">
-    <h2 class="text-2xl font-semibold text-gray-800">Home</h2>
+  <div class="flex items-center mb-4">
+    <div class="flex bg-gray-100 p-1 rounded-full gap-1 text-sm">
+
+      <button
+        (click)="setFilter('forYou')"
+        class="px-4 py-1.5 rounded-full transition"
+        [class.bg-white]="feedFilter === 'forYou'"
+        [class.shadow]="feedFilter === 'forYou'"
+        [class.font-semibold]="feedFilter === 'forYou'"
+      >
+        For You
+      </button>
+
+      <button
+        (click)="setFilter('latest')"
+        class="px-4 py-1.5 rounded-full transition"
+        [class.bg-white]="feedFilter === 'latest'"
+        [class.shadow]="feedFilter === 'latest'"
+        [class.font-semibold]="feedFilter === 'latest'"
+      >
+        Latest
+      </button>
+
+      <button
+        (click)="setFilter('following')"
+        class="px-4 py-1.5 rounded-full transition"
+        [class.bg-white]="feedFilter === 'following'"
+        [class.shadow]="feedFilter === 'following'"
+        [class.font-semibold]="feedFilter === 'following'"
+      >
+        Following
+      </button>
+
+    </div>
+  </div>
+
+  <div *ngIf="selectedTag$ | async as tag" class="mb-3">
+    <div class="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
+      <span>{{ tag }}</span>
+
+      <button
+        (click)="clearTag()"
+        class="text-blue-500 hover:text-blue-700 font-bold"
+      >
+        ✕
+      </button>
+    </div>
   </div>
 
   <!-- Feed Posts -->

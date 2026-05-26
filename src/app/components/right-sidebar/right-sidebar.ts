@@ -1,6 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { AsyncPipe, CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
+import { FeedStateService } from '../../services/feed-state.service';
+import { PostsService } from '../../services/posts.service';
 import { NotificationsService } from '../../services/notifications.service';
 import { NotificationUtilsService } from '../../services/notification-utils.service';
 import { Notification } from '../../models/notification.model';
@@ -18,12 +20,8 @@ type DayKey = 'Today' | 'Yesterday' | 'Earlier';
   styleUrls: ['./right-sidebar.css']
 })
 export class RightSidebar {
-
-  trending = [
-    '#Angular',
-    '#TailwindCSS',
-    '#Firebase',
-  ];
+  private feedState = inject(FeedStateService);
+  trending$!: Observable<string[]>;
 
   isGuest$!: Observable<boolean>;
   notificationsByDay$!: Observable<Record<string, Notification[][]>>;
@@ -31,11 +29,14 @@ export class RightSidebar {
   
   newNotification = false;
   private latestNotifications: Notification[] = [];
+
+  selectedTag$ = this.feedState.selectedTag$;
   
   constructor(
     private notificationsService: NotificationsService,
     private utils: NotificationUtilsService,
-    private authService: AuthService
+    private authService: AuthService,
+    private postsService: PostsService
   ) {}
 
   async ngOnInit() {
@@ -69,6 +70,8 @@ export class RightSidebar {
         return grouped;
       })
     );
+
+    this.trending$ = this.postsService.getTrendingTags();
   }
 
   markAllRead() {
@@ -81,7 +84,8 @@ export class RightSidebar {
   }
 
   onTagClicked(tag: string) {
-    console.log('Tag clicked:', tag);
+    const current = this.feedState.getSelectedTagValue();
+    this.feedState.setTag(current === tag ? null : tag);
   }
 
   readonly dayOrder: Record<DayKey, number> = {

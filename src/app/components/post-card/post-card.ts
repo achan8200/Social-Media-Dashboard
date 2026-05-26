@@ -53,6 +53,10 @@ export class PostCard {
   groupName$!: Observable<string | null>;
   canRemoveFromGroup$!: Observable<boolean>;
 
+  private videoStartTime = 0;
+  private accumulatedWatchSeconds = 0;
+  private hasTrackedWatchSession = false;
+
   @ViewChild('feedVideo') feedVideo?: ElementRef<HTMLVideoElement>;
   @ViewChild('postRef') postRef?: ElementRef<HTMLElement>;
   private observer?: IntersectionObserver;
@@ -138,6 +142,7 @@ export class PostCard {
   }
 
   ngOnDestroy() {
+    this.endWatchSession();
     this.observer?.disconnect();
     this.postSub?.unsubscribe();
   }
@@ -217,8 +222,10 @@ export class PostCard {
           }
 
           if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+            this.startWatchSession();
             video.play().catch(() => {});
           } else {
+            this.endWatchSession();
             video.pause();
           }
         });
@@ -230,6 +237,7 @@ export class PostCard {
   }
 
   public pauseAutoplay(): void {
+    this.endWatchSession();
     if (this.feedVideo?.nativeElement) {
       this.feedVideo.nativeElement.pause();
     }
@@ -293,6 +301,10 @@ export class PostCard {
     event.stopPropagation();
     if (!this.post) return;
 
+    const tags = this.postsService.extractTags(this.post.caption);
+
+    this.postsService.updateUserInterestScores(tags, 25);
+
     const url = `${window.location.origin}/post/${this.post.id}`;
 
     await navigator.clipboard.writeText(url);
@@ -308,5 +320,46 @@ export class PostCard {
 
   formatPostTimestamp(timestamp: any): string {
     return formatPostTimestamp(timestamp);
+  }
+
+  private startWatchSession() {
+    if (this.videoStartTime > 0) return;
+
+    this.videoStartTime = Date.now();
+  }
+
+  private async endWatchSession() {
+    if (!this.post || !this.videoStartTime) return;
+
+    const seconds = (Date.now() - this.videoStartTime) / 1000;
+
+    this.accumulatedWatchSeconds += seconds;
+
+    this.videoStartTime = 0;
+
+    // Prevent excessive scoring spam
+    if (this.hasTrackedWatchSession) return;
+
+    let score = 0;
+
+    if (this.accumulatedWatchSeconds >= 5) {
+      score += 5;
+    }
+
+    if (this.accumulatedWatchSeconds >= 15) {
+      score += 10;
+    }
+
+    if (this.accumulatedWatchSeconds >= 30) {
+      score += 20;
+    }
+
+    if (score <= 0) return;
+
+    this.hasTrackedWatchSession = true;
+
+    const tags = this.postsService.extractTags(this.post.caption);
+
+    await this.postsService.updateUserInterestScores(tags, score);
   }
 }

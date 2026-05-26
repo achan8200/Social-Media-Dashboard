@@ -1,15 +1,16 @@
-import { Component, OnInit, AfterViewInit, ElementRef, QueryList, ViewChildren, Inject, PLATFORM_ID, ChangeDetectorRef, HostListener } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ElementRef, QueryList, ViewChildren, Inject, PLATFORM_ID, ChangeDetectorRef, HostListener, inject } from '@angular/core';
 import { AsyncPipe, CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { PostCard } from '../post-card/post-card';
 import { Post } from '../../models/post.model';
 import { PostsService } from '../../services/posts.service';
+import { FeedStateService } from '../../services/feed-state.service';
 import { CreatePostModal } from '../create-post-modal/create-post-modal';
 import { PostModal } from '../post-modal/post-modal';
 import { ConfirmModal } from "../confirm-modal/confirm-modal";
 import { EditPostModal } from "../edit-post-modal/edit-post-modal";
-import { map, Observable } from 'rxjs';
+import { combineLatest, map, Observable, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-feed',
@@ -19,6 +20,7 @@ import { map, Observable } from 'rxjs';
   styleUrls: ['./feed.css']
 })
 export class Feed implements OnInit, AfterViewInit {
+  private feedState = inject(FeedStateService);
   posts$: Observable<Post[]>;
   dashboardState$: Observable<{ count: number; fading: boolean }>;
 
@@ -30,6 +32,14 @@ export class Feed implements OnInit, AfterViewInit {
   editingPost: Post | null = null;
 
   selectedPostToRemoveFromGroup: { post: Post; groupName: string | null } | null = null;
+
+  feedFilter:
+    'forYou' | 'latest' | 'following' = 'forYou';
+
+  feedFilter$!: Observable<'forYou' | 'latest' | 'following'>;
+
+  selectedTag: string | null = null;
+  selectedTag$ = this.feedState.selectedTag$;
 
   @ViewChildren('postRef') postElements!: QueryList<ElementRef>;
   @ViewChildren(PostCard) postCards!: QueryList<PostCard>;
@@ -47,17 +57,62 @@ export class Feed implements OnInit, AfterViewInit {
   ) {
     this.isBrowser = isPlatformBrowser(platformId);
     this.dashboardState$ = this.postsService.dashboardState$;
+    this.feedFilter$ = this.feedState.feedFilter$;
 
-    // Subscribe directly to posts and patch only dynamic properties
-    this.posts$ = this.postsService.getPosts().pipe(
-      map(posts => posts.map(post => {
-        // Only add dynamic properties if they don't exist yet
-        if (post.isNew === undefined) {
-          post.isNew = !this.postsService.hasSeen(post.id);
-          post.fadingOut = false;
+    this.posts$ = combineLatest([
+      this.postsService.getPosts(),
+      this.feedFilter$,
+      this.feedState.selectedTag$,
+      this.postsService.getFollowingIdsStream(),
+      this.postsService.getJoinedGroupIdsStream(),
+      this.postsService.getUserInterestScores(),
+      this.postsService.getSeenPostsStream()
+    ]).pipe(
+      switchMap(async ([posts, filter, selectedTag, followingIds, joinedGroupIds, preferredTags, seenPostIds]) => {
+
+        let filtered: Post[];
+
+        if (filter === 'forYou') {
+
+          filtered = this.postsService.rankPosts(
+            posts,
+            followingIds,
+            joinedGroupIds,
+            preferredTags,
+            seenPostIds
+          );
+
+        } else if (filter === 'latest') {
+
+          filtered = [...posts].sort(
+            (a, b) =>
+              new Date(b.createdAt as any).getTime() -
+              new Date(a.createdAt as any).getTime()
+          );
+
+        } else {
+
+          filtered = await this.postsService.getFollowingFeed();
+
         }
-        return post;
-      }))
+
+        if (selectedTag) {
+          filtered = filtered.filter(post =>
+            (post.caption || '')
+              .toLowerCase()
+              .includes(selectedTag.toLowerCase())
+          );
+        }
+
+        return filtered.map(post => ({
+          ...post,
+          isNew:
+            post.isNew ??
+            !this.postsService.hasSeen(post.id),
+
+          fadingOut: false
+        }));
+      })
     );
   }
 
@@ -144,6 +199,9 @@ export class Feed implements OnInit, AfterViewInit {
   openPostModal(post: Post) {
     this.selectedPost = post;
     this.feedPaused = true;
+
+    const tags = this.postsService.extractTags(post.caption);
+    this.postsService.updateUserInterestScores(tags, 2);
 
     // Pause all videos immediately
     this.postCards.forEach(card => card.pauseAutoplay());
@@ -249,5 +307,19 @@ export class Feed implements OnInit, AfterViewInit {
 
   trackByPostId(index: number, post: Post) {
     return post.id;
+  }
+
+  setFilter(filter: 'forYou' | 'latest' | 'following') {
+    this.feedFilter = filter;
+    this.feedState.setFeedFilter(filter);
+    this.feedState.setTag(null);
+  }
+
+  filterByTag(tag: string) {
+    this.selectedTag = tag;
+  }
+
+  clearTag() {
+    this.feedState.setTag(null);
   }
 }

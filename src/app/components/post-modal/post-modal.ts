@@ -844,6 +844,10 @@ export class PostModal implements AfterViewInit {
     event.stopPropagation();
     if (!this.post) return;
 
+    const tags = this.postsService.extractTags(this.post.caption);
+
+    this.postsService.updateUserInterestScores(tags, 25);
+
     const url = `${window.location.origin}/post/${this.post.id}`;
 
     await navigator.clipboard.writeText(url);

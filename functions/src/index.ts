@@ -1,5 +1,6 @@
 import * as firestore from "firebase-functions/v2/firestore";
 import {onCall, HttpsError, CallableRequest} from "firebase-functions/v2/https";
+import {onSchedule} from "firebase-functions/v2/scheduler";
 import * as admin from "firebase-admin";
 
 admin.initializeApp();
@@ -92,5 +93,50 @@ export const removeFollower = onCall(
     await batch.commit();
 
     return {success: true};
+  }
+);
+
+// --------------------
+// Interest decay scheduler
+// --------------------
+
+export const decayUserInterests = onSchedule(
+  {
+    schedule: "every 24 hours",
+    timeZone: "UTC",
+  },
+  async () => {
+    const usersSnap = await db.collection("users").get();
+
+    for (const userDoc of usersSnap.docs) {
+      const interestsSnap = await userDoc.ref.collection("interests").get();
+
+      if (interestsSnap.empty) continue;
+
+      const batch = db.batch();
+
+      interestsSnap.docs.forEach((doc) => {
+        const data = doc.data();
+        const oldScore = data["score"] ?? 0;
+
+        const newScore = Math.max(
+          0,
+          Number((oldScore * 0.97).toFixed(2))
+        );
+
+        if (newScore < 0.25) {
+          batch.delete(doc.ref);
+        } else {
+          batch.update(doc.ref, {
+            score: newScore,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+      });
+
+      await batch.commit();
+    }
+
+    console.log("Interest decay completed.");
   }
 );

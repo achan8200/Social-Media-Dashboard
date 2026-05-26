@@ -458,6 +458,11 @@ export class PostsService {
 
       if (postSnap.exists()) {
         const post = postSnap.data();
+
+        const tags = this.extractTags(post['caption']);
+
+        await this.updateUserInterestScores(tags, 5);
+
         if (post['uid'] !== uid) {
           await this.notificationsService.createNotification({
             recipientUid: post['uid'],
@@ -619,6 +624,11 @@ export class PostsService {
 
     if (postSnap.exists()) {
       const post = postSnap.data();
+
+      const tags = this.extractTags(post['caption']);
+
+      await this.updateUserInterestScores(tags, 8);
+
       if (post['uid'] !== user.uid) {
         await this.notificationsService.createNotification({
           recipientUid: post['uid'],
@@ -1030,6 +1040,315 @@ export class PostsService {
     const postRef = doc(this.firestore, `posts/${postId}`) as DocumentReference<Post>;
     return docData(postRef, { idField: 'id' }).pipe(
       map(post => post?.caption ?? '')
+    );
+  }
+
+  getTrendingTags(limitCount = 5): Observable<string[]> {
+    return this.posts$.pipe(
+      map(posts => {
+        const tagCount = new Map<string, number>();
+
+        posts.forEach(post => {
+          const matches = (post.caption || '').match(/#[a-zA-Z0-9_]+/g);
+          if (!matches) return;
+
+          matches.forEach(tag => {
+            tagCount.set(tag, (tagCount.get(tag) || 0) + 1);
+          });
+        });
+
+        return [...tagCount.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, limitCount)
+          .map(([tag]) => tag);
+      })
+    );
+  }
+
+  async getFollowingFeed(): Promise<Post[]> {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) return [];
+
+    // Get following list
+    const followingSnap = await getDocs(
+      collection(this.firestore, `users/${uid}/following`)
+    );
+
+    const followingIds = followingSnap.docs.map(d => d.id);
+
+    if (!followingIds.length) return [];
+
+    // Firestore "in" supports max 10
+    const chunks: string[][] = [];
+
+    for (let i = 0; i < followingIds.length; i += 10) {
+      chunks.push(followingIds.slice(i, i + 10));
+    }
+
+    const results: Post[] = [];
+
+    for (const chunk of chunks) {
+      const q = query(
+        collection(this.firestore, 'posts'),
+        where('uid', 'in', chunk),
+        orderBy('createdAt', 'desc'),
+        limit(20)
+      );
+
+      const snap = await getDocs(q);
+
+      results.push(
+        ...(snap.docs.map(d => ({
+          id: d.id,
+          ...d.data()
+        })) as Post[])
+      );
+    }
+
+    return results.sort(
+      (a, b) =>
+        new Date(b.createdAt as any).getTime() -
+        new Date(a.createdAt as any).getTime()
+    );
+  }
+
+  getTrendingPosts(limitCount = 5): Observable<Post[]> {
+    return this.posts$.pipe(
+      map(posts => {
+        const scored = [...posts].map(post => {
+
+          const likes = post.likesCount || 0;
+          const comments = post.commentsCount || 0;
+
+          const created =
+            new Date(post.createdAt as any).getTime();
+
+          const hoursOld =
+            (Date.now() - created) / (1000 * 60 * 60);
+
+          // Weighted score
+          const score =
+            likes * 2 +
+            comments * 3 -
+            hoursOld * 0.25;
+
+          return {
+            ...post,
+            trendingScore: score
+          };
+        });
+
+        return scored
+          .sort((a: any, b: any) =>
+            b.trendingScore - a.trendingScore
+          )
+          .slice(0, limitCount);
+      })
+    );
+  }
+
+  rankPosts(
+    posts: Post[],
+    followingIds: Set<string> = new Set(),
+    joinedGroupIds: Set<string> = new Set(),
+    preferredTags: Map<string, number> = new Map(),
+    seenPostIds: Set<string> = new Set()
+  ): Post[] {
+
+    return [...posts]
+      .map(post => {
+
+        const likes = post.likesCount || 0;
+        const comments = post.commentsCount || 0;
+
+        const created = new Date(post.createdAt as any).getTime();
+        const hoursOld = (Date.now() - created) / (1000 * 60 * 60);
+
+        let score =
+          likes * 1.5 +
+          comments * 2.5;
+
+        // freshness
+        score += Math.max(0, 48 - hoursOld);
+
+        // media boost
+        if (post.media?.length) score += 10;
+
+        // following boost
+        if (followingIds.has(post.uid)) {
+          score += 40;
+        }
+
+        // group boost
+        if (post.groupId && joinedGroupIds.has(post.groupId)) {
+          score += 25;
+        }
+
+        // tag affinity boost
+        const tags = (post.caption || '').match(/#[a-zA-Z0-9_]+/g) || [];
+        tags.forEach(tag => {
+
+          const clean = tag.replace('#', '').toLowerCase();
+
+          const affinity = preferredTags.get(clean) || 0;
+
+          score += affinity * 0.15;
+        });
+
+        // seen penalty
+        if (seenPostIds.has(post.id)) {
+          score -= 30;
+        }
+
+        return {
+          ...post,
+          feedScore: score
+        };
+      })
+      .sort((a: any, b: any) => b.feedScore - a.feedScore);
+  }
+
+  getFollowingIdsStream(): Observable<Set<string>> {
+    const uid = this.auth.currentUser?.uid;
+
+    if (!uid) {
+      return of(new Set<string>());
+    }
+
+    const followingRef = collection(
+      this.firestore,
+      `users/${uid}/following`
+    );
+
+    return collectionData(followingRef, {
+      idField: 'id'
+    }).pipe(
+      map(users => new Set(users.map((u: any) => u.id)))
+    );
+  }
+
+  getJoinedGroupIdsStream(): Observable<Set<string>> {
+    const uid = this.auth.currentUser?.uid;
+
+    if (!uid) {
+      return of(new Set<string>());
+    }
+
+    const groupsRef = collection(
+      this.firestore,
+      `users/${uid}/groups`
+    );
+
+    return collectionData(groupsRef, {
+      idField: 'id'
+    }).pipe(
+      map(groups => new Set(groups.map((g: any) => g.id)))
+    );
+  }
+
+  getPreferredTagsStream(): Observable<Set<string>> {
+    return this.posts$.pipe(
+      map(posts => {
+
+        const scores = new Map<string, number>();
+
+        posts.forEach(post => {
+
+          const tags =
+            (post.caption || '')
+              .match(/#[a-zA-Z0-9_]+/g) || [];
+
+          const engagement =
+            (post.likesCount || 0) +
+            (post.commentsCount || 0) * 2;
+
+          tags.forEach(tag => {
+            scores.set(
+              tag,
+              (scores.get(tag) || 0) + engagement
+            );
+          });
+        });
+
+        const topTags = [...scores.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 15)
+          .map(([tag]) => tag);
+
+        return new Set(topTags);
+      })
+    );
+  }
+
+  getSeenPostsStream(): Observable<Set<string>> {
+    return of(this.seenPosts);
+  }
+
+  async updateUserInterestScores(tags: string[], amount: number) {
+    const uid = this.auth.currentUser?.uid;
+
+    if (!uid || !tags.length) return;
+
+    await Promise.all(
+      tags.map(async tag => {
+
+        const cleanTag =
+          tag.replace('#', '').toLowerCase();
+
+        const ref = doc(
+          this.firestore,
+          `users/${uid}/interests/${cleanTag}`
+        );
+
+        await setDoc(
+          ref,
+          {
+            score: increment(amount),
+            updatedAt: serverTimestamp()
+          },
+          { merge: true }
+        );
+      })
+    );
+  }
+
+  extractTags(caption?: string): string[] {
+    if (!caption) return [];
+
+    return (
+      caption.match(/#[a-zA-Z0-9_]+/g) || []
+    );
+  }
+
+  getUserInterestScores(): Observable<Map<string, number>> {
+
+    const uid = this.auth.currentUser?.uid;
+
+    if (!uid) {
+      return of(new Map());
+    }
+
+    const ref = collection(
+      this.firestore,
+      `users/${uid}/interests`
+    );
+
+    return collectionData(ref, {
+      idField: 'id'
+    }).pipe(
+      map((items: any[]) => {
+
+        const mapScores = new Map<string, number>();
+
+        items.forEach(item => {
+          mapScores.set(
+            item.id,
+            item.score || 0
+          );
+        });
+
+        return mapScores;
+      })
     );
   }
 }

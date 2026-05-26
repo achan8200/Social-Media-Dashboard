@@ -4,13 +4,16 @@
     <h2 class="font-semibold text-gray-700 mb-3 text-lg flex items-center gap-2">
       <img src="assets/icons/trending.svg" alt="Trending" class="w-5 h-5" />
       <span>Trending</span>
+      <button *ngIf="selectedTag$ | async as tag"
+        (click)="onTagClicked('')"
+        class="text-xs text-blue-500 hover:underline ml-auto"
+      >
+        Clear filter
+      </button>
     </h2>
     <ul class="space-y-2 text-sm text-gray-600">
-      @for (tag of trending; track tag) {
-        <!--
-        <li class="hover:text-blue-600 cursor-pointer transition-colors duration-200">{{ tag }}</li>
-        -->
-        <li>
+      @for (tag of (trending$ | async); track tag) {
+        <li [class.opacity-50]="(selectedTag$ | async) !== tag">
           <app-trending-tag 
             [label]="tag" 
             (tagClick)="onTagClicked($event)">
@@ -53,8 +56,6 @@
           </ng-container>
         </ng-container>
       </div>
-      <!-- Bottom Fade Overlay -->
-      <div class="pointer-events-none absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-white to-transparent"></div>
     </div>
 
     <!-- Sticky button at bottom -->
