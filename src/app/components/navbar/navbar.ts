@@ -227,4 +227,10 @@ export class Navbar {
   sortDays = (a: { key: string }, b: { key: string }): number => {
     return this.dayOrder[a.key as DayKey] - this.dayOrder[b.key as DayKey];
   };
+
+  clearSearch() {
+    this.searchQuery = '';
+    this.searchSubject.next('');
+    this.showResults = false;
+  }
 }

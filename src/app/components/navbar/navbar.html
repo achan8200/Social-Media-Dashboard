@@ -16,15 +16,27 @@
           <span>▾</span>
         </button>
 
-        <!-- Input -->
-        <input
-          type="text"
-          [(ngModel)]="searchQuery"
-          (input)="onSearchChange()"
-          (focus)="showResults = true"
-          placeholder="Search"
-          class="flex-1 px-3 py-2 outline-none"
-        />
+        <!-- Input wrapper -->
+        <div class="relative flex-1">
+          <input
+            type="text"
+            [(ngModel)]="searchQuery"
+            (input)="onSearchChange()"
+            (focus)="showResults = true"
+            placeholder="Search"
+            class="w-full px-3 py-2 pr-8 outline-none"
+          />
+
+          <!-- Clear button -->
+          <button
+            *ngIf="searchQuery"
+            (click)="clearSearch()"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+            aria-label="Clear search"
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       <!-- Search Type Dropdown -->
