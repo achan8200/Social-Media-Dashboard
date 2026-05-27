@@ -1,4 +1,10 @@
-<div class="min-h-screen flex flex-col bg-gray-100 bg-gradient-to-br from-blue-100 via-white to-blue-200">
+<!-- Fixed Gradient Background -->
+<div
+  class="fixed inset-0 -z-10 bg-gradient-to-br from-blue-100 via-white to-blue-200">
+</div>
+
+<!-- App -->
+<div class="min-h-screen flex flex-col">
   <!-- Navbar -->
   <app-navbar class="sticky top-0 z-50"></app-navbar>
 
@@ -6,8 +12,8 @@
   <div class="flex flex-col md:flex-row flex-1 px-4 py-3 gap-4 max-w-7xl mx-auto w-full">
     <!-- Left Sidebar -->
     <app-sidebar class="w-full md:w-64 sticky top-20 self-start"></app-sidebar>
-    
-    <!-- Route Content (like app-home) -->
+
+    <!-- Route Content -->
     <div class="flex-1">
       <router-outlet *ngIf="authService.authReady$ | async"></router-outlet>
     </div>
