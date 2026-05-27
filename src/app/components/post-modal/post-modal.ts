@@ -227,7 +227,7 @@ export class PostModal implements AfterViewInit {
         }
 
         // 4+
-        return `Liked by ${names[0]}, ${names[1]}, and ${names.length - 2} others`;
+        return `Liked by ${names[0]}, ${names[1]}, and others`;
       })
     );
 

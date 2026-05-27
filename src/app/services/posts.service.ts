@@ -1315,9 +1315,15 @@ export class PostsService {
   extractTags(caption?: string): string[] {
     if (!caption) return [];
 
-    return (
-      caption.match(/#[a-zA-Z0-9_]+/g) || []
-    );
+    const matches =
+      caption.match(/#[a-zA-Z0-9_]+/g) || [];
+
+    // Normalize + remove duplicates
+    return [...new Set(
+      matches.map(tag =>
+        tag.toLowerCase()
+      )
+    )];
   }
 
   getUserInterestScores(): Observable<Map<string, number>> {

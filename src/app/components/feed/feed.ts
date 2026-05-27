@@ -10,7 +10,7 @@ import { CreatePostModal } from '../create-post-modal/create-post-modal';
 import { PostModal } from '../post-modal/post-modal';
 import { ConfirmModal } from "../confirm-modal/confirm-modal";
 import { EditPostModal } from "../edit-post-modal/edit-post-modal";
-import { combineLatest, map, Observable, switchMap } from 'rxjs';
+import { BehaviorSubject, combineLatest, map, Observable, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-feed',
@@ -37,6 +37,10 @@ export class Feed implements OnInit, AfterViewInit {
     'forYou' | 'latest' | 'following' = 'forYou';
 
   feedFilter$!: Observable<'forYou' | 'latest' | 'following'>;
+
+  loading$ = new BehaviorSubject<boolean>(true);
+  showShimmer = false;
+  private shimmerTimeout: any;
 
   selectedTag: string | null = null;
   selectedTag$ = this.feedState.selectedTag$;
@@ -69,6 +73,8 @@ export class Feed implements OnInit, AfterViewInit {
       this.postsService.getSeenPostsStream()
     ]).pipe(
       switchMap(async ([posts, filter, selectedTag, followingIds, joinedGroupIds, preferredTags, seenPostIds]) => {
+
+        this.startLoading();
 
         let filtered: Post[];
 
@@ -103,6 +109,8 @@ export class Feed implements OnInit, AfterViewInit {
               .includes(selectedTag.toLowerCase())
           );
         }
+
+        this.stopLoading();
 
         return filtered.map(post => ({
           ...post,
@@ -310,16 +318,40 @@ export class Feed implements OnInit, AfterViewInit {
   }
 
   setFilter(filter: 'forYou' | 'latest' | 'following') {
+    this.startLoading();
     this.feedFilter = filter;
     this.feedState.setFeedFilter(filter);
     this.feedState.setTag(null);
   }
 
   filterByTag(tag: string) {
+    this.startLoading();
     this.selectedTag = tag;
   }
 
   clearTag() {
+    this.startLoading();
     this.feedState.setTag(null);
+  }
+
+  private startLoading() {
+    clearTimeout(this.shimmerTimeout);
+
+    this.loading$.next(true);
+
+    this.shimmerTimeout = setTimeout(() => {
+      this.showShimmer = true;
+      this.cdr.detectChanges();
+    }, 200);
+  }
+
+  private stopLoading() {
+    clearTimeout(this.shimmerTimeout);
+
+    setTimeout(() => {
+      this.loading$.next(false);
+      this.showShimmer = false;
+      this.cdr.detectChanges();
+    });
   }
 }
