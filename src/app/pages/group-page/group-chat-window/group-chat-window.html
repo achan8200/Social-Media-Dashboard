@@ -1,8 +1,8 @@
 <div class="p-[2px]">
-	<div class="flex flex-col w-full h-[86vh] bg-white overflow-hidden rounded-xl shadow">
+	<div class="flex flex-col w-full h-[86vh] border border-[var(--border)] bg-[var(--card)] overflow-hidden rounded-xl shadow">
 
 		<!-- Header -->
-		<div class="flex items-center px-4 h-16 border-b bg-white sticky top-0 z-20">
+		<div class="flex items-center px-4 h-16 border-b border-[var(--border)] bg-[var(--card)] sticky top-0 z-20">
 
 			<div class="flex items-center gap-3 h-full">
 
@@ -19,12 +19,12 @@
 
 				<!-- Name -->
 				<div class="flex flex-col justify-center">
-					<span class="font-normal text-gray-800 truncate">
+					<span class="font-normal text-[var(--text)] truncate">
 						{{ (group$ | async)?.name }}
 					</span>
 
 					<div *ngIf="members$ | async as members"
-						class="text-xs text-gray-500 truncate">
+						class="text-xs text-[var(--text)] opacity-60 truncate">
 						{{ members.length }} {{ members.length > 1 ? 'members' : 'member' }}
 					</div>
 				</div>
@@ -46,13 +46,13 @@
 								<!-- Date Separator -->
 								<div *ngIf="shouldShowDateSeparator(messages, i)"
 										class="flex justify-center my-3 sticky top-0 z-10 transition-opacity duration-300 ease-in-out">
-									<div class="text-gray-600 bg-white text-xs px-3 py-1 rounded-full">
+									<div class="text-[var(--text)] opacity-70 bg-[var(--card)] text-xs px-3 py-1 rounded-full">
 										{{ formatDateSeparator(msg.createdAt) }}
 									</div>
 								</div>
 
 								<!-- System Message -->
-								<div *ngIf="msg.type === 'system'" class="text-center text-gray-500 text-sm my-2">
+								<div *ngIf="msg.type === 'system'" class="text-center text-[var(--text)] opacity-60 text-sm my-2">
 									{{ msg.text }}
 								</div>
 
@@ -64,7 +64,7 @@
 										class="flex items-center gap-2 text-xs mb-1 ml-12">
 
 										<!-- Name -->
-										<span class="text-gray-500">{{ getSenderName(msg) }}</span>
+										<span class="text-[var(--text)] opacity-60">{{ getSenderName(msg) }}</span>
 
 										<!-- Role badge -->
 										<span *ngIf="msg.senderRole"
@@ -127,34 +127,34 @@
 												<button
 													*ngIf="!msg.isDeleted && !editingMessageId"
 													(click)="replyToMessage(msg)"
-													class="opacity-0 group-hover:opacity-100 transition w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center">
+													class="opacity-0 group-hover:opacity-100 transition w-8 h-8 rounded-full hover:bg-[var(--hover)] flex items-center justify-center">
 													<img src="assets/icons/reply.svg"
-															class="w-5 h-5"
-															style="filter: invert(0.5);" />
+															class="w-5 h-5 opacity-60"
+															style="filter: var(--icon-filter);" />
 												</button>
 
 												<!-- Reaction button -->
 												<button
 													*ngIf="!msg.isDeleted && !editingMessageId"
 													(click)="openReactionPicker(msg, $event)"
-													class="opacity-0 group-hover:opacity-100 transition w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center">
+													class="opacity-0 group-hover:opacity-100 transition w-8 h-8 rounded-full hover:bg-[var(--hover)] flex items-center justify-center">
 													<img src="assets/icons/emoji-2.svg"
-															class="w-5 h-5"
-															style="filter: invert(0.5);" />
+															class="w-5 h-5 opacity-60"
+															style="filter: var(--icon-filter);" />
 												</button>
 
 												<!-- Menu button -->
 												<button
 													*ngIf="canDeleteMessage(msg) && !editingMessageId && !msg.isDeleted"
 													(click)="toggleMessageMenu(msg.id, $event)"
-													class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"
-													[class.bg-gray-200]="openMessageMenuId === msg.id">
-													<span class="relative -top-[0.5px] text-gray-500">⋮</span>
+													class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[var(--hover)]"
+													[class.bg-[var(--hover)]]="openMessageMenuId === msg.id">
+													<span class="relative -top-[0.5px] text-[var(--text)] opacity-60">⋮</span>
 												</button>
 
 												<!-- Dropdown -->
 												<div *ngIf="openMessageMenuId === msg.id"
-														class="message-menu absolute bg-white border rounded shadow w-20 text-sm z-50"
+														class="message-menu absolute bg-[var(--card)] backdrop-blur-xl border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden w-20 text-sm z-50"
 														[ngClass]="{
 															'bottom-full mb-1 animate-slide-up': messageMenuDirection[msg.id] === 'up',
 															'top-full mt-1 animate-slide-down': messageMenuDirection[msg.id] !== 'up',
@@ -164,13 +164,13 @@
 
 													<button *ngIf="msg.senderId === currentUserId && !editingMessageId && !msg.isDeleted"
 														(click)="startEdit(msg)"
-														class="block w-full text-left px-3 py-2 hover:bg-gray-100">
+														class="block w-full text-left px-3 py-2 text-[var(--text)] hover:bg-[var(--hover)] transition">
 														Edit
 													</button>
 
 													<button *ngIf="canDeleteMessage(msg) && !editingMessageId && !msg.isDeleted"
 														(click)="confirmDelete(msg)"
-														class="block w-full text-left px-3 py-2 text-red-500 hover:bg-gray-100">
+														class="block w-full text-left px-3 py-2 text-red-500 hover:bg-red-500/10 transition">
 														Delete
 													</button>
 												</div>
@@ -213,7 +213,7 @@
 
 													<!-- Deleted -->
 													<span *ngIf="msg.isDeleted"
-														[ngClass]="msg.senderId === currentUserId ? 'text-white' : 'text-gray-800'"
+														[ngClass]="msg.senderId === currentUserId ? 'text-white' : 'text-[var(--text)]'"
 														class="italic opacity-80">Message deleted</span>
 
 													<!-- Normal -->
@@ -222,9 +222,10 @@
 														<!-- Reply Preview -->
 														<div *ngIf="msg.replyTo"
 															class="rounded-xl px-3 py-2 border-l-4 text-sm backdrop-blur-sm"
-															[ngClass]="msg.senderId === currentUserId
-																? 'bg-blue-300/30 border-blue-100 text-blue-50'
-																: 'bg-gray-100 border-gray-300 text-gray-700'">
+															[ngClass]="{
+																'reply-preview-outgoing': msg.senderId === currentUserId,
+																'reply-preview-incoming': msg.senderId !== currentUserId
+															}">
 
 															<div class="font-semibold text-xs opacity-90 mb-0.5">
 																{{
@@ -272,11 +273,11 @@
 														(mouseleave)="!keepHoverDuringClick && (hoveredReactionKey = null)"
 														(mousedown)="$event.preventDefault()"
 														(click)="toggleReaction(msg, reaction.emoji)"
-														class="bg-white px-[3px] py-[2px] rounded-full shadow border
-														hover:bg-gray-100 transition text-sm">
+														class="bg-[var(--card)] px-[3px] py-[2px] rounded-full shadow border border-[var(--border)]
+														hover:bg-[var(--hover)] transition text-sm">
 
 														{{ reaction.emoji }}
-														<span *ngIf="reaction.count >= 2" class="pr-1">{{ reaction.count }}</span>
+														<span *ngIf="reaction.count >= 2" class="pr-1 text-[var(--text)]">{{ reaction.count }}</span>
 
 													</button>
 
@@ -300,7 +301,7 @@
 									<div 
 										*ngIf="shouldShowTimestamp(messages, i)"
 										[ngClass]="msg.senderId === currentUserId ? 'text-right pr-2' : 'text-left ml-12'"
-										class="text-[0.65rem] text-gray-400 mt-[2px]">
+										class="text-[0.65rem] text-[var(--text)] opacity-50 mt-[2px]">
 										{{ msg.createdAt?.toDate() | date:'shortTime' }}
 									</div>
 
@@ -315,7 +316,7 @@
 			<button
 				*ngIf="showNewMessageIndicator"
 				(click)="scrollToBottomAndClearIndicator()"
-				class="absolute bottom-20 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-3 py-1 rounded-full shadow hover:bg-blue-600 transition z-30">
+				class="absolute bottom-20 left-1/2 -translate-x-1/2 bg-[var(--primary)] text-white px-3 py-1 rounded-full shadow-xl hover:bg-[var(--primary-hover)] transition z-30">
 				New messages ↓
 			</button>
 
@@ -323,16 +324,16 @@
 			<div *ngIf="(typing$ | async) as typing" class="absolute bottom-14 left-0 w-full px-4 pointer-events-none z-50">
 				<div *ngIf="(otherParticipants$ | async) as participants">
 					<div *ngIf="isOtherUserTyping(typing)" 
-							class="bg-white/90 backdrop-blur-sm border border-gray-100 px-3 py-1 rounded-full shadow text-sm text-gray-500 italic flex items-center gap-2 max-w-xs">
+						class="bg-[var(--card)] border border-[var(--border)] px-3 py-1 rounded-full shadow text-sm italic flex items-center gap-2 max-w-xs">
 						
 						<!-- Text -->
-						<span>{{ getTypingText(typing, participants) }}</span>
+						<span class="text-[var(--text)] opacity-60">{{ getTypingText(typing, participants) }}</span>
 
 						<!-- Animated dots -->
 						<span class="flex gap-[3px]">
-							<span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0ms]"></span>
-							<span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]"></span>
-							<span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]"></span>
+							<span class="w-1.5 h-1.5 bg-[var(--text)] opacity-50 rounded-full animate-bounce [animation-delay:0ms]"></span>
+							<span class="w-1.5 h-1.5 bg-[var(--text)] opacity-50 rounded-full animate-bounce [animation-delay:150ms]"></span>
+							<span class="w-1.5 h-1.5 bg-[var(--text)] opacity-50 rounded-full animate-bounce [animation-delay:300ms]"></span>
 						</span>
 
 					</div>
@@ -340,21 +341,21 @@
 			</div>
 
 			<!-- Input Area -->
-			<div class="border-t">
+			<div class="border-t border-[var(--border)]">
 
 				<!-- Reply Preview -->
 				<div
 					*ngIf="replyingToMessage"
-					class="bg-white px-4 py-2 flex items-start justify-between border-b">
+					class="bg-[var(--card)] px-4 py-2 flex items-start justify-between border-b border-[var(--border)]">
 
 					<div class="min-w-0">
-						<div class="text-xs font-medium text-gray-400">
+						<div class="text-xs font-medium text-[var(--text)] opacity-50">
 							{{ replyingToMessage.senderId === currentUserId
 								? 'You'
 								: replyingToMessage.senderName }}
 						</div>
 
-						<div class="text-sm text-gray-600 whitespace-pre-wrap break-words line-clamp-2 max-w-[600px]"
+						<div class="text-sm text-[var(--text)] opacity-70 whitespace-pre-wrap break-words line-clamp-2 max-w-[600px]"
 							>{{
 								replyingToMessage.isDeleted
 									? 'Message deleted'
@@ -365,7 +366,7 @@
 
 					<button
 						(click)="cancelReply()"
-						class="ml-3 text-gray-500 hover:text-gray-700">
+						class="ml-3 text-[var(--text)] opacity-50 hover:opacity-70">
 						✕
 					</button>
 				</div>
@@ -384,7 +385,9 @@
 							(input)="onInputChange($event)"
 							placeholder="Type a message..."
 							rows="1"
-							class="w-full border rounded px-3 py-1.5 pr-10 resize-none overflow-hidden"></textarea>
+							class="w-full bg-[var(--form)] border border-[var(--border)] text-[var(--text)]
+								rounded px-3 py-1.5 pr-10 outline-none resize-none overflow-hidden
+								focus:ring-2 focus:ring-[var(--primary)] transition"></textarea>
 
 						<div #emojiPickerContainer>
 							<!-- Emoji Button -->
@@ -394,7 +397,12 @@
 								(click)="toggleEmojiPicker($event)"
 								(mousedown)="$event.preventDefault()"
 								class="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:scale-105">
-								<img src="assets/icons/emoji-1.svg" alt="Emoji" class="w-5 h-5" style="filter: invert(0.6);"/>
+
+								<img
+									src="assets/icons/emoji-1.svg"
+									alt="Emoji"
+									class="w-5 h-5 opacity-40"
+									style="filter: var(--icon-filter)"/>
 							</button>
 						</div>
 					</div>
@@ -402,7 +410,7 @@
 					<!-- Send Button -->
 					<button
 						(click)="sendMessage()"
-						class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+						class="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white px-4 py-2 rounded transition">
 						Send
 					</button>
 				</div>
@@ -411,7 +419,7 @@
 
 		<!-- Emoji Picker -->
 		<div *ngIf="showEmojiPicker" 
-			class="fixed z-[100] shadow-lg"
+			class="fixed z-[100] shadow-2xl rounded-2xl overflow-hidden"
 			[style.top.px]="emojiPickerPosition.top"
 			[style.left.px]="emojiPickerPosition.left">
 			<emoji-mart
@@ -424,7 +432,7 @@
 		<!-- Reaction Picker -->
 		<div *ngIf="showReactionPicker"
 			#reactionPicker
-			class="fixed z-[100] shadow-lg"
+			class="fixed z-[100] shadow-2xl rounded-2xl overflow-hidden"
 			[style.top.px]="reactionPickerPosition.top"
 			[style.left.px]="reactionPickerPosition.left">
 
@@ -467,8 +475,8 @@
 				<div *ngIf="!preview.isEmojiOnly"
 					class="max-w-[70%] px-3 py-2 rounded-2xl text-sm break-words whitespace-pre-wrap"
 					[ngClass]="msg.senderId === currentUserId
-						? 'bg-blue-500 text-white'
-						: 'bg-gray-200 text-gray-800'">
+						? 'bg-[var(--primary)] text-white'
+						: 'bg-[var(--message-incoming)] text-[var(--text)]'">
 					<span>{{ truncateMessage(msg.text) }}</span>
 					<!-- Edited label -->
 					<span *ngIf="msg.isEdited && !msg.isDeleted"
@@ -480,7 +488,7 @@
   </div>
 
   <!-- Warning text -->
-  <p class="text-xs text-gray-500 mt-3 text-center">
+  <p class="text-xs text-[var(--text)] opacity-60 mt-3 text-center">
     This can't be undone.
   </p>
 </app-confirm-modal>

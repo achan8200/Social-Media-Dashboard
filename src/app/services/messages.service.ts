@@ -618,7 +618,10 @@ export class MessagesService {
     );
 
     await updateDoc(ref, {
-      [`reactions.${uid}`]: emoji
+      [`reactions.${uid}`]: {
+        emoji,
+        createdAt: serverTimestamp()
+      }
     });
   }
 
@@ -849,7 +852,10 @@ export class MessagesService {
     );
 
     await updateDoc(ref, {
-      [`reactions.${uid}`]: emoji
+      [`reactions.${uid}`]: {
+        emoji,
+        createdAt: serverTimestamp()
+      }
     });
   }
 

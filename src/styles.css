@@ -6,273 +6,830 @@
 :root {
   --bg: #ffffff;
   --text: #111827;
-  --card: #f9fafb;
+  --message-incoming: #e9edf3;
+  --reply-incoming: #dce4ee;
+  --card: #f5f7fa;
+  --form: #edf1f5;
   --primary: #2563eb;
+  --primary-hover: #1d4ed8;
   --border: #e5e7eb;
   --hover: #f3f4f6;
   --icon-filter: brightness(0) invert(0);
+  --use-gradient: 1;
+  --gradient-from: #dbeafe;
+  --gradient-via: #ffffff;
+  --gradient-to: #bfdbfe;
 }
 
 /* Light */
 .theme-light {
   --bg: #ffffff;
+
+  /* slightly softer than pure black */
   --text: #111827;
-  --card: #f3f4f6;
+  --message-incoming: #e9edf3;
+  --reply-incoming: #dce4ee;
+
+  /* cleaner neutral card */
+  --card: #f5f7fa;
+  --form: #edf1f5;
+
   --primary: #2563eb;
-  --border: #e5e7eb;
-  --hover: #f3f4f6;
+  --primary-hover: #1d4ed8;
+
+  /* subtle separation */
+  --border: #dbe2ea;
+
+  /* noticeably distinct from card */
+  --hover: #e8eef7;
+
   --icon-filter: brightness(0) invert(0);
+
+  --use-gradient: 0;
 }
 
 /* Ash (mid theme) */
 .theme-ash {
-  --bg: #d1d5db;
+  /* softer fog-like base */
+  --bg: #e3e6eb;
+
   --text: #111827;
-  --card: #e5e7eb;
-  --primary: #6366f1;
-  --border: #9ca3af;
-  --hover: #cbd5e1;
+  --message-incoming: #e5e8ed;
+  --reply-incoming: #d7dbe2;
+
+  /* clearer card elevation */
+  --card: #f1f3f5;
+  --form: #e7eaee;
+
+  /* slightly cooler indigo accent (fits your system themes) */
+  --primary: #5b6cff;
+  --primary-hover: #4857d9;
+
+  /* cleaner structural border */
+  --border: #c7ccd6;
+
+  /* consistent hover layer (was too blue before) */
+  --hover: #d7dbe2;
+
   --icon-filter: brightness(0) invert(0);
+
+  --use-gradient: 0;
 }
 
 /* Dark */
 .theme-dark {
-  --bg: #111827;
-  --text: #f9fafb;
-  --card: #1f2937;
-  --primary: #3b82f6;
-  --border: #374151;
-  --hover: #2a3441;
+  --bg: #36393e;
+
+  --text: #f3f4f6;
+  --message-incoming: #5a5f68;
+  --reply-incoming: #4b5058;
+
+  /* slightly elevated card surface */
+  --card: #494c52;
+  --form: #575c64;
+
+  /* softer modern blue */
+  --primary: #5b8cff;
+  --primary-hover: #4474e6;
+
+  /* cleaner separation */
+  --border: #51565f;
+
+  /* improved hover:
+     less muddy gray,
+     slightly cooler + brighter */
+  --hover: #5a606b;
+
   --icon-filter: brightness(0) invert(1);
+
+  --use-gradient: 0;
 }
 
 /* Onyx (true dark / near black) */
 .theme-onyx {
-  --bg: #000000;
+  /* softer base (avoids pure black fatigue) */
+  --bg: #050505;
+
   --text: #e5e7eb;
-  --card: #0a0a0a;
-  --primary: #6366f1;
-  --border: #1f2937;
-  --hover: #111827;
+  --message-incoming: #1a1a1a;
+  --reply-incoming: #101010;
+
+  /* card lifted slightly above bg */
+  --card: #121212;
+  --form: #1a1a1a;
+
+  /* subtle primary that still pops */
+  --primary: #7c7ff5;
+  --primary-hover: #6668d8;
+
+  /* clearer structure between elements */
+  --border: #262626;
+
+  /* more visible hover state */
+  --hover: #1e1e1e;
+
   --icon-filter: brightness(0) invert(1);
+
+  --use-gradient: 0;
 }
 
 /* Mint Apple */
 .theme-mint-apple {
-  --bg: #ecfdf5;
+  --bg: #f3fdf7;           /* softer mint white */
+
   --text: #064e3b;
-  --card: #d1fae5;
-  --primary: #10b981;
-  --border: #a7f3d0;
-  --hover: #bbf7d0;
-  --icon-filter: brightness(0) invert(1);
+  --message-incoming: #d8f0e3;
+  --reply-incoming: #c7e3d4;
+
+  /* slightly warmer, more “airy” card */
+  --card: #e6f7ee;
+  --form: #dff1e7;
+
+  --primary: #0f9d73;
+  --primary-hover: #0b7f5d;
+
+  /* more neutral green-gray border */
+  --border: #b7e4c7;
+
+  --hover: #d8f3dc;
+
+  --icon-filter: brightness(0) invert(0);
+
+  --use-gradient: 1;
+
+  /* pine green → mint → soft buttery yellow */
+  --gradient-from: #0b3d2e;   /* deep pine */
+  --gradient-via: #6ee7b7;    /* fresh mint */
+  --gradient-to: #fff3b0;     /* soft warm yellow */
 }
 
 /* Citrus Sherbert */
 .theme-citrus-sherbert {
-  --bg: #fff7ed;
+  --bg: #fff8f1;
+
   --text: #7c2d12;
-  --card: #ffedd5;
+  --message-incoming: #ffe7cf;
+  --reply-incoming: #ffd9b3;
+
+  --card: #fff1e0;
+  --form: #ffe8d0;
+
+  /* slightly softened orange to blend with guava tones */
   --primary: #f97316;
-  --border: #fed7aa;
-  --hover: #fdba74;
-  --icon-filter: brightness(0) invert(1);
+  --primary-hover: #ea580c;
+
+  --border: #fcd9b6;
+
+  --hover: #ffe2c2;
+
+  --icon-filter: brightness(0) invert(0);
+
+  --use-gradient: 1;
+
+  /* citrus → guava → soft peach-pink */
+  --gradient-from: #fb923c;   /* citrus orange */
+  --gradient-via: #fda4af;    /* guava pink */
+  --gradient-to: #fecdd3;     /* soft strawberry cream */
 }
 
-/* Retro Raincloud */
-.theme-retro-raincloud {
-  --bg: #e2e8f0;
-  --text: #1e293b;
-  --card: #cbd5f5;
-  --primary: #64748b;
-  --border: #94a3b8;
-  --hover: #cbd5e1;
-  --icon-filter: brightness(0) invert(1);
+/* Raincloud */
+.theme-raincloud {
+  --bg: #e6edf5;           /* softer sky base */
+  --text: #1f2a37;        /* clearer contrast */
+  --message-incoming: #c7d5e6;
+  --reply-incoming: #b8c9dd;
+
+  --card: #d7e2f0;        /* lighter card, less muddy */
+  --form: #cad8e8;
+  --primary: #64748b;     /* keep steel blue anchor */
+  --primary-hover: #475569;
+
+  --border: #b6c2d3;      /* softened border */
+  --hover: #cfdbea;       /* airy hover state */
+
+  --icon-filter: brightness(0) invert(0);
+
+  --use-gradient: 1;
+
+  /* more cohesive “storm sky” gradient */
+  --gradient-from: #c4b5fd;  /* soft lavender (distant storm tint) */
+  --gradient-via: #bfdbfe;   /* pale sky blue */
+  --gradient-to: #94a3b8;    /* grounded cloud gray */
 }
 
-/* Hanami (soft cherry blossom) */
+/* Hanami */
 .theme-hanami {
   --bg: #fff1f2;
   --text: #881337;
+  --message-incoming: #ffd8df;
+  --reply-incoming: #ffc6d0;
+
   --card: #ffe4e6;
+  --form: #ffd9de;
   --primary: #f43f5e;
+  --primary-hover: #e11d48;
+
   --border: #fecdd3;
-  --hover: #fda4af;
-  --icon-filter: brightness(0) invert(1);
+
+  /* lighter, airier sakura hover */
+  --hover: #fecdd3;
+
+  --icon-filter: brightness(0) invert(0);
+
+  --use-gradient: 1;
+
+  /* softer cherry blossom → petal → spring leaf blend */
+  --gradient-from: #fda4af;   /* cherry blossom pink */
+  --gradient-via: #ffe4e6;    /* soft petal blush */
+  --gradient-to: #bbf7d0;     /* spring leaf green */
 }
 
 /* Sunrise */
 .theme-sunrise {
   --bg: #fff7ed;
   --text: #78350f;
+  --message-incoming: #ffe3c2;
+  --reply-incoming: #ffd5a8;
   --card: #ffedd5;
+  --form: #ffe4c4;
   --primary: #fb923c;
+  --primary-hover: #f97316;
   --border: #fdba74;
-  --hover: #fed7aa;
-  --icon-filter: brightness(0) invert(1);
+  --hover: #fed97d;
+  --icon-filter: brightness(0) invert(0);
+
+  --use-gradient: 1;
+
+  --gradient-from: #fb923c;
+  --gradient-via: #fde68a;
+  --gradient-to: #7dd3fc;
 }
 
 /* Cotton Candy */
 .theme-cotton-candy {
   --bg: #fdf4ff;
-  --text: #701a75;
+  --text: #5b1b5f;          /* slightly deeper for readability */
+  --message-incoming: #f7dcff;
+  --reply-incoming: #f0c9fb;
+
   --card: #fae8ff;
-  --primary: #e879f9;
+  --form: #f6dcff;
+  --primary: #d946ef;       /* slightly more grounded pink */
+  --primary-hover: #c026d3;
+
   --border: #f5d0fe;
-  --hover: #f0abfc;
-  --icon-filter: brightness(0) invert(1);
+
+  /* softer whipped-sugar hover */
+  --hover: #fbcfe8;
+
+  --icon-filter: brightness(0) invert(0);
+
+  --use-gradient: 1;
+
+  /* smoother sugar-to-sky blend */
+  --gradient-from: #f9a8d4;  /* spun pink sugar */
+  --gradient-via: #f5d0fe;   /* soft cotton fluff */
+  --gradient-to: #93c5fd;    /* pastel sky blue */
 }
 
 /* LoFi Vibes */
 .theme-lofi-vibes {
-  --bg: #1e1b2e;
-  --text: #e0e7ff;
-  --card: #2a2540;
-  --primary: #818cf8;
-  --border: #3b3660;
-  --hover: #433b75;
-  --icon-filter: brightness(0) invert(1);
+  --bg: #c1d6e8;          /* lighter sky base */
+
+  --text: #1f2a37;
+  --message-incoming: #cddfee;
+  --reply-incoming: #bdd1e2;
+
+  /* airier card surface */
+  --card: #deebf6;
+  --form: #d1e2ef;
+
+  --primary: #7c83fd;
+  --primary-hover: #6366f1;
+
+  /* softer border, less contrasty */
+  --border: #b5cadb;
+
+  /* lighter hover (more “mist” feel) */
+  --hover: #d2e2f0;
+
+  --icon-filter: brightness(0) invert(0);
+
+  --use-gradient: 1;
+
+  /* smoother pastel sky → mint → soft spring green */
+  --gradient-from: #8fa8d6;
+  --gradient-via: #c1d6e8;
+  --gradient-to: #d8eccf;
 }
 
 /* Desert Khaki */
 .theme-desert-khaki {
-  --bg: #fef9c3;
-  --text: #713f12;
-  --card: #fef08a;
-  --primary: #ca8a04;
-  --border: #fde047;
-  --hover: #facc15;
-  --icon-filter: brightness(0) invert(1);
+  --bg: #fbf6e8;          /* softer sand base */
+
+  --text: #5c3b12;
+  --message-incoming: #ede1c5;
+  --reply-incoming: #e1d2b0;
+
+  /* less yellow, more neutral fabric tone */
+  --card: #f5eddc;
+  --form: #eee4cf;
+
+  /* muted earth-gold instead of strong yellow */
+  --primary: #b0892f;
+  --primary-hover: #8f6e25;
+
+  /* softened border */
+  --border: #e6d5a8;
+
+  /* much less saturated hover */
+  --hover: #efe3c8;
+
+  --icon-filter: brightness(0) invert(0);
+
+  --use-gradient: 1;
+
+  /* dusty sand → warm beige → faded gold */
+  --gradient-from: #e7d7b9;
+  --gradient-via: #f3ead7;
+  --gradient-to: #d2b48c;
 }
 
-/* Sunset */
-.theme-sunset {
-  --bg: #fff1f2;
-  --text: #7f1d1d;
-  --card: #fee2e2;
-  --primary: #ef4444;
-  --border: #fecaca;
-  --hover: #fca5a5;
-  --icon-filter: brightness(0) invert(1);
+/* Fog */
+.theme-fog {
+  --bg: #eef2f7;
+  --text: #1f2937;
+  --message-incoming: #dbe3ec;
+  --reply-incoming: #ccd7e3;
+  --card: #e5eaf1;
+  --form: #dbe3ec;
+  --primary: #64748b;
+  --primary-hover: #475569;
+  --border: #cbd5e1;
+  --hover: #dde5ee;
+  --icon-filter: brightness(0) invert(0);
+
+  --use-gradient: 1;
+
+  --gradient-from: #f1f5f9;
+  --gradient-via: #e2e8f0;
+  --gradient-to: #cbd5e1;
 }
 
-/* Chroma Glow (vibrant but usable) */
-.theme-chroma-glow {
-  --bg: #0f172a;
-  --text: #e0f2fe;
-  --card: #1e293b;
-  --primary: #22d3ee;
-  --border: #334155;
-  --hover: #0ea5e9;
-  --icon-filter: brightness(0) invert(1);
-}
+/* Lavender Fields */
+.theme-lavender-fields {
+  --bg: #f5f3ff;
+  --text: #2e1065;
+  --message-incoming: #e4defd;
+  --reply-incoming: #d7cff9;
+  --card: #ede9fe;
+  --form: #e4defd;
+  --primary: #8b5cf6;
+  --primary-hover: #7c3aed;
+  --border: #ddd6fe;
+  --hover: #e9d5ff;
+  --icon-filter: brightness(0) invert(0);
 
-/* Forest */
-.theme-forest {
-  --bg: #ecfdf5;
-  --text: #052e16;
-  --card: #d1fae5;
-  --primary: #16a34a;
-  --border: #86efac;
-  --hover: #4ade80;
-  --icon-filter: brightness(0) invert(1);
-}
+  --use-gradient: 1;
 
-/* Crimson Moon */
-.theme-crimson-moon {
-  --bg: #1f0a0a;
-  --text: #fee2e2;
-  --card: #2b0f0f;
-  --primary: #dc2626;
-  --border: #7f1d1d;
-  --hover: #991b1b;
-  --icon-filter: brightness(0) invert(1);
-}
-
-/* Mars */
-.theme-mars {
-  --bg: #2b0d0d;
-  --text: #fee2e2;
-  --card: #3b1414;
-  --primary: #f97316;
-  --border: #7c2d12;
-  --hover: #9a3412;
-  --icon-filter: brightness(0) invert(1);
-}
-
-/* Dusk */
-.theme-dusk {
-  --bg: #1e293b;
-  --text: #e2e8f0;
-  --card: #334155;
-  --primary: #6366f1;
-  --border: #475569;
-  --hover: #64748b;
-  --icon-filter: brightness(0) invert(1);
-}
-
-/* Under the Sea */
-.theme-under-the-sea {
-  --bg: #ecfeff;
-  --text: #083344;
-  --card: #cffafe;
-  --primary: #06b6d4;
-  --border: #67e8f9;
-  --hover: #22d3ee;
-  --icon-filter: brightness(0) invert(1);
-}
-
-/* Retro Storm */
-.theme-retro-storm {
-  --bg: #1f2937;
-  --text: #d1d5db;
-  --card: #374151;
-  --primary: #9ca3af;
-  --border: #4b5563;
-  --hover: #6b7280;
-  --icon-filter: brightness(0) invert(1);
-}
-
-/* Neon Nights */
-.theme-neon-nights {
-  --bg: #020617;
-  --text: #e0f2fe;
-  --card: #0f172a;
-  --primary: #22c55e;
-  --border: #1e293b;
-  --hover: #4ade80;
-  --icon-filter: brightness(0) invert(1);
+  --gradient-from: #ede9fe;
+  --gradient-via: #f5f3ff;
+  --gradient-to: #bbf7d0;
 }
 
 /* Strawberry Lemonade */
 .theme-strawberry-lemonade {
-  --bg: #fff1f2;
+  --bg: #fff1f3;
+
   --text: #7f1d1d;
-  --card: #fef9c3;
+  --message-incoming: #fff1be;
+  --reply-incoming: #ffe89d;
+
+  /* softer creamy lemon card */
+  --card: #fff8d9;
+  --form: #fff1be;
+
   --primary: #f43f5e;
-  --border: #fde68a;
-  --hover: #facc15;
-  --icon-filter: brightness(0) invert(1);
+  --primary-hover: #e11d48;
+
+  /* lighter blended border */
+  --border: #f9df9f;
+
+  /* much softer peach-lemon hover */
+  --hover: #ffe7c7;
+
+  --icon-filter: brightness(0) invert(0);
+
+  --use-gradient: 1;
+
+  /* smoother strawberry → blush → lemonade transition */
+  --gradient-from: #fb7185;
+  --gradient-via: #ffe4e6;
+  --gradient-to: #fde68a;
 }
 
-/* Aurora */
-.theme-aurora {
-  --bg: #0f172a;
-  --text: #e0f2fe;
-  --card: #1e293b;
-  --primary: #a78bfa;
-  --border: #334155;
-  --hover: #818cf8;
-  --icon-filter: brightness(0) invert(1);
+/* Blueberry Milk */
+.theme-blueberry-milk {
+  --bg: #f8fafc;
+  --text: #1e1b4b;
+  --message-incoming: #e3e8ff;
+  --reply-incoming: #d5dcfb;
+  --card: #eef2ff;
+  --form: #e4e9ff;
+  --primary: #818cf8;
+  --primary-hover: #6366f1;
+  --border: #c7d2fe;
+  --hover: #e0e7ff;
+  --icon-filter: brightness(0) invert(0);
+
+  --use-gradient: 1;
+
+  --gradient-from: #e0e7ff;
+  --gradient-via: #f8fafc;
+  --gradient-to: #c7d2fe;
+}
+
+/* Matcha */
+.theme-matcha {
+  --bg: #f6fbf6;           /* soft steamed milk base */
+  --text: #12301a;        /* deep matcha green for readability */
+  --message-incoming: #dbece0;
+  --reply-incoming: #c9dfd0;
+
+  --card: #e7f3ea;        /* matcha foam / latte foam */
+  --form: #dbece0;
+  --primary: #4f7c5f;     /* whisked matcha green */
+  --primary-hover: #3f644c;
+
+  --border: #cfe6d5;      /* soft tea foam edge */
+  --hover: #dff0e3;       /* airy foam hover */
+
+  --icon-filter: brightness(0) invert(0);
+
+  --use-gradient: 1;
+
+  /* matcha depth gradient */
+  --gradient-from: #2f5d44;  /* dense matcha paste */
+  --gradient-via: #4f7c5f;   /* whisked matcha */
+  --gradient-to: #cfe6d5;    /* light foam / milk blend */
+}
+
+/* Under the Sea */
+.theme-under-the-sea {
+  --bg: #e6fbfc;           /* slightly dimmed surface water */
+  --text: #062a33;         /* deeper ocean text for contrast */
+  --message-incoming: #b8e9ee;
+  --reply-incoming: #a3dde5;
+
+  --card: #c9f2f5;         /* softened aqua glass */
+  --form: #bcecef;
+  --primary: #0891b2;      /* controlled ocean cyan */
+  --primary-hover: #0e7490;
+
+  --border: #7dd3fc;       /* muted water edge */
+  --hover: #bdeff2;        /* soft seafoam */
+
+  --icon-filter: brightness(0) invert(0);
+
+  --use-gradient: 1;
+
+  /* deeper ocean layering (surface → mid → deep sea) */
+  --gradient-from: #99f6e4;   /* shallow sunlit water */
+  --gradient-via: #22d3ee;    /* clear ocean cyan */
+  --gradient-to: #0f766e;     /* deep sea teal */
 }
 
 /* Sepia */
 .theme-sepia {
-  --bg: #fdf6e3;
-  --text: #5b4636;
-  --card: #f5e6c8;
-  --primary: #a16207;
-  --border: #e7d3a3;
-  --hover: #d6b97b;
+  --bg: #f3e7d3;          /* aged parchment base */
+  --text: #3b2f22;        /* deeper ink brown */
+  --message-incoming: #dcc8aa;
+  --reply-incoming: #ceb894;
+  --card: #e7d6b8;        /* worn paper card */
+  --primary: #7a4e1d;     /* deeper sepia ink accent */
+  --primary-hover: #5c3b1e;
+  --form: #dcc8aa;
+  --border: #d6c0a3;      /* muted aged edge */
+  --hover: #cbb08a;       /* darker hover, inked tone */
+  --icon-filter: brightness(0) invert(0);
+
+  --use-gradient: 1;
+
+  /* dark sepia progression (aged ink + parchment shadow) */
+  --gradient-from: #c9a77c;
+  --gradient-via: #a67c52;
+  --gradient-to: #5c3b1e;
+}
+
+/* Sunset */
+.theme-sunset {
+  --bg: #fff3f4;          /* softer warm sky */
+
+  --text: #6b1d1d;
+  --message-incoming: #ffd8db;
+  --reply-incoming: #ffc4cb;
+
+  /* creamier warm card */
+  --card: #ffe4e6;
+  --form: #ffd8db;
+
+  /* shifted from red → warm coral so it matches gradient */
+  --primary: #f97316;
+  --primary-hover: #ea580c;
+
+  /* softer warm border */
+  --border: #fecdd3;
+
+  /* clearer hover separation */
+  --hover: #ffd1b8;
+
+  --icon-filter: brightness(0) invert(0);
+
+  --use-gradient: 1;
+
+  /* smoother sunset transition (night → horizon → glow) */
+  --gradient-from: #1e3a8a;   /* deep dusk blue */
+  --gradient-via: #fb923c;    /* warm sun core */
+  --gradient-to: #fecaca;     /* soft fading light pink */
+}
+
+/* Chroma Glow */
+.theme-chroma-glow {
+  --bg: #0b1220;           /* deeper, richer base */
+  --text: #e6f6ff;         /* slightly softer cyan-white */
+  --message-incoming: #22324a;
+  --reply-incoming: #1b283d;
+
+  --card: #162235;         /* clearer separation from bg */
+  --form: #22324a;
+  --primary: #38d6e8;      /* refined cyan glow */
+  --primary-hover: #22b8cf;
+
+  --border: #2a3a52;       /* subtle but visible structure */
+  --hover: #1e40af;        /* deep electric blue hover */
+
   --icon-filter: brightness(0) invert(1);
+
+  --use-gradient: 1;
+
+  /* more unified “neon aurora” gradient */
+  --gradient-from: #0b1220;   /* deep space */
+  --gradient-via: #1d4ed8;    /* electric blue core */
+  --gradient-to: #7c3aed;     /* neon violet glow */
+}
+
+/* Crimson Moon */
+.theme-crimson-moon {
+  --bg: #120607;           /* deeper night base */
+  --text: #ffe4e6;         /* softer pink-white */
+  --message-incoming: #2a1114;
+  --reply-incoming: #200c0f;
+
+  --card: #1e0b0d;         /* clearer elevation */
+  --form: #2a1114;
+  --primary: #e11d48;      /* refined crimson (less harsh) */
+  --primary-hover: #be123c;
+
+  --border: #3a1417;       /* subtle ember outline */
+  --hover: #7f1d1d;        /* warm dark red hover */
+
+  --icon-filter: brightness(0) invert(1);
+
+  --use-gradient: 1;
+
+  /* cohesive “blood moon eclipse” gradient */
+  --gradient-from: #0b0203;   /* near-black wine */
+  --gradient-via: #3f0a12;    /* deep crimson shadow */
+  --gradient-to: #7a1f2b;     /* ember red glow */
+}
+
+/* Mars */
+.theme-mars {
+  --bg: #1b0a0a;           /* deeper volcanic base */
+  --text: #fde2e2;         /* slightly softened red-white */
+  --message-incoming: #381515;
+  --reply-incoming: #2e1010;
+
+  --card: #2a0f0f;         /* canyon rock layer */
+  --form: #381515;
+  --primary: #e85d2a;      /* rusted Mars orange */
+  --primary-hover: #c2410c;
+
+  --border: #5b1f16;       /* iron-rich soil edge */
+  --hover: #c2410c;        /* darker heat glow hover */
+
+  --icon-filter: brightness(0) invert(1);
+
+  --use-gradient: 1;
+
+  /* Mars terrain depth: crust → canyon → sunlit dust */
+  --gradient-from: #2a0a0a;   /* deep volcanic rock */
+  --gradient-via: #7c2d12;    /* oxidized canyon earth */
+  --gradient-to: #fb923c;     /* dusty sunlight orange */
+}
+
+/* Dusk */
+.theme-dusk {
+  --bg: #0f172a;           /* deeper night sky base */
+  --text: #e2e8f0;         /* soft moonlit text */
+  --message-incoming: #29364d;
+  --reply-incoming: #212d42;
+
+  --card: #1e293b;         /* twilight panel layer */
+  --form: #29364d;
+  --primary: #6366f1;      /* evening indigo glow */
+  --primary-hover: #4f46e5;
+
+  --border: #334155;       /* muted horizon lines */
+  --hover: #475569;       /* soft dusk mist hover */
+
+  --icon-filter: brightness(0) invert(1);
+
+  --use-gradient: 1;
+
+  /* dusk sky progression: horizon glow → twilight → night */
+  --gradient-from: #f97316;   /* fading sunset edge */
+  --gradient-via: #334155;    /* deep twilight sky */
+  --gradient-to: #4f46e5;     /* night indigo bloom */
+}
+
+/* Storm */
+.theme-storm {
+  --bg: #0f172a;           /* deeper storm sky */
+  --text: #e2e8f0;         /* cooler, clearer readability */
+  --message-incoming: #29364d;
+  --reply-incoming: #212d42;
+
+  --card: #1e293b;        /* misted cloud layer */
+  --form: #29364d;
+  --primary: #94a3b8;     /* storm steel accent */
+  --primary-hover: #64748b;
+
+  --border: #334155;      /* rain-washed edges */
+  --hover: #475569;       /* darker cloud hover */
+
+  --icon-filter: brightness(0) invert(1);
+
+  --use-gradient: 1;
+
+  /* layered storm depth: night → cloud → horizon haze */
+  --gradient-from: #0b1220;   /* deep storm night */
+  --gradient-via: #334155;    /* heavy cloud mass */
+  --gradient-to: #64748b;     /* distant rain horizon */
+}
+
+/* Neon Nights */
+.theme-neon-nights {
+  --bg: #050814;           /* deeper cyber void */
+  --text: #d9fef0;         /* slight green-tinted white */
+  --message-incoming: #122033;
+  --reply-incoming: #0d1828;
+
+  --card: #0b1224;         /* clearer panel separation */
+  --form: #122033;
+  --primary: #22c55e;      /* neon core green */
+  --primary-hover: #16a34a;
+
+  --border: #1f2a44;       /* subtle tech frame */
+  --hover: #4ade80;        /* neon glow hover */
+
+  --icon-filter: brightness(0) invert(1);
+
+  --use-gradient: 1;
+
+  /* unified cyber gradient (void → neon green → electric blue) */
+  --gradient-from: #020617;   /* deep space black */
+  --gradient-via: #052e16;    /* neon green core */
+  --gradient-to: #1d4ed8;     /* electric system blue */
+}
+
+/* Aurora */
+.theme-aurora {
+  --bg: #0b1220;           /* deeper night sky */
+  --text: #e5f3ff;         /* slightly softened icy text */
+  --message-incoming: #24324a;
+  --reply-incoming: #1d2940;
+
+  --card: #1b2436;         /* frosted glass panel */
+  --form: #24324a;
+  --primary: #a78bfa;      /* violet core glow */
+  --primary-hover: #8b5cf6;
+
+  --border: #2b3a52;       /* subtle aurora frame */
+  --hover: #818cf8;       /* cool luminous hover */
+
+  --icon-filter: brightness(0) invert(1);
+
+  --use-gradient: 1;
+
+  /* smoother aurora ribbon flow */
+  --gradient-from: #0b1220;   /* deep sky */
+  --gradient-via: #14b8a6;    /* aurora green-blue wave */
+  --gradient-to: #8b5cf6;     /* violet light bloom */
+}
+
+/* Twilight */
+.theme-twilight {
+  --bg: #0f172a;
+  --text: #e2e8f0;
+  --message-incoming: #29364d;
+  --reply-incoming: #212d42;
+  --card: #1e293b;
+  --form: #29364d;
+  --primary: #a78bfa;
+  --primary-hover: #8b5cf6;
+  --border: #334155;
+  --hover: #475569;
+  --icon-filter: brightness(0) invert(1);
+
+  --use-gradient: 1;
+
+  --gradient-from: #0f172a;
+  --gradient-via: #312e81;
+  --gradient-to: #7c3aed;
+}
+
+/* Ocean Deep */
+.theme-ocean-deep {
+  --bg: #06121f;
+  --text: #dbeafe;
+  --message-incoming: #12304a;
+  --reply-incoming: #0d253c;
+  --card: #0b1f33;
+  --form: #12304a;
+  --primary: #38bdf8;
+  --primary-hover: #0ea5e9;
+  --border: #1e3a5f;
+  --hover: #164e63;
+  --icon-filter: brightness(0) invert(1);
+
+  --use-gradient: 1;
+
+  --gradient-from: #020617;
+  --gradient-via: #0b1f33;
+  --gradient-to: #155e75;
+}
+
+/* Solar Flare */
+.theme-solar-flare {
+  --bg: #1a0f0a;
+  --text: #ffedd5;
+  --message-incoming: #3a1b11;
+  --reply-incoming: #2f150d;
+  --card: #2a140d;
+  --form: #3a1b11;
+  --primary: #fb923c;
+  --primary-hover: #f97316;
+  --border: #7c2d12;
+  --hover: #f97316;
+  --icon-filter: brightness(0) invert(1);
+
+  --use-gradient: 1;
+
+  --gradient-from: #7f1d1d;
+  --gradient-via: #f97316;
+  --gradient-to: #fde047;
+}
+
+/* Fixed app gradient */
+.app-gradient {
+  background:
+    linear-gradient(
+      to bottom right,
+      var(--gradient-from),
+      var(--gradient-via),
+      var(--gradient-to)
+    );
+
+  background-color: var(--bg);
+
+  transition:
+    background 250ms ease,
+    background-color 250ms ease;
+}
+
+:root {
+  --reply-outgoing-bg: rgba(255,255,255,0.18);
+  --reply-outgoing-border: rgba(255,255,255,0.45);
+  --reply-outgoing-text: rgba(255,255,255,0.95);
+}
+
+.reply-preview-outgoing {
+  background: var(--reply-outgoing-bg);
+  border-left-color: var(--reply-outgoing-border);
+  color: var(--reply-outgoing-text);
+}
+
+.reply-preview-incoming {
+  background: var(--reply-incoming);
+  border-left-color: var(--border);
+  color: var(--text);
+}
+
+/* Disable gradient themes */
+.theme-light .app-gradient,
+.theme-ash .app-gradient,
+.theme-dark .app-gradient,
+.theme-onyx .app-gradient {
+  background: var(--bg);
 }

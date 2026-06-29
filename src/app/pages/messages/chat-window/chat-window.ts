@@ -640,7 +640,7 @@ export class ChatWindow implements OnChanges {
   getBubbleClasses(msg: Message, messages: Message[], i: number): string {
     const { isEmojiOnly, count } = this.getEmojiInfo(msg.text);
 
-    if (isEmojiOnly) {
+    if (isEmojiOnly && !msg.replyTo) {
       let sizeClass = 'text-3xl'; // default
 
       if (count <= 2) sizeClass = 'text-4xl';
@@ -656,14 +656,14 @@ export class ChatWindow implements OnChanges {
     let classes = 'inline-block px-3 py-2 ';
 
     if (msg.senderId === this.currentUserId) {
-      // Outgoing (blue)
-      classes += 'bg-blue-500 text-white ';
+      // Outgoing
+      classes += 'bg-[var(--primary)] text-white ';
       classes += topRounded ? 'rounded-tr-2xl ' : 'rounded-tr-sm ';
       classes += bottomRounded ? 'rounded-br-2xl ' : 'rounded-br-sm ';
       classes += 'rounded-tl-2xl rounded-bl-2xl';
     } else {
-      // Incoming (gray)
-      classes += 'bg-gray-200 text-gray-800 ';
+      // Incoming
+      classes += 'bg-[var(--message-incoming)] text-[var(--text)] ';
       classes += topRounded ? 'rounded-tl-2xl ' : 'rounded-tl-sm ';
       classes += bottomRounded ? 'rounded-bl-2xl ' : 'rounded-bl-sm ';
       classes += 'rounded-tr-2xl rounded-br-2xl';
@@ -1121,14 +1121,14 @@ export class ChatWindow implements OnChanges {
     const { isEmojiOnly } = this.getEmojiInfo(msg.text);
 
     // Emoji-only messages: always subtle gray (no dependency on background)
-    if (isEmojiOnly) {
-      return 'text-gray-500 text-[0.65rem] ml-1';
+    if (isEmojiOnly && !msg.replyTo) {
+      return 'text-[var(--text)] text-[0.65rem] opacity-60 ml-1';
     }
 
     // Normal messages
     return msg.senderId === this.currentUserId
       ? 'text-white/80 text-[0.65rem] ml-1'
-      : 'text-gray-500 text-[0.65rem] ml-1';
+      : 'text-[var(--text)] text-[0.65rem] opacity-60 ml-1';
   }
 
   confirmDelete(message: any) {
@@ -1242,16 +1242,30 @@ export class ChatWindow implements OnChanges {
     const cached = this.reactionCache.get(msg);
     if (cached) return cached;
 
-    const grouped: Record<string, string[]> = {};
+    const grouped: Record<
+      string,
+      { uid: string; createdAt: any }[]
+    > = {};
 
-    Object.entries(msg.reactions).forEach(([uid, emoji]) => {
-      (grouped[emoji] ||= []).push(uid);
+    Object.entries(msg.reactions).forEach(([uid, reaction]: any) => {
+      const emoji = reaction.emoji;
+
+      (grouped[emoji] ||= []).push({
+        uid,
+        createdAt: reaction.createdAt
+      });
     });
 
-    const result = Object.entries(grouped).map(([emoji, uids]) => ({
+    const result = Object.entries(grouped).map(([emoji, users]) => ({
       emoji,
-      count: uids.length,
-      uids
+      count: users.length,
+      uids: users
+        .sort(
+          (a, b) =>
+            a.createdAt?.toMillis?.() -
+            b.createdAt?.toMillis?.()
+        )
+        .map(u => u.uid)
     }));
 
     this.reactionCache.set(msg, result);
@@ -1267,8 +1281,10 @@ export class ChatWindow implements OnChanges {
     this.keepHoverDuringClick = true;
     this.hoveredReactionKey = hoverKey;
 
+    const currentReaction = message.reactions?.[uid];
+
     const action =
-      message.reactions?.[uid] === emoji
+      currentReaction?.emoji === emoji
         ? this.messagesService.removeReaction(
             this.threadId!,
             message.id!

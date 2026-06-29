@@ -1,48 +1,114 @@
-<aside class="w-64 bg-white p-4 rounded shadow hidden md:block">
-  <nav class="space-y-2">
-    <a routerLink="/home" 
-      routerLinkActive="active-link" 
-      class="sidebar-link flex flex-row items-center gap-2">
+<aside
+  class="w-64 hidden md:block rounded-3xl border border-[var(--border)]
+         bg-[var(--card)] backdrop-blur-2xl shadow-xl
+         text-[var(--text)] overflow-hidden"
+>
+  <div class="p-4">
 
-      <img src="assets/icons/home.svg" alt="Home" class="w-4 h-4" />
-      <span>Home</span>
+    <!-- Navigation -->
+    <nav class="space-y-1.5">
 
-    </a>
+      <!-- Home -->
+      <a
+        routerLink="/home"
+        routerLinkActive="bg-[var(--hover)] text-[var(--text)] shadow-sm"
+        class="group flex items-center gap-3 rounded-2xl px-4 py-3
+               transition-all duration-200
+               hover:bg-[var(--hover)]"
+      >
+        <img
+          src="assets/icons/home.svg"
+          alt="Home"
+          class="w-5 h-5 opacity-80 group-hover:opacity-100 transition"
+          [style.filter]="'var(--icon-filter)'"
+        />
 
-    <a routerLink="/messages" 
-      routerLinkActive="active-link" 
-      class="sidebar-link flex flex-row items-center gap-2">
+        <span class="font-medium">
+          Home
+        </span>
+      </a>
 
-      <img src="assets/icons/message.svg" alt="Messages" class="w-4 h-4" />
-      <span>Messages</span>
+      <!-- Messages -->
+      <a
+        routerLink="/messages"
+        routerLinkActive="bg-[var(--hover)] text-[var(--text)] shadow-sm"
+        class="group flex items-center gap-3 rounded-2xl px-4 py-3
+               transition-all duration-200
+               hover:bg-[var(--hover)]"
+      >
+        <img
+          src="assets/icons/message.svg"
+          alt="Messages"
+          class="w-5 h-5 opacity-80 group-hover:opacity-100 transition"
+          [style.filter]="'var(--icon-filter)'"
+        />
 
-    </a>
+        <span class="font-medium">
+          Messages
+        </span>
+      </a>
 
-    <a routerLink="/notifications" 
-      routerLinkActive="active-link" 
-      class="sidebar-link flex flex-row items-center gap-2">
+      <!-- Notifications -->
+      <a
+        routerLink="/notifications"
+        routerLinkActive="bg-[var(--hover)] text-[var(--text)] shadow-sm"
+        class="group flex items-center gap-3 rounded-2xl px-4 py-3
+               transition-all duration-200
+               hover:bg-[var(--hover)]"
+      >
+        <img
+          src="assets/icons/notification.svg"
+          alt="Notifications"
+          class="w-5 h-5 opacity-80 group-hover:opacity-100 transition"
+          [style.filter]="'var(--icon-filter)'"
+        />
 
-      <img src="assets/icons/notification.svg" alt="Notifications" class="w-4 h-4" />
-      <span>Notifications</span>
+        <span class="font-medium">
+          Notifications
+        </span>
+      </a>
 
-    </a>
+      <!-- Connections -->
+      <a
+        routerLink="/connections"
+        routerLinkActive="bg-[var(--hover)] text-[var(--text)] shadow-sm"
+        class="group flex items-center gap-3 rounded-2xl px-4 py-3
+               transition-all duration-200
+               hover:bg-[var(--hover)]"
+      >
+        <img
+          src="assets/icons/friends.svg"
+          alt="Connections"
+          class="w-5 h-5 opacity-80 group-hover:opacity-100 transition"
+          [style.filter]="'var(--icon-filter)'"
+        />
 
-    <a routerLink="/connections" 
-      routerLinkActive="active-link" 
-      class="sidebar-link flex flex-row items-center gap-2">
+        <span class="font-medium">
+          Connections
+        </span>
+      </a>
 
-      <img src="assets/icons/friends.svg" alt="Connections" class="w-4 h-4" />
-      <span>Connections</span>
+      <!-- Groups -->
+      <a
+        routerLink="/groups"
+        routerLinkActive="bg-[var(--hover)] text-[var(--text)] shadow-sm"
+        class="group flex items-center gap-3 rounded-2xl px-4 py-3
+               transition-all duration-200
+               hover:bg-[var(--hover)] "
+      >
+        <img
+          src="assets/icons/united.svg"
+          alt="Groups"
+          class="w-5 h-5 opacity-80 group-hover:opacity-100 transition"
+          [style.filter]="'var(--icon-filter)'"
+        />
 
-    </a>
+        <span class="font-medium">
+          Groups
+        </span>
+      </a>
 
-    <a routerLink="/groups" 
-      routerLinkActive="active-link" 
-      class="sidebar-link flex flex-row items-center gap-2">
+    </nav>
 
-      <img src="assets/icons/united.svg" alt="Groups" class="w-4 h-4" />
-      <span>Groups</span>
-
-    </a>
-  </nav>
+  </div>
 </aside>

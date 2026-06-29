@@ -595,22 +595,6 @@ export class PostModal implements AfterViewInit {
     this.openCommentMenuId = null;
   }
 
-  @HostListener('document:click', ['$event'])
-  onOutsideClick(event: MouseEvent) {
-    if (this.menuOpen) {
-      this.menuOpen = false;
-    }
-
-    // If click is outside the menu, close any open comment menu
-    const target = event.target as HTMLElement;
-
-    // Don't close comment menu if click is inside a comment menu or its toggle button
-    if (target.closest('.comment-menu') || target.closest('.comment-menu-toggle')) return;
-
-    // Close any comment menu
-    this.openCommentMenuId = null;
-  }
-
   toggleCommentMenu(commentId: string, event: Event) {
     event.stopPropagation();
 
@@ -921,6 +905,11 @@ export class PostModal implements AfterViewInit {
     // Close menu
     if (!target.closest('.menu') && !target.closest('.menu-button')) {
       this.menuOpen = false;
+    }
+
+    // Close any comment menu
+    if (!target.closest('.comment-menu') && !target.closest('.comment-menu-toggle')) {
+      this.openCommentMenuId = null;
     }
   }
 

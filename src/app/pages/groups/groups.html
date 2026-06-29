@@ -2,7 +2,7 @@
 
   <!-- Header -->
   <div class="flex justify-between items-center mb-4">
-    <h1 class="text-2xl font-semibold">
+    <h1 class="text-2xl font-semibold text-[var(--text)]">
       <ng-container *ngIf="isOwnProfile; else otherUser">
         Groups
       </ng-container>
@@ -16,7 +16,7 @@
 
     <button *ngIf="isOwnProfile"
       (click)="showCreateModal = true"
-      class="px-3 py-1 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 hover:scale-105 transition duration-150">
+      class="font-medium px-4 py-2 rounded-2xl bg-[var(--primary)] text-white transition-all duration-200 hover:bg-[var(--primary-hover)] hover:scale-105 shadow-sm">
       <span class="relative -top-[0.5px]">+ Create Group</span>
     </button>
   </div>
@@ -29,8 +29,8 @@
         (click)="setTab('my')"
         class="px-4 py-2 rounded-lg transition"
         [ngClass]="activeTab === 'my'
-          ? 'bg-gray-900 text-white'
-          : 'bg-gray-200 hover:bg-gray-300'">
+          ? 'bg-[var(--primary)] text-white'
+          : 'bg-[var(--card)] text-[var(--text)] hover:bg-[var(--hover)] border border-[var(--border)]'">
         My Groups
       </button>
 
@@ -38,8 +38,8 @@
         (click)="setTab('discover')"
         class="px-4 py-2 rounded-lg transition"
         [ngClass]="activeTab === 'discover'
-          ? 'bg-gray-900 text-white'
-          : 'bg-gray-200 hover:bg-gray-300'">
+          ? 'bg-[var(--primary)] text-white'
+          : 'bg-[var(--card)] text-[var(--text)] hover:bg-[var(--hover)] border border-[var(--border)]'">
         Discover
       </button>
 
@@ -50,7 +50,9 @@
   <input
     type="text"
     placeholder="Search groups"
-    class="w-full border rounded-lg p-2 mb-4"
+    class="w-full rounded-lg p-2 mb-4 bg-[var(--card)] border border-[var(--border)]
+      text-[var(--text)] placeholder:text-[var(--text)] placeholder:opacity-50
+      focus:ring-2 focus:ring-[var(--primary)] outline-none"
     (input)="onSearch($any($event.target).value)"
   />
 
@@ -64,17 +66,22 @@
         <div
           *ngFor="let group of groups"
           (click)="goToGroup(group.id!)"
-          class="relative bg-white rounded-xl shadow-sm p-4 cursor-pointer hover:shadow-md transition-transform duration-200 transform hover:-translate-y-1">
+          class="relative bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-sm p-4 cursor-pointer hover:bg-[var(--hover)] hover:shadow-md transition-all duration-200 transform hover:-translate-y-1">
 
           <!-- Private Badge -->
           <div
             *ngIf="group.isPrivate"
-            class="absolute top-3 right-3 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full w-7 h-7 flex items-center justify-center shadow-sm"
+            class="absolute top-3 right-3 rounded-full w-7 h-7 flex items-center justify-center shadow-sm"
+            style="
+              background: color-mix(in srgb, var(--card) 90%, white);
+              border: 1px solid var(--border);
+            "
           >
             <img
               src="assets/icons/private.svg"
               alt="Private Group"
-              class="w-4 h-4 opacity-80"
+              class="w-4 h-4"
+              [style.filter]="'var(--icon-filter)'"
             />
           </div>
 
@@ -85,13 +92,13 @@
             <ng-container *ngIf="group?.avatar; else defaultAvatar">
               <img
                 [src]="group?.avatar"
-                class="w-12 h-12 rounded-full object-cover border"
+                class="w-12 h-12 rounded-full object-cover border border-[var(--border)]"
               />
             </ng-container>
 
             <!-- Default avatar -->
             <ng-template #defaultAvatar>
-              <div class="w-12 h-12 rounded-full bg-gray-200 mb-3 flex items-center justify-center font-normal text-[24px] text-white"
+              <div class="w-12 h-12 rounded-full border border-[var(--border)] mb-3 flex items-center justify-center font-normal text-[24px] text-white"
                 [ngStyle]="{ 'background-color': getAvatarColor(group.name) }">
                 {{ getInitial(group.name) }}
               </div>
@@ -101,7 +108,7 @@
 
           <div class="flex items-center gap-2">
             <!-- Name -->
-            <h2 class="font-semibold text-lg truncate">
+            <h2 class="font-semibold text-lg truncate text-[var(--text)]">
               {{ group.name }}
             </h2>
 
@@ -130,7 +137,8 @@
           </div>
 
           <!-- Bio -->
-          <p class="text-sm text-gray-500 line-clamp-2 mt-1 break-words whitespace-pre-wrap">{{ group.bio || 'No description' }}</p>
+          <p class="text-sm line-clamp-2 mt-1 break-words whitespace-pre-wrap"
+            [style.color]="'color-mix(in srgb, var(--text) 65%, transparent)'">{{ group.bio || 'No description' }}</p>
 
         </div>
 
@@ -142,9 +150,26 @@
 
   <!-- Empty State -->
   <ng-template #noGroups>
-    <p class="text-gray-500 text-center mt-10">
-      No groups found.
-    </p>
+    <div class="py-16 text-center">
+      <div
+        class="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 bg-[var(--card)]">
+
+        <img
+          src="assets/icons/united.svg"
+          alt="Groups"
+          class="w-8 h-8"
+          [style.filter]="'var(--icon-filter)'">
+      </div>
+
+      <h3 class="text-lg font-medium text-[var(--text)]">
+        No groups found
+      </h3>
+
+      <p *ngIf="isOwnProfile"
+        class="mt-2 text-[var(--text)] opacity-60">
+        Try a different search or create a new group.
+      </p>
+    </div>
   </ng-template>
 
 </div>
@@ -153,25 +178,27 @@
 <div *ngIf="showCreateModal" @overlayFade
      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 
-  <div @modalScale class="bg-white p-6 rounded-lg w-full max-w-sm space-y-4">
+  <div @modalScale class="bg-[var(--card)] border border-[var(--border)] text-[var(--text)] p-6 rounded-2xl w-full max-w-sm space-y-4">
 
     <h2 class="text-lg font-bold">Create Group</h2>
 
     <input #nameInput
       type="text"
       placeholder="Group name"
-      class="w-full border rounded p-2"
+      class="w-full rounded-xl p-3 bg-[var(--form)] border border-[var(--border)]
+        text-[var(--text)] focus:ring-2 focus:ring-[var(--primary)] outline-none"
       [(ngModel)]="groupName"/>
 
     <textarea #bioInput
       placeholder="Group bio (optional)"
-      class="w-full border rounded p-2"></textarea>
+      class="w-full rounded-xl p-3 bg-[var(--form)] border text-[var(--text)] border-[var(--border)] focus:ring-2 focus:ring-[var(--primary)] outline-none"
+    ></textarea>
 
     <!-- Privacy Toggle -->
-    <label class="flex items-center justify-between border rounded-lg p-3">
+    <label class="flex items-center justify-between bg-[var(--form)] hover:bg-[var(--hover)] border border-[var(--border)] rounded-xl p-3">
       <div>
-        <p class="font-medium">Private Group</p>
-        <p class="text-sm text-gray-500">
+        <p class="font-medium text-[var(--text)]">Private Group</p>
+        <p class="text-sm text-[var(--text)] opacity-60">
           Only invited users can join
         </p>
       </div>
@@ -185,14 +212,15 @@
 
     <div class="flex justify-end gap-2">
       <button (click)="showCreateModal = false"
-              class="px-4 py-2 text-gray-500 hover:text-gray-800 transition-colors duration-150">
+        class="px-4 py-2 bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--hover)] rounded-xl transition-colors duration-150">
         Cancel
       </button>
 
       <button
         (click)="createGroup(nameInput.value, bioInput.value, isPrivateGroup)"
         [disabled]="!groupName.trim() || isCreating"
-        class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-150 disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed">
+        class="px-4 py-2 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white transition-all duration-150
+          disabled:opacity-50 disabled:cursor-not-allowed">
         {{ isCreating ? 'Creating...' : 'Create' }}
       </button>
     </div>

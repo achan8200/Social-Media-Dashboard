@@ -1,11 +1,12 @@
 <!-- messages.html -->
-<div class="flex rounded shadow flex-col h-[calc(100vh-100px)] max-h-[800px] bg-white mx-auto">
+<div class="flex flex-col h-[calc(100vh-100px)] max-h-[800px] mx-auto
+      rounded-2xl overflow-hidden bg-[var(--card)] border border-[var(--border)] shadow">
 
   <!-- Main content -->
   <div class="flex flex-1 overflow-hidden min-h-0">
 
     <!-- LEFT: Threads -->
-    <div class="w-[325px] max-w-[33%] flex-shrink-0 border-r overflow-y-auto min-h-0">
+    <div class="w-[325px] max-w-[33%] flex-shrink-0 border-r border-[var(--border)] overflow-y-auto min-h-0">
       <app-thread-list [selectedThreadId]="selectedThreadId" (selectThread)="onSelectThread($event)"></app-thread-list>
     </div>
 

@@ -4,12 +4,15 @@
   <div class="absolute inset-0 bg-black/60"></div>
 
   <!-- Modal Card -->
-  <div @modalScale class="relative bg-white w-full max-w-lg rounded-lg p-4 flex flex-col space-y-4">
+  <div @modalScale class="relative border border-[var(--border)] bg-[var(--card)] backdrop-blur-2xl 
+    shadow-2xl w-full max-w-lg rounded-3xl p-4 flex flex-col space-y-4 text-[var(--text)]">
 
     <div class="flex justify-between items-center">
-      <h3 class="font-semibold text-lg">
-        {{ group ? ('Create Post • ' + group.name) : 'Create Post' }}
-      </h3>
+       <div class="space-y-1">
+        <h3 class="font-semibold text-lg">
+          {{ group ? ('Create Post • ' + group.name) : 'Create Post' }}
+        </h3>
+      </div>
       <button (click)="onCancel()">✕</button>
     </div>
 
@@ -18,19 +21,21 @@
       [(ngModel)]="caption"
       (input)="adjustCaptionHeight()"
       placeholder="What's on your mind?" 
-      class="w-full border rounded p-2 overflow-y-hidden" 
+      class="w-full bg-[var(--form)] border border-[var(--border)] rounded-2xl p-2 overflow-y-hidden outline-none resize-none
+        text-[var(--text)] placeholder:text-[var(--text)]/40
+        focus:ring-2 focus:ring-[var(--primary)] transition"
       rows="4"
       (keydown)="handlePostKeydown($event)"></textarea>
 
     <!-- File Input -->
     <label *ngIf="selectedMedia.length < MAX_MEDIA_ITEMS"
-      class="w-full border rounded p-2 cursor-pointer bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors duration-150 flex items-center justify-center">
+      class="w-full border border-[var(--border)] rounded-lg p-2 cursor-pointer bg-[var(--form)] text-[var(--text)] hover:bg-[var(--hover)] transition flex items-center justify-center">
         Browse Files
         <input type="file" multiple (change)="onFileChange($event)" class="hidden" />
     </label>
 
     <!-- Media Counter -->
-    <p class="text-sm text-gray-400 text-right">
+    <p class="text-sm text-[var(--text)] opacity-50 text-right">
       {{ selectedMedia.length }}/{{ MAX_MEDIA_ITEMS }} media selected
     </p>
 
@@ -69,7 +74,7 @@
           </div>
 
           <div *ngIf="media.progress > 0 && media.progress < 100" class="absolute bottom-0 left-0 w-full bg-gray-200 h-1">
-            <div class="bg-blue-500 h-1 transition-all duration-150 ease-linear" [style.width.%]="media.progress"></div>
+            <div class="bg-[var(--primary)] h-1 transition-all duration-150 ease-linear" [style.width.%]="media.progress"></div>
           </div>
         </div>
       </div>
@@ -77,12 +82,20 @@
 
     <div class="flex justify-end space-x-2">
       <button (click)="onCancel()" [disabled]="isUploading" 
-            class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors duration-150
-                disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-70">Cancel</button>
+            class="px-5 py-2.5 rounded-2xl
+               border border-[var(--border)]
+               bg-[var(--bg)] hover:bg-[var(--hover)]
+               transition-all duration-200
+               disabled:opacity-40 disabled:cursor-not-allowed">Cancel</button>
       <button (click)="onCreate()" [disabled]="isPostDisabled"
-            class="px-4 py-2 bg-blue-500 hover:bg-blue-600 
-                text-white rounded transition-colors duration-150
-                disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-70">Post</button>
+            class="px-5 py-2.5 rounded-2xl
+               bg-[var(--primary)] text-white
+               shadow-lg
+               hover:bg-[var(--primary-hover)]
+               transition-all duration-200
+               disabled:opacity-40
+               disabled:hover:scale-100
+               disabled:cursor-not-allowed">Post</button>
     </div>
 
   </div>

@@ -1,70 +1,156 @@
-<aside class="w-72 xl:w-80 space-y-4 hidden lg:block">
+<aside class="w-72 xl:w-80 space-y-4 hidden lg:block text-[var(--text)]">
+
   <!-- Trending Section -->
-  <div class="bg-white p-4 rounded shadow">
-    <h2 class="font-semibold text-gray-700 mb-3 text-lg flex items-center gap-2">
-      <img src="assets/icons/trending.svg" alt="Trending" class="w-5 h-5" />
-      <span>Trending</span>
-      <button *ngIf="selectedTag$ | async as tag"
+  <div
+    class="rounded-3xl border border-[var(--border)]
+    bg-[var(--card)] backdrop-blur-2xl
+    shadow-xl p-5">
+
+    <!-- Header -->
+    <div class="flex items-center gap-2 mb-2">
+
+      <img
+        src="assets/icons/trending.svg"
+        alt="Trending"
+        class="w-5 h-5"
+        [style.filter]="'var(--icon-filter)'"
+      />
+
+      <h2 class="font-semibold text-lg">
+        Trending
+      </h2>
+
+      <button
+        *ngIf="selectedTag$ | async as tag"
         (click)="onTagClicked('')"
-        class="text-xs text-blue-500 hover:underline ml-auto"
+        class="ml-auto text-xs text-[var(--primary)] hover:underline"
       >
         Clear filter
       </button>
-    </h2>
-    <ul class="space-y-2 text-sm text-gray-600">
+
+    </div>
+
+    <!-- Tags -->
+    <ul class="space-y-2">
+
       @for (tag of (trending$ | async); track tag) {
-        <li [class.opacity-50]="(selectedTag$ | async) !== tag">
+
+        <li
+          [class.opacity-50]="(selectedTag$ | async) !== tag"
+          class="transition-opacity duration-200">
+
           <app-trending-tag 
             [label]="tag" 
             (tagClick)="onTagClicked($event)">
           </app-trending-tag>
+
         </li>
+
       }
+
     </ul>
+
   </div>
 
   <!-- Notifications Section -->
-  <div *ngIf="!(isGuest$ | async)" class="bg-white p-4 rounded shadow relative">
-    <h2 class="font-semibold text-gray-700 mb-3 flex justify-between items-center">
-      <span class="flex items-center gap-2 text-lg">
-        <img src="assets/icons/notification.svg" alt="Notifications" class="w-5 h-5" />
-        Notifications
-      </span>
+  <div
+    *ngIf="!(isGuest$ | async)"
+    class="rounded-3xl border border-[var(--border)]
+    bg-[var(--card)] backdrop-blur-2xl
+    shadow-xl overflow-hidden">
 
-      <span *ngIf="(unreadCount$ | async) as count" 
-            class="h-5 w-5 bg-red-500 text-white text-sm font-bold rounded-full flex items-center justify-center"
-            [class.bounce-badge]="newNotification"
-            [hidden]="count === 0">
+    <!-- Header -->
+    <div class="flex justify-between items-center px-5 pt-5 pb-2">
+
+      <div class="flex items-center gap-2">
+
+        <img
+          src="assets/icons/notification.svg"
+          alt="Notifications"
+          class="w-5 h-5"
+          [style.filter]="'var(--icon-filter)'"
+        />
+
+        <h2 class="font-semibold text-lg">
+          Notifications
+        </h2>
+
+      </div>
+
+      <!-- Badge -->
+      <span
+        *ngIf="(unreadCount$ | async) as count"
+        class="h-6 min-w-[24px] px-1
+          bg-red-500 text-white text-sm font-bold
+          rounded-full flex items-center justify-center
+          shadow-md"
+        [class.bounce-badge]="newNotification"
+        [hidden]="count === 0">
+
         <span class="relative -top-[0.5px]">{{ count }}</span>
-      </span>
-    </h2>
 
-    <div class="relative">
-      <!-- Scrollable content -->
-      <div class="relative max-h-[35vh] xl-max-h-[50vh] pb-2 overflow-y-auto scroll-smooth">
+      </span>
+
+    </div>
+
+    <!-- Scroll Area -->
+    <div class="px-5 pb-3">
+
+      <div
+        class="relative max-h-[35vh] xl:max-h-[50vh]
+        overflow-y-auto scroll-smooth pr-1">
+
         <ng-container *ngIf="notificationsByDay$ | async as notificationsByDay">
+
           <ng-container *ngFor="let dayEntry of notificationsByDay | keyvalue: sortDays">
-            <div class="mt-3 mb-1 text-gray-400 text-xs font-semibold uppercase">
+
+            <!-- Day Label -->
+            <div
+              class="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide
+              text-[var(--text)] opacity-40">
+
               {{ dayEntry.key }}
+
             </div>
 
+            <!-- Notifications -->
             <ul class="space-y-2">
+
               <li *ngFor="let group of dayEntry.value">
-                <app-notification-item [notifications]="group"></app-notification-item>
+
+                <app-notification-item
+                  [notifications]="group">
+                </app-notification-item>
+
               </li>
+
             </ul>
+
           </ng-container>
+
         </ng-container>
+
       </div>
+
     </div>
 
-    <!-- Sticky button at bottom -->
-    <div class="sticky bottom-0 bg-white p-2 flex justify-end border-t mt-2">
+    <!-- Footer -->
+    <div
+      class="border-t border-[var(--border)]
+      bg-[var(--card)] px-5 py-3
+      flex justify-end">
+
       <button 
-        class="text-xs text-blue-500 hover:underline"
+        class="text-xs font-medium text-[var(--primary)]
+          hover:underline transition"
         (click)="markAllRead()">
+
         Mark all as read
+
       </button>
+
     </div>
+
   </div>
+
 </aside>

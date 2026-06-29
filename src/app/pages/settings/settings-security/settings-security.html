@@ -2,13 +2,15 @@
 
   <div class="space-y-2">
     <h2 class="text-xl font-semibold">Security</h2>
-    <p class="text-sm text-gray-500">
+    <p class="text-sm text-[var(--text)] opacity-60">
       Manage your email and password.
     </p>
   </div>
 
   <!-- Change Email -->
-  <div class="bg-white rounded-xl border p-5 space-y-4 shadow-sm">
+  <div class="rounded-3xl border border-[var(--border)]
+         bg-[var(--card)] backdrop-blur-xl
+         shadow-xl p-6 md:p-8 space-y-5">
 
     <h3 class="font-semibold text-lg">Change Email</h3>
 
@@ -18,7 +20,8 @@
         [(ngModel)]="newEmail"
         (input)="validateEmail()"
         placeholder="New email"
-        class="w-full border rounded-lg p-3"
+        class="w-full rounded-2xl bg-[var(--form)] border border-[var(--border)] text-[var(--text)] px-4 py-3 outline-none
+        focus:ring-2 focus:ring-[var(--primary)] transition"
       />
       <p *ngIf="emailError" class="text-red-500 text-sm">
         {{ emailError }}
@@ -29,15 +32,16 @@
       type="password"
       [(ngModel)]="emailPassword"
       placeholder="Current password"
-      class="w-full border rounded-lg p-3"
+      class="w-full rounded-2xl bg-[var(--form)] border border-[var(--border)] text-[var(--text)] px-4 py-3 outline-none
+        focus:ring-2 focus:ring-[var(--primary)] transition"
     />
 
     <div class="flex items-center justify-between gap-4 pt-2">
       <button
         (click)="updateEmail()"
         [disabled]="loadingEmail || !isEmailFormValid"
-        class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-150
-        disabled:bg-gray-400 disabled:cursor-not-allowed">
+        class="px-5 py-3 rounded-2xl bg-[var(--primary)] text-white font-medium shadow-lg
+          hover:bg-[var(--primary-hover)] transition-all disabled:opacity-40 disabled:cursor-not-allowed">
         Update Email
       </button>
 
@@ -57,7 +61,9 @@
   </div>
 
   <!-- Change Password -->
-  <div class="bg-white rounded-xl border p-5 space-y-4 shadow-sm">
+  <div class="rounded-3xl border border-[var(--border)]
+         bg-[var(--card)] backdrop-blur-xl
+         shadow-xl p-6 md:p-8 space-y-5">
 
     <h3 class="font-semibold text-lg">Change Password</h3>
 
@@ -65,7 +71,8 @@
       type="password"
       [(ngModel)]="currentPassword"
       placeholder="Current password"
-      class="w-full border rounded-lg p-3"
+      class="w-full rounded-2xl bg-[var(--form)] border border-[var(--border)] text-[var(--text)] px-4 py-3 outline-none
+        focus:ring-2 focus:ring-[var(--primary)] transition"
     />
 
     <input
@@ -73,7 +80,8 @@
       [(ngModel)]="newPassword"
       (input)="validatePassword()"
       placeholder="New password"
-      class="w-full border rounded-lg p-3"
+      class="w-full rounded-2xl bg-[var(--form)] border border-[var(--border)] text-[var(--text)] px-4 py-3 outline-none
+        focus:ring-2 focus:ring-[var(--primary)] transition"
     />
 
     <input
@@ -81,7 +89,8 @@
       [(ngModel)]="confirmPassword"
       (input)="validateConfirmPassword()"
       placeholder="Confirm new password"
-      class="w-full border rounded-lg p-3"
+      class="w-full rounded-2xl bg-[var(--form)] border border-[var(--border)] text-[var(--text)] px-4 py-3 outline-none
+        focus:ring-2 focus:ring-[var(--primary)] transition"
     />
 
     <!-- Requirements -->
@@ -132,8 +141,8 @@
       <button
         (click)="updatePassword()"
         [disabled]="loadingPassword || !isPasswordFormValid"
-        class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-150
-        disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap">
+        class="px-5 py-3 rounded-2xl bg-[var(--primary)] text-white font-medium shadow-lg
+          hover:bg-[var(--primary-hover)] transition-all disabled:opacity-40 disabled:cursor-not-allowed">
         Update Password
       </button>
 

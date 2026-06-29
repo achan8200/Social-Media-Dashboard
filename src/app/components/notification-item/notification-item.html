@@ -1,4 +1,4 @@
-<div class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100 cursor-pointer transition-colors duration-200"
+<div class="flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--hover)] cursor-pointer transition-colors duration-200"
     [class.opacity-60]="!hasUnread"
     (click)="onClick()">
 
@@ -64,7 +64,7 @@
     </div>
 
     <!-- RIGHT SIDE (timestamp) -->
-    <span class="text-gray-400 text-xs flex-shrink-0 min-w-[52px] text-right">
+    <span class="text-[var(--text)] opacity-60 text-xs flex-shrink-0 min-w-[52px] text-right">
       {{ getFormattedTimeForGroup() }}
     </span>
 

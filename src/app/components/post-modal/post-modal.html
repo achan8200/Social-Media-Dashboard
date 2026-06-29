@@ -13,7 +13,7 @@
 
   <!-- Emoji Picker -->
   <div *ngIf="showEmojiPicker" 
-    class="fixed z-[100] shadow-lg"
+    class="fixed z-[100] shadow-2xl rounded-2xl overflow-hidden"
     [style.top.px]="emojiPickerPosition.top"
     [style.left.px]="emojiPickerPosition.left">
     <emoji-mart
@@ -26,7 +26,8 @@
   <!-- Modal Card -->
   <div
     @modalScale
-    class="relative bg-white transform w-full max-h-[90vh] rounded-lg overflow-hidden"
+    class="relative bg-[var(--card)] backdrop-blur-2xl
+           text-[var(--text)] transform w-full max-h-[90vh] rounded-lg overflow-hidden shadow-2xl"
     [ngClass]="post.media?.length ? 'max-w-5xl' : 'max-w-2xl'"
   >
 
@@ -65,7 +66,7 @@
 
         <!-- Slide counter -->
         <div *ngIf="hasMultipleMedia()"
-            class="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
+          class="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs px-2 py-1 rounded-full border border-white/10">
           {{ currentMediaIndex + 1 }} / {{ post.media?.length }}
         </div>
 
@@ -89,7 +90,7 @@
         <!-- Pagination Dots -->
         <div *ngIf="hasMultipleMedia()" class="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
           <span *ngFor="let m of post.media; let i = index"
-                class="w-2 h-2 rounded-full"
+                class="w-2 h-2 rounded-full transition-all duration-200"
                 [ngClass]="{'bg-white': i === currentMediaIndex, 'bg-white/50': i !== currentMediaIndex}">
           </span>
         </div>
@@ -97,36 +98,36 @@
       </div>
 
       <!-- Right: Details -->
-      <div class="w-full md:w-96 p-4 flex flex-col max-h-[40vh] md:max-h-[90vh]">
+      <div class="w-full md:w-96 p-4 flex flex-col max-h-[40vh] md:max-h-[90vh] bg-[var(--card)]">
 
         <!-- Header -->
         <div class="flex justify-between items-center mb-2 flex-shrink-0">
           <div class="flex items-center space-x-3">
             <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async" [userId]="userId$ | async" (clicked)="onAvatarClick()"></app-avatar>
             <div class="flex items-center space-x-2">
-              <a [routerLink]="['/profile', userId$ | async]" class="font-normal hover:text-gray-600 transition-colors" (click)="onAvatarClick()">
+              <a [routerLink]="['/profile', userId$ | async]" class="font-medium hover:opacity-70 transition" (click)="onAvatarClick()">
                 {{ username$ | async }}
               </a>
-              <span class="text-gray-400 text-sm">•</span>
-              <span class="text-gray-400 text-sm">{{ timestamp$ | async }}</span>
+              <span class="text-[var(--text)] opacity-30 text-sm">•</span>
+              <span class="text-[var(--text)] opacity-50 text-sm">{{ timestamp$ | async }}</span>
             </div>
           </div>
           <!-- Author Menu -->
           <div *ngIf="isAuthor || (post.groupId && (canRemoveFromGroup$ | async))" class="relative">
             <button (click)="toggleMenu($event);"
-              [class.bg-gray-200]="menuOpen"
-              class="text-gray-600 text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 hover:text-black transition">
+              [class.bg-[var(--hover)]]="menuOpen"
+              class="text-[var(--text)] opacity-60 text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-[var(--hover)] hover:text-[var(--text)] transition">
               <span class="relative -top-[1.5px]">⋯</span>
             </button>
-            <div *ngIf="menuOpen" class="absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg z-50 animate-slide-down">
+            <div *ngIf="menuOpen" class="absolute right-0 mt-2 w-40 bg-[var(--card)] border border-[var(--border)] backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden z-50 animate-slide-down">
               <div *ngIf="isAuthor">
-                <button (click)="onEdit($event)" class="block w-full text-left px-4 py-2 hover:bg-gray-100">Edit Post</button>
-                <button (click)="onDelete($event)" class="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">Delete Post</button>
+                <button (click)="onEdit($event)" class="block w-full text-left px-4 py-2 text-[var(--text)] hover:bg-[var(--hover)] transition">Edit Post</button>
+                <button (click)="onDelete($event)" class="block w-full text-left px-4 py-2 text-red-500 hover:bg-red-500/10 transition">Delete Post</button>
               </div>
               <button
                 *ngIf="post.groupId && (canRemoveFromGroup$ | async)"
                 (click)="onRemoveFromGroup($event)"
-                class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+                class="block w-full text-left px-4 py-2 text-[var(--text)] hover:bg-[var(--hover)] transition">
                 Remove from group
               </button>
             </div>
@@ -134,32 +135,37 @@
         </div>
 
         <!-- Caption -->
-        <p class="text-sm mb-4 overflow-y-auto max-h-[20vh]" [innerHTML]="caption$ | async"></p>
+        <div class="mb-3 overflow-y-auto max-h-[20vh]">
+          <p class="text-sm leading-7 text-[var(--text)] opacity-90"
+             [innerHTML]="caption$ | async">
+          </p>
+        </div>
 
         <!-- Actions -->
         <div class="flex items-center space-x-6 mb-4 text-sm">
           <button (click)="likePost()" 
-            class="flex-shrink-0 text-red-500 font-medium flex items-center space-x-2"
+            class="flex-shrink-0 text-[var(--text)] font-medium flex items-center space-x-2 transition"
             [class.text-red-500]="(liked$ | async)">
             <img
               class="like-heart w-[18px] h-[18px]"
               [class.like-pop]="animatingLike"
               [src]="(liked$ | async) ? 'assets/icons/red-heart-2.svg' : 'assets/icons/heart.svg'"
+              [style.filter]="(liked$ | async) ? 'none' : 'var(--icon-filter)'"
               alt="Like"
             />
             <span>{{ likesCount$ | async }}</span>
           </button>
-          <div class="flex-shrink-0 flex items-center space-x-2 text-gray-600">
-            <img src="assets/icons/comment.svg" class="w-5 h-5" alt="Comments" />
+          <div class="flex-shrink-0 flex items-center space-x-2 text-[var(--text)]">
+            <img src="assets/icons/comment.svg" class="w-5 h-5" alt="Comments" [style.filter]="'var(--icon-filter)'"/>
             <span>{{ commentsCount$ | async }}</span>
           </div>
           <div class="flex items-center space-x-2">
             <button (click)="onShare($event)"
-              class="flex items-center space-x-1 hover:bg-gray-100 rounded-lg transition">
-              <img src="assets/icons/link.svg" class="w-4 h-4" alt="Share" />
+              class="flex items-center space-x-1 hover:opacity-60 rounded-lg transition">
+              <img src="assets/icons/link.svg" class="w-4 h-4" alt="Share" [style.filter]="'var(--icon-filter)'"/>
             </button>
 
-            <span *ngIf="copied" class="copied-text text-gray-600 text-xs">Link copied</span>
+            <span *ngIf="copied" class="copied-text text-[var(--text)] opacity-70 text-xs">Link copied</span>
           </div>
         </div>
 
@@ -167,13 +173,13 @@
         <button
           *ngIf="likesText$ | async as likesText"
           (click)="openPostLikes()"
-          class="flex items-center space-x-2 text-sm text-gray-700 mb-3 transition">
+          class="flex items-center space-x-2 text-sm text-[var(--text)] mb-3 transition">
 
           <!-- Avatars -->
           <div class="flex -space-x-2">
             <app-avatar
               *ngFor="let user of topLikesUsers$ | async"
-              class="w-6 h-6 border-[1px] border-white rounded-full shadow-sm"
+              class="w-6 h-6 border-[1px] border-[var(--card)] rounded-full shadow-sm"
               [username]="user?.username"
               [imageUrl]="user?.profilePicture"
               size="xs">
@@ -186,41 +192,43 @@
 
         <div class="flex-1 flex flex-col min-h-0 overflow-hidden relative">
           <!-- Scrollable comments -->
-          <div #commentsContainer class="flex-1 min-h-0 overflow-y-auto flex flex-col space-y-3 border-t pt-4">
+          <div #commentsContainer class="flex-1 min-h-0 overflow-y-auto flex flex-col space-y-3 border-t border-[var(--border)] pt-4">
             <div *ngFor="let comment of comments$ | async; trackBy: trackByCommentId" class="flex items-start justify-between">
               <div class="flex items-start space-x-2">
                 <app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username$ | async" [imageUrl]="comment.userAvatar$ | async" [userId]="comment.userId" (clicked)="onAvatarClick()"></app-avatar>
                 <div class="flex flex-col">
-                  <a [routerLink]="['/profile', comment.userId]" class="font-medium text-sm hover:text-gray-600 transition-colors" (click)="onAvatarClick()">
+                  <a [routerLink]="['/profile', comment.userId]" class="font-medium text-sm hover:opacity-70 transition" (click)="onAvatarClick()">
                     {{ comment.username$ | async }}
                   </a>
                   <div *ngIf="editingCommentId === comment.id; else normalComment" class="flex items-center space-x-3">
                     <textarea #commentInput
                       [(ngModel)]="editingText" 
-                      class="border px-2 py-1 text-sm rounded flex-1 resize-none whitespace-pre-wrap" 
+                      class="border border-[var(--border)] bg-[var(--form)] text-[var(--text)] focus:ring-2 focus:ring-[var(--primary)] 
+                        px-2 py-1 text-sm rounded flex-1 outline-none resize-none whitespace-pre-wrap" 
                       rows="3"
                       (input)="adjustTextareaHeight()"></textarea>
-                    <button (click)="saveEdit(comment)" class="text-blue-500 text-sm hover:underline" [disabled]="!editingText.trim()">Save</button>
-                    <button (click)="cancelEditComment()" class="text-gray-500 text-sm hover:underline">Cancel</button>
+                    <button (click)="saveEdit(comment)" class="text-[var(--primary)] text-sm hover:underline" [disabled]="!editingText.trim()">Save</button>
+                    <button (click)="cancelEditComment()" class="text-[var(--text)] opacity-70 text-sm hover:underline">Cancel</button>
                   </div>
                   <ng-template #normalComment>
-                    <span class="text-xs text-gray-700 break-words whitespace-pre-wrap">{{ comment.text }}</span>
-                    <div class="flex items-center space-x-4 mt-1 text-xs text-gray-400">
-                      <span>{{ getRelativeTime(comment.createdAt) }}</span>
+                    <span class="text-xs text-[var(--text)] opacity-80 break-words whitespace-pre-wrap">{{ comment.text }}</span>
+                    <div class="flex items-center space-x-4 mt-1 text-xs">
+                      <span class="text-[var(--text)] opacity-50">{{ getRelativeTime(comment.createdAt) }}</span>
                       <div class="ml-2 flex items-center space-x-1">
                         <button class="ml-2 flex items-center space-x-1"
-                                (click)="toggleCommentLike(comment)">
+                          (click)="toggleCommentLike(comment)">
                           <img
                             class="like-heart w-[12px] h-[12px]"
                             [class.like-pop]="animatingCommentLike[comment.id!]"
                             [src]="(comment.liked$ | async) ? 'assets/icons/red-heart-2.svg' : 'assets/icons/heart.svg'"
+                            [style.filter]="(comment.liked$ | async) ? 'none' : 'var(--icon-filter)'"
                           />
                         </button>
                         <button *ngIf="comment.likesCount !== undefined && comment.likesCount > 0"
                           (click)="openCommentLikes(comment)"
-                          class="transition-opacity duration-150"
+                          class="transition duration-150"
                           [style.opacity]="comment.likesCount > 0 ? 1 : 0">
-                          {{ comment.likesCount === 1 ? '1 like' : comment.likesCount + ' likes' }}
+                          <span class="text-[var(--text)] opacity-50">{{ comment.likesCount === 1 ? '1 like' : comment.likesCount + ' likes' }}</span>
                         </button>
                       </div>
                     </div>
@@ -231,17 +239,17 @@
               <div *ngIf="comment.uid === auth.currentUser?.uid" class="relative">
                 <!-- Trigger button -->
                 <button (click)="toggleCommentMenu(comment.id!, $event)"
-                        [class.bg-gray-200]="isCommentMenuOpen(comment.id!)"
-                        class="comment-menu-toggle text-gray-500 text-sm w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 hover:text-black transition">
+                  [class.bg-[var(--hover)]]="isCommentMenuOpen(comment.id!)"
+                  class="comment-menu-toggle text-[var(--text)] opacity-60 text-sm w-6 h-6 flex items-center justify-center rounded-full hover:bg-[var(--hover)] hover:text-[var(--text)] transition">
                   <span class="relative -top-[1.5px]">⋯</span>
                 </button>
 
                 <!-- Dropdown menu -->
                 <div *ngIf="isCommentMenuOpen(comment.id!)"
-                    class="comment-menu absolute right-0 w-28 bg-white border rounded shadow-lg z-50 text-sm"
-                    [ngClass]="commentMenuDirection[comment.id!] === 'up' ? 'bottom-full mb-1 animate-slide-up' : 'top-full mt-1 animate-slide-down'">
-                  <button (click)="startEdit(comment)" class="block w-full text-left px-3 py-1 hover:bg-gray-100">Edit</button>
-                  <button (click)="deleteComment(comment)" class="block w-full text-left px-3 py-1 text-red-600 hover:bg-gray-100">Delete</button>
+                  class="comment-menu absolute right-0 w-28 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg overflow-hidden z-50 text-sm"
+                  [ngClass]="commentMenuDirection[comment.id!] === 'up' ? 'bottom-full mb-1 animate-slide-up' : 'top-full mt-1 animate-slide-down'">
+                  <button (click)="startEdit(comment)" class="block w-full text-left px-3 py-1 text-[var(--text)] hover:bg-[var(--hover)] transition">Edit</button>
+                  <button (click)="deleteComment(comment)" class="block w-full text-left px-3 py-1 text-red-500 hover:bg-red-500/10 transition">Delete</button>
                 </div>
               </div>
             </div>
@@ -251,19 +259,21 @@
           <button
             *ngIf="showNewCommentsButton"
             (click)="jumpToBottom()"
-            class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-xs px-3 py-1 rounded-full shadow hover:bg-blue-600 transition">
+            class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[var(--primary)] text-white text-xs px-3 py-1 rounded-full shadow-xl hover:bg-[var(--primary-hover)] transition z-30">
             ↓ New comments
           </button>
         </div>
 
-        <!-- Comment Input (outside scrollable container) -->
-        <div class="flex-shrink-0 mt-3 flex border-t pt-3">
+        <!-- Comment Input -->
+        <div class="flex-shrink-0 mt-3 flex border-t border-[var(--border)] pt-3">
           <div class="flex-1 relative">
             <textarea #newCommentInput
               [(ngModel)]="newComment" 
               placeholder="Add a comment..."
               rows="1"
-              class="min-h-10 w-full border px-3 py-2 rounded text-sm resize-none overflow-y-hidden pr-10" 
+              class="min-h-10 w-full bg-[var(--form)] border border-[var(--border)] text-[var(--text)]
+                px-3 py-2 rounded text-sm resize-none overflow-y-hidden
+                pr-10 outline-none focus:ring-2 focus:ring-[var(--primary)]" 
               (input)="adjustNewCommentTextareaHeight()"
               (keydown)="handleCommentKeydown($event)"></textarea>
             <div #emojiPickerContainer>
@@ -274,13 +284,13 @@
                 (click)="toggleEmojiPicker($event)"
                 (mousedown)="$event.preventDefault()"
                 class="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:scale-105">
-                <img src="assets/icons/emoji-1.svg" alt="Emoji" class="w-5 h-5" style="filter: invert(0.6);"/>
+                <img src="assets/icons/emoji-1.svg" alt="Emoji" class="w-5 h-5 opacity-40" style="filter: var(--icon-filter)"/>
               </button>
             </div>
           </div>
           <button (click)="submitComment()" 
             class="ml-2 font-medium"
-            [ngClass]="{'text-blue-500 hover:underline': newComment.trim(), 'text-gray-400 cursor-not-allowed': !newComment.trim()}"
+            [ngClass]="{'text-[var(--primary)] hover:underline': newComment.trim(), 'text-[var(--text)] opacity-40 cursor-not-allowed': !newComment.trim()}"
             [disabled]="!newComment.trim()">Post</button>
         </div>
       </div>
@@ -295,32 +305,32 @@
           <div class="flex items-center space-x-3">
             <app-avatar [username]="username$ | async" [imageUrl]="userAvatar$ | async" [userId]="userId$ | async" (clicked)="onAvatarClick()"></app-avatar>
             <div class="flex items-center space-x-2">
-              <a [routerLink]="['/profile', userId$ | async]" class="font-normal hover:text-gray-600 transition-colors" (click)="onAvatarClick()">
+              <a [routerLink]="['/profile', userId$ | async]" class="font-normal hover:opacity-70 transition" (click)="onAvatarClick()">
                 {{ username$ | async }}
               </a>
-              <span class="text-gray-400 text-sm">•</span>
-              <span class="text-gray-400 text-sm">{{ timestamp$ | async }}</span>
+              <span class="text-[var(--text)] opacity-30 text-sm">•</span>
+              <span class="text-[var(--text)] opacity-50 text-sm">{{ timestamp$ | async }}</span>
             </div>
           </div>
 
           <!-- Author Menu -->
           <div *ngIf="isAuthor || (post.groupId && (canRemoveFromGroup$ | async))" class="relative">
             <button (click)="toggleMenu($event)"
-              [class.bg-gray-200]="menuOpen"
-              class="text-gray-600 text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 hover:text-black transition">
+              [class.bg-[var(--hover)]]="menuOpen"
+              class="text-[var(--text)] opacity-60 text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-[var(--hover)] hover:text-[var(--text)] transition">
               <span class="relative -top-[1.5px]">⋯</span>
             </button>
 
             <div *ngIf="menuOpen"
-                class="absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg z-50 animate-slide-down">
+                class="absolute right-0 mt-2 w-40 bg-[var(--card)] border border-[var(--border)] backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden z-50 animate-slide-down">
               <div *ngIf="isAuthor">
-                <button (click)="onEdit($event)" class="block w-full text-left px-4 py-2 hover:bg-gray-100">Edit Post</button>
-                <button (click)="onDelete($event)" class="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">Delete Post</button>
+                <button (click)="onEdit($event)" class="block w-full text-left px-4 py-2 text-[var(--text)] hover:bg-[var(--hover)] transition">Edit Post</button>
+                <button (click)="onDelete($event)" class="block w-full text-left px-4 py-2 text-red-500 hover:bg-red-500/10 transition">Delete Post</button>
               </div>
               <button
                 *ngIf="post.groupId && (canRemoveFromGroup$ | async)"
                 (click)="onRemoveFromGroup($event)"
-                class="block w-full text-left px-4 py-2 hover:bg-gray-100">
+                class="block w-full text-left px-4 py-2 text-[var(--text)] hover:bg-[var(--hover)] transition">
                 Remove from group
               </button>
             </div>
@@ -329,33 +339,34 @@
 
         <!-- Caption -->
         <div class="overflow-y-auto max-h-[25vh] mb-6">
-          <p class="text-lg leading-relaxed text-gray-800" [innerHTML]="caption$ | async"></p>
+          <p class="text-lg leading-relaxed text-[var(--text)] opacity-90" [innerHTML]="caption$ | async"></p>
         </div>
 
         <!-- Actions -->
         <div class="flex items-center space-x-6 mb-6 text-sm flex-shrink-0">
           <button (click)="likePost()"
-            class="text-red-500 font-medium flex items-center space-x-2"
+            class="flex-shrink-0 text-[var(--text)] font-medium flex items-center space-x-2 transition"
             [class.text-red-500]="(liked$ | async)">
             <img
               class="like-heart w-[18px] h-[18px]"
               [class.like-pop]="animatingLike"
               [src]="(liked$ | async) ? 'assets/icons/red-heart-2.svg' : 'assets/icons/heart.svg'"
+              [style.filter]="(liked$ | async) ? 'none' : 'var(--icon-filter)'"
               alt="Like"
             />
             <span>{{ likesCount$ | async }}</span>
           </button>
-          <div class="flex items-center space-x-2 text-gray-600">
-            <img src="assets/icons/comment.svg" class="w-5 h-5" alt="Comments" />
+          <div class="flex items-center space-x-2 text-[var(--text)]">
+            <img src="assets/icons/comment.svg" class="w-5 h-5" alt="Comments" [style.filter]="'var(--icon-filter)'"/>
             <span>{{ commentsCount$ | async }}</span>
           </div>
           <div class="flex items-center space-x-2">
             <button (click)="onShare($event)"
-              class="flex items-center space-x-1 hover:bg-gray-100 rounded-lg transition">
-              <img src="assets/icons/link.svg" class="w-4 h-4" alt="Share" />
+              class="flex items-center space-x-1 hover:opacity-60 rounded-lg transition">
+              <img src="assets/icons/link.svg" class="w-4 h-4" alt="Share" [style.filter]="'var(--icon-filter)'"/>
             </button>
 
-            <span *ngIf="copied" class="copied-text text-gray-600 text-xs">Link copied</span>
+            <span *ngIf="copied" class="copied-text text-[var(--text)] opacity-70 text-xs">Link copied</span>
           </div>
         </div>
 
@@ -363,13 +374,13 @@
         <button
           *ngIf="likesText$ | async as likesText"
           (click)="openPostLikes()"
-          class="flex items-center space-x-2 text-sm text-gray-700 mb-3 transition">
+          class="flex items-center space-x-2 text-sm text-[var(--text)] mb-3 transition">
 
           <!-- Avatars -->
           <div class="flex -space-x-2">
             <app-avatar
               *ngFor="let user of topLikesUsers$ | async"
-              class="w-6 h-6 border-[1px] border-white rounded-full shadow-sm"
+              class="w-6 h-6 border-[1px] border-[var(--card)] rounded-full shadow-sm"
               [username]="user?.username"
               [imageUrl]="user?.profilePicture"
               size="xs">
@@ -381,27 +392,28 @@
         </button>
 
         <!-- Scrollable Comments -->
-        <div #commentsContainer class="flex-1 h-full min-h-[150px] overflow-y-auto flex flex-col space-y-3 border-t pt-4">
+        <div #commentsContainer class="flex-1 h-full min-h-[150px] overflow-y-auto flex flex-col space-y-3 border-t border-[var(--border)] pt-4">
           <div *ngFor="let comment of comments$ | async; trackBy: trackByCommentId" class="flex items-start justify-between">
             <div class="flex items-start space-x-2">
               <app-avatar class="flex-shrink-0 w-8 h-8" [username]="comment.username$ | async" [imageUrl]="comment.userAvatar$ | async" [userId]="comment.userId" (clicked)="onAvatarClick()"></app-avatar>
               <div class="flex flex-col">
-                <a [routerLink]="['/profile', comment.userId]" class="font-medium text-sm hover:text-gray-600 transition-colors" (click)="onAvatarClick()">
+                <a [routerLink]="['/profile', comment.userId]" class="font-medium text-sm hover:opacity-70 transition" (click)="onAvatarClick()">
                   {{ comment.username$ | async }}
                 </a>
                 <div *ngIf="editingCommentId === comment.id; else normalComment" class="flex items-center space-x-3">
                   <textarea #commentInput
                     [(ngModel)]="editingText"
-                    class="border px-2 py-1 text-sm rounded flex-1 resize-none whitespace-pre-wrap" 
+                    class="border border-[var(--border)] bg-[var(--form)] text-[var(--text)] focus:ring-2 focus:ring-[var(--primary)] 
+                      px-2 py-1 text-sm rounded flex-1 outline-none resize-none whitespace-pre-wrap"
                     rows="3"
                     (input)="adjustTextareaHeight()"></textarea>
-                  <button (click)="saveEdit(comment)" class="text-blue-500 text-sm hover:underline" [disabled]="!editingText.trim()">Save</button>
-                  <button (click)="cancelEditComment()" class="text-gray-500 text-sm hover:underline">Cancel</button>
+                  <button (click)="saveEdit(comment)" class="text-[var(--primary)] text-sm hover:underline" [disabled]="!editingText.trim()">Save</button>
+                  <button (click)="cancelEditComment()" class="text-[var(--text)] opacity-70 text-sm hover:underline">Cancel</button>
                 </div>
                 <ng-template #normalComment>
-                  <span class="text-xs text-gray-700 break-words whitespace-pre-wrap">{{ comment.text }}</span>
-                  <div class="flex items-center space-x-4 mt-1 text-xs text-gray-400">
-                    <span>{{ getRelativeTime(comment.createdAt) }}</span>
+                  <span class="text-xs text-[var(--text)] opacity-80 break-words whitespace-pre-wrap">{{ comment.text }}</span>
+                  <div class="flex items-center space-x-4 mt-1 text-xs">
+                    <span class="text-[var(--text)] opacity-50">{{ getRelativeTime(comment.createdAt) }}</span>
                     <div class="ml-2 flex items-center space-x-1">
                       <button class="ml-2 flex items-center space-x-1"
                         (click)="toggleCommentLike(comment)">
@@ -409,13 +421,14 @@
                           class="like-heart w-[12px] h-[12px]"
                           [class.like-pop]="animatingCommentLike[comment.id!]"
                           [src]="(comment.liked$ | async) ? 'assets/icons/red-heart-2.svg' : 'assets/icons/heart.svg'"
+                          [style.filter]="(comment.liked$ | async) ? 'none' : 'var(--icon-filter)'"
                         />
                       </button>
                       <button *ngIf="comment.likesCount !== undefined && comment.likesCount > 0"
                         (click)="openCommentLikes(comment)"
-                        class="transition-opacity duration-150"
+                        class="transition duration-150"
                         [style.opacity]="comment.likesCount > 0 ? 1 : 0">
-                        {{ comment.likesCount === 1 ? '1 like' : comment.likesCount + ' likes' }}
+                        <span class="text-[var(--text)] opacity-50">{{ comment.likesCount === 1 ? '1 like' : comment.likesCount + ' likes' }}</span>
                       </button>
                     </div>
                   </div>
@@ -427,17 +440,17 @@
             <div *ngIf="comment.uid === auth.currentUser?.uid" class="relative">
               <!-- Trigger button -->
               <button (click)="toggleCommentMenu(comment.id!, $event)"
-                [class.bg-gray-200]="isCommentMenuOpen(comment.id!)"
-                class="comment-menu-toggle text-gray-500 text-sm w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 hover:text-black transition">
+                [class.bg-[var(--hover)]]="isCommentMenuOpen(comment.id!)"
+                class="comment-menu-toggle text-[var(--text)] opacity-60 text-sm w-6 h-6 flex items-center justify-center rounded-full hover:bg-[var(--hover)] hover:text-[var(--text)] transition">
                 <span class="relative -top-[1.5px]">⋯</span>
               </button>
 
               <!-- Dropdown menu -->
               <div *ngIf="isCommentMenuOpen(comment.id!)"
-                class="comment-menu absolute right-0 w-28 bg-white border rounded shadow-lg z-50 text-sm"
+                class="comment-menu absolute right-0 w-28 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg overflow-hidden z-50 text-sm"
                 [ngClass]="commentMenuDirection[comment.id!] === 'up' ? 'bottom-full mb-1 animate-slide-up' : 'top-full mt-1 animate-slide-down'">
-                <button (click)="startEdit(comment)" class="block w-full text-left px-3 py-1 hover:bg-gray-100">Edit</button>
-                <button (click)="deleteComment(comment)" class="block w-full text-left px-3 py-1 text-red-600 hover:bg-gray-100">Delete</button>
+                <button (click)="startEdit(comment)" class="block w-full text-left px-3 py-1 text-[var(--text)] hover:bg-[var(--hover)] transition">Edit</button>
+                <button (click)="deleteComment(comment)" class="block w-full text-left px-3 py-1 text-red-500 hover:bg-red-500/10 transition">Delete</button>
               </div>
             </div>
           </div>
@@ -446,18 +459,20 @@
         <!-- New comments button -->
         <button *ngIf="showNewCommentsButton"
           (click)="jumpToBottom()"
-          class="absolute bottom-28 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-xs px-3 py-1 rounded-full shadow hover:bg-blue-600 transition">
+          class="absolute bottom-28 left-1/2 -translate-x-1/2 bg-[var(--primary)] text-white text-xs px-3 py-1 rounded-full shadow-xl hover:bg-[var(--primary-hover)] transition">
           ↓ New comments
         </button>
 
         <!-- Comment Input -->
-        <div class="mt-3 flex border-t pt-3 flex-shrink-0">
+        <div class="flex-shrink-0 mt-3 flex border-t border-[var(--border)] pt-3">
           <div class="flex-1 relative">
             <textarea #newCommentInput
               [(ngModel)]="newComment" 
               placeholder="Add a comment..." 
               rows="1"
-              class="min-h-10 w-full border px-3 py-2 rounded text-sm resize-none overflow-y-hidden pr-10"
+              class="min-h-10 w-full bg-[var(--form)] border border-[var(--border)] text-[var(--text)]
+                px-3 py-2 rounded text-sm resize-none overflow-y-hidden 
+                pr-10 outline-none focus:ring-2 focus:ring-[var(--primary)]"
               (input)="adjustNewCommentTextareaHeight()"
               (keydown)="handleCommentKeydown($event)"></textarea>
             <div #emojiPickerContainer>
@@ -468,13 +483,13 @@
                 (click)="toggleEmojiPicker($event)"
                 (mousedown)="$event.preventDefault()"
                 class="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:scale-105">
-                <img src="assets/icons/emoji-1.svg" alt="Emoji" class="w-5 h-5" style="filter: invert(0.6);"/>
+                <img src="assets/icons/emoji-1.svg" alt="Emoji" class="w-5 h-5 opacity-40" style="filter: var(--icon-filter)"/>
               </button>
             </div>
           </div>
           <button (click)="submitComment()" 
             class="ml-2 font-medium"
-            [ngClass]="{'text-blue-500 hover:underline': newComment.trim(), 'text-gray-400 cursor-not-allowed': !newComment.trim()}"
+            [ngClass]="{'text-[var(--primary)] hover:underline': newComment.trim(), 'text-[var(--text)] opacity-40 cursor-not-allowed': !newComment.trim()}"
             [disabled]="!newComment.trim()">Post</button>
         </div>
       </div>
@@ -489,7 +504,7 @@
   <div class="absolute inset-0 bg-black/50" (click)="showLikesModal = false"></div>
 
   <!-- Modal -->
-  <div @modalScale class="relative bg-white w-full max-w-sm rounded-lg shadow-lg p-4 z-[70] max-h-[70vh] overflow-y-auto">
+  <div @modalScale class="relative bg-[var(--card)] text-[var(--text)] w-full max-w-sm rounded-lg shadow-lg p-4 z-[70] max-h-[70vh] overflow-y-auto">
 
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-lg font-medium">Likes</h2>
@@ -505,7 +520,7 @@
           [userId]="user?.userId">
         </app-avatar>
 
-        <a [routerLink]="['/profile', user?.userId]" class="hover:text-gray-600 transition-colors" (click)="onAvatarClick()">
+        <a [routerLink]="['/profile', user?.userId]" class="font-medium hover:opacity-70 transition" (click)="onAvatarClick()">
           {{ user?.username }}
         </a>
       </div>

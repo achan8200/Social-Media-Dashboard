@@ -1,70 +1,129 @@
-<nav class="bg-white shadow px-6 py-3 flex justify-between items-center">
-  <h1 class="text-2xl font-bold text-blue-600 whitespace-nowrap">Social Dashboard</h1>
+<nav
+  class="sticky top-0 z-40
+  border-b border-[var(--border)]
+  bg-[var(--card)] backdrop-blur-2xl
+  shadow-lg px-4 md:px-6 py-2
+  flex items-center justify-between gap-4
+  text-[var(--text)]">
 
-  <div class="flex-1 flex justify-center px-6">
-    <div #searchContainer class="relative w-full max-w-xl">
+  <!-- Logo -->
+  <div class="flex items-center flex-shrink-0">
+
+    <h1
+      class="text-2xl font-bold tracking-tight
+      text-[var(--primary)] whitespace-nowrap">
+      Social Dashboard
+    </h1>
+
+  </div>
+
+  <!-- Search -->
+  <div class="flex-1 flex justify-center min-w-0">
+
+    <div
+      #searchContainer
+      class="relative w-full max-w-xl">
 
       <!-- Search Bar -->
-      <div class="flex items-center border rounded-lg overflow-hidden bg-white shadow-sm">
+      <div
+        class="flex items-center overflow-hidden rounded-2xl
+        border border-[var(--border)]
+        bg-[var(--bg)] backdrop-blur-xl
+        shadow-md transition
+        focus-within:ring-2 focus-within:ring-[var(--primary)]">
 
-        <!-- Dropdown (Search Type) -->
+        <!-- Search Type -->
         <button
           (click)="toggleSearchTypeDropdown($event)"
-          class="ml-[2.5px] px-3 py-2 bg-gray-100 text-sm hover:bg-gray-200 flex items-center gap-1 rounded-lg"
-        >
+          class="ml-1.5 px-4 py-2
+            rounded-xl text-sm font-medium
+            bg-[var(--card)]
+            hover:bg-[var(--hover)]
+            transition flex items-center gap-1">
+
           {{ searchType === 'user' ? 'User' : 'Group' }}
-          <span>▾</span>
+
+          <span class="text-xs opacity-70">
+            ▾
+          </span>
+
         </button>
 
-        <!-- Input wrapper -->
+        <!-- Input -->
         <div class="relative flex-1">
+
           <input
             type="text"
             [(ngModel)]="searchQuery"
             (input)="onSearchChange()"
             (focus)="showResults = true"
             placeholder="Search"
-            class="w-full px-3 py-2 pr-8 outline-none"
+            class="w-full bg-transparent
+              px-4 py-2.5 pr-10
+              text-[var(--text)]
+              placeholder:text-[var(--text)]/40
+              outline-none"
           />
 
-          <!-- Clear button -->
+          <!-- Clear -->
           <button
             *ngIf="searchQuery"
             (click)="clearSearch()"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
-            aria-label="Clear search"
-          >
+            class="absolute right-3 top-1/2 -translate-y-1/2
+              text-[var(--text)]/40
+              hover:text-[var(--text)] transition"
+            aria-label="Clear search">
+
             ✕
+
           </button>
+
         </div>
+
       </div>
 
       <!-- Search Type Dropdown -->
-      <div *ngIf="showSearchTypeDropdown"
-           class="absolute left-0 mt-1 w-32 bg-white border rounded-lg shadow z-50 overflow-hidden animate-slide-down">
+      <div
+        *ngIf="showSearchTypeDropdown"
+        class="absolute left-0 mt-2 w-36
+          rounded-2xl overflow-hidden
+          border border-[var(--border)]
+          bg-[var(--card)] backdrop-blur-2xl
+          shadow-2xl z-50 animate-slide-down">
 
         <button
           (click)="setSearchType('user')"
-          class="w-full text-left px-3 py-2 hover:bg-gray-100">
+          class="w-full text-left px-4 py-3
+            hover:bg-[var(--hover)]
+            transition">
           Search User
         </button>
 
         <button
           (click)="setSearchType('group')"
-          class="w-full text-left px-3 py-2 hover:bg-gray-100">
+          class="w-full text-left px-4 py-3
+            hover:bg-[var(--hover)]
+            transition">
           Search Group
         </button>
       </div>
 
-      <!-- Results Dropdown -->
-      <div *ngIf="showResults && searchQuery.trim() && (results$ | async) as results"
-           class="absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow z-50 max-h-80 overflow-y-auto">
+      <!-- Results -->
+      <div
+        *ngIf="showResults && searchQuery.trim() && (results$ | async) as results"
+        class="absolute left-0 right-0 mt-3
+          rounded-2xl overflow-hidden
+          border border-[var(--border)]
+          bg-[var(--card)] backdrop-blur-2xl
+          shadow-2xl z-50 max-h-80 overflow-y-auto">
 
         <ng-container *ngIf="results.length; else noResults">
           <button
             *ngFor="let item of results"
             (click)="goToResult(item)"
-            class="w-full text-left px-4 py-2 hover:bg-gray-100">
+            class="w-full text-left px-4 py-3
+              hover:bg-[var(--hover)]
+              transition">
 
             <div class="flex items-center gap-3">
 
@@ -76,114 +135,200 @@
               </app-avatar>
 
               <!-- Text -->
-              <div class="flex flex-col">
-                <span class="text-sm font-medium text-gray-900">
-                  {{ searchType === 'user' ? item.displayName : item.name }}
+              <div class="flex flex-col min-w-0">
+
+                <span
+                  class="text-sm font-medium truncate
+                  text-[var(--text)]">
+
+                  {{ searchType === 'user'
+                    ? item.displayName
+                    : item.name }}
+
                 </span>
 
-                <span class="text-xs text-gray-400">
-                  {{ searchType === 'user' ? '@' + item.username : 'Group' }}
+                <span
+                  class="text-xs truncate
+                  text-[var(--text)] opacity-50">
+
+                  {{ searchType === 'user'
+                    ? '@' + item.username
+                    : 'Group' }}
+
                 </span>
+
               </div>
 
             </div>
+
           </button>
+
         </ng-container>
 
         <ng-template #noResults>
-          <div class="px-4 py-2 text-gray-400 text-sm">
+
+          <div class="px-4 py-3 text-sm text-[var(--text)] opacity-50">
             No results
           </div>
+
         </ng-template>
 
       </div>
 
     </div>
+
   </div>
 
-  <div class="flex items-center space-x-4">
+  <!-- Right Side -->
+  <div class="flex items-center gap-2 md:gap-3 flex-shrink-0">
 
-    <!-- Notifications Button -->
-    <div *ngIf="!(isGuest$ | async)" class="relative flex-shrink-0 lg:hidden">
+    <!-- Mobile Notifications -->
+    <div
+      *ngIf="!(isGuest$ | async)"
+      class="relative flex-shrink-0 lg:hidden">
+
       <ng-container *ngIf="unreadCount$ | async as unreadCount">
+
         <button 
           (click)="toggleNotifications(); $event.stopPropagation()"
-          class="relative p-2 rounded hover:bg-gray-100"
+          class="relative p-2.5 rounded-2xl
+            hover:bg-[var(--hover)]
+            transition"
           [title]="unreadCount > 0 ? unreadCount + ' unread notifications' : ''">
+
           <img 
             src="assets/icons/notification.svg"
             alt="Notifications"
             class="w-5 h-5"
+            [style.filter]="'var(--icon-filter)'"
           />
-          <!-- Unread Badge -->
+
+          <!-- Badge -->
           <span 
-            class="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center"
+            class="absolute -top-1 -right-1
+              h-5 min-w-[20px] px-1
+              bg-red-500 text-white text-[10px]
+              font-bold rounded-full
+              flex items-center justify-center
+              shadow"
             [class.bounce-badge]="newNotification"
             [hidden]="unreadCount === 0">
-            {{ unreadCount }}
-          </span>
-        </button>
-      </ng-container>
 
-      <!-- If async has not emitted yet, show button with no badge -->
-      <ng-container *ngIf="!(unreadCount$ | async)">
-        <button 
-          (click)="toggleNotifications(); $event.stopPropagation()"
-          class="relative p-2 rounded hover:bg-gray-100">
-          <img 
-            src="assets/icons/notification.svg"
-            alt="Notifications"
-            class="w-5 h-5"
-          />
+            {{ unreadCount }}
+
+          </span>
+
         </button>
+
       </ng-container>
 
       <!-- Notifications Dropdown -->
-      <div *ngIf="showNotifications"
-          @dropdownAnimation
-          class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg z-50 max-h-[70vh] flex flex-col border border-gray-200">
+      <div
+        *ngIf="showNotifications"
+        @dropdownAnimation
+        class="absolute right-0 mt-3 w-80
+          rounded-3xl overflow-hidden
+          border border-[var(--border)]
+          bg-[var(--card)] backdrop-blur-2xl
+          shadow-2xl z-50">
 
         <!-- Header -->
-        <div class="px-4 py-3 border-b border-gray-200">
-          <span class="font-semibold text-gray-700">Notifications</span>
+        <div
+          class="px-5 py-4 border-b border-[var(--border)]">
+
+          <span class="font-semibold">
+            Notifications
+          </span>
+
         </div>
 
-        <div class="relative">
-          <!-- Scrollable Notifications Content -->
-          <div class="relative max-h-[40vh] pb-2 flex-1 overflow-y-auto scroll-smooth">
-            <!-- Grouped Notifications by Day -->
-            <ng-container *ngIf="notificationsByDay$ | async as notificationsByDay">
-              <ng-container *ngFor="let dayEntry of notificationsByDay | keyvalue: sortDays">
-                
-                <!-- Day header -->
-                <div class="px-4 mt-3 mb-1 text-gray-400 text-xs font-semibold uppercase">
-                  {{ dayEntry.key }}
-                </div>
+        <!-- Content -->
+        <div
+          class="relative max-h-[40vh]
+          overflow-y-auto scroll-smooth">
 
-                <ul class="space-y-2 px-2">
-                  <li *ngFor="let group of dayEntry.value">
-                    <app-notification-item [notifications]="group"></app-notification-item>
-                  </li>
-                </ul>
+          <ng-container *ngIf="notificationsByDay$ | async as notificationsByDay">
 
-              </ng-container>
+            <ng-container *ngFor="let dayEntry of notificationsByDay | keyvalue: sortDays">
+
+              <div
+                class="px-5 mt-4 mb-2 text-xs font-semibold uppercase tracking-wide
+                text-[var(--text)] opacity-40">
+
+                {{ dayEntry.key }}
+
+              </div>
+
+              <ul class="space-y-2 px-2 pb-2">
+
+                <li *ngFor="let group of dayEntry.value">
+
+                  <app-notification-item
+                    [notifications]="group">
+                  </app-notification-item>
+
+                </li>
+
+              </ul>
+
             </ng-container>
-          </div>
+
+          </ng-container>
+
         </div>
 
-        <!-- Sticky Mark all as read -->
-        <div class="sticky bottom-0 bg-white p-3 flex justify-end border-t border-gray-200">
-          <button class="text-xs text-blue-500 hover:underline" (click)="markAllRead()">
+        <!-- Footer -->
+        <div
+          class="border-t border-[var(--border)]
+          px-5 py-3 flex justify-end">
+
+          <button
+            class="text-xs font-medium
+              text-[var(--primary)]
+              hover:underline"
+            (click)="markAllRead()">
+
             Mark all as read
+
           </button>
+
         </div>
+
       </div>
+
     </div>
 
-    <!-- Profile / Settings / Logout -->
-    <button (click)="goToProfile()" class="text-gray-700 hover:text-blue-600">Profile</button>
-    <button (click)="goToSettings()" class="text-gray-700 hover:text-blue-600">Settings</button>
-    <button (click)="logout()" class="text-gray-700 hover:text-blue-600">Logout</button>
+    <!-- Nav Buttons -->
+    <button
+      (click)="goToProfile()"
+      class="px-3 py-2 rounded-xl
+        hover:bg-[var(--hover)]
+        transition font-medium">
+
+      Profile
+
+    </button>
+
+    <button
+      (click)="goToSettings()"
+      class="px-3 py-2 rounded-xl
+        hover:bg-[var(--hover)]
+        transition font-medium">
+
+      Settings
+
+    </button>
+
+    <button
+      (click)="logout()"
+      class="px-3 py-2 rounded-xl
+        hover:bg-[var(--hover)]
+        transition font-medium">
+
+      Logout
+
+    </button>
 
   </div>
+
 </nav>

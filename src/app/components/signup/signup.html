@@ -1,11 +1,11 @@
 <div class="h-screen flex items-center justify-center px-4 overflow-hidden">
 
-  <div class="w-full max-w-2xl bg-white shadow-xl rounded-2xl p-10 space-y-6 -translate-y-10 overflow-y-auto max-h-[90vh]">
+  <div class="w-full max-w-2xl bg-[var(--card)] backdrop-blur-2xl border border-[var(--border)] shadow-xl rounded-2xl p-10 space-y-6 -translate-y-10 overflow-y-auto max-h-[90vh]">
 
     <!-- Title -->
     <div class="text-center">
-      <h1 class="text-3xl font-bold text-gray-900">Create Account</h1>
-      <p class="text-gray-500 text-sm mt-1">Join the community</p>
+      <h1 class="text-3xl font-bold text-[var(--text)]">Create Account</h1>
+      <p class="text-[var(--text)] opacity-60 text-sm mt-1">Join the community</p>
     </div>
 
     <!-- Signup Form -->
@@ -18,7 +18,9 @@
         <div class="relative">
           <input
             type="email"
-            class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            class="w-full rounded-lg bg-[var(--form)] border border-[var(--border)] px-4 py-3
+              text-[var(--text)] placeholder:text-[var(--text)]/40
+              outline-none transition focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
             placeholder="Email"
             [(ngModel)]="email"
             (input)="validateEmail()"
@@ -41,17 +43,20 @@
             name="password"
             placeholder="Password"
             required
-            class="w-full border border-gray-300 p-3 rounded-lg pr-10 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            class="w-full rounded-lg bg-[var(--form)] border border-[var(--border)] px-4 py-3
+              text-[var(--text)] placeholder:text-[var(--text)]/40
+              outline-none transition focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
           />
           <button
             type="button"
             (click)="togglePasswordVisibility()"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            class="absolute right-3 top-1/2 -translate-y-1/2 opacity-60 hover:opacity-100 transition-opacity"
           >
             <img 
               [src]="showPassword ? 'assets/icons/hide.svg' : 'assets/icons/show.svg'" 
               alt="Toggle password visibility"
               class="w-5 h-5"
+              [style.filter]="'var(--icon-filter)'"
             />
           </button>
         </div>
@@ -84,7 +89,9 @@
             (input)="validateConfirmPassword()"
             name="confirmPassword"
             placeholder="Confirm password"
-            class="w-full border border-gray-300 p-3 rounded-lg pr-10 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            class="w-full rounded-lg bg-[var(--form)] border border-[var(--border)] px-4 py-3
+              text-[var(--text)] placeholder:text-[var(--text)]/40
+              outline-none transition focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
           />
           <span *ngIf="confirmPassword && !confirmPasswordError"
             class="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">
@@ -102,7 +109,9 @@
         <div class="relative">
           <input
             type="text"
-            class="w-full border border-gray-300 p-3 rounded-lg pr-10 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            class="w-full rounded-lg bg-[var(--form)] border border-[var(--border)] px-4 py-3
+              text-[var(--text)] placeholder:text-[var(--text)]/40
+              outline-none transition focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
             placeholder="Username"
             [(ngModel)]="username"
             (input)="validateUsername()"
@@ -126,7 +135,9 @@
         <div class="relative">
           <input
             type="text"
-            class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            class="w-full rounded-lg bg-[var(--form)] border border-[var(--border)] px-4 py-3
+              text-[var(--text)] placeholder:text-[var(--text)]/40
+              outline-none transition focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
             placeholder="Display Name"
             [(ngModel)]="displayName"
             (input)="validateDisplayName()"
@@ -147,8 +158,10 @@
         <button
           type="submit"
           [disabled]="!isFormValid || usernameChecking"
-          class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition
-                disabled:bg-gray-400 disabled:cursor-not-allowed"
+          class="w-full rounded-lg py-3 font-semibold text-white bg-[var(--primary)]
+          shadow-lg shadow-black/10 hover:bg-[var(--primary-hover)] hover:scale-[1.01]
+          active:scale-[0.99] transition-all duration-200
+        disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
           Create Account
         </button>
@@ -160,9 +173,9 @@
     <p *ngIf="error" class="text-red-500 text-sm text-center">{{ error }}</p>
 
     <!-- Back to login -->
-    <p class="text-center text-sm text-gray-500">
+    <p class="text-center text-sm text-[var(--text)] opacity-60">
       Already have an account?
-      <a routerLink="/login" class="text-blue-600 hover:underline font-medium">Sign in</a>
+      <a routerLink="/login" class="ml-1 text-[var(--primary)] hover:underline font-medium">Sign in</a>
     </p>
 
   </div>

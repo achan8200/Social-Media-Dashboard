@@ -40,6 +40,8 @@ export class App {
       )
       .subscribe((profile: any) => {
         const theme = profile?.theme || 'light';
+
+        this.themeService.currentTheme = theme;
         this.themeService.applyTheme(theme);
       });
   }

@@ -1,36 +1,42 @@
-<div class="flex max-w-5xl mx-auto mt-6 bg-white rounded-xl shadow overflow-hidden h-[80vh]">
+<div class="flex max-w-5xl mx-auto mt-6 backdrop-blur-xl bg-[var(--bg)] rounded-xl shadow overflow-hidden h-[80vh] border border-[var(--border)]">
 
   <!-- Sidebar -->
-  <div class="w-64 border-r bg-gray-50 p-4">
-    <nav class="flex flex-col gap-2 text-sm">
+  <div class="w-64 border-r border-[var(--border)] bg-[var(--card)]/60 p-4">
 
-      <a routerLink="profile" routerLinkActive="bg-gray-200"
-         class="px-3 py-2 rounded hover:bg-gray-100 transition-colors duration-150">
+    <nav class="flex flex-col gap-2 text-sm text-[var(--text)]">
+
+      <a routerLink="profile"
+         routerLinkActive="bg-[var(--hover)]"
+         class="px-3 py-2 rounded hover:bg-[var(--hover)] transition-colors duration-150">
         Profile
       </a>
 
-      <a routerLink="appearance" routerLinkActive="bg-gray-200"
-         class="px-3 py-2 rounded hover:bg-gray-100 transition-colors duration-150">
+      <a routerLink="appearance"
+         routerLinkActive="bg-[var(--hover)]"
+         class="px-3 py-2 rounded hover:bg-[var(--hover)] transition-colors duration-150">
         Appearance
       </a>
 
-      <a routerLink="security" routerLinkActive="bg-gray-200"
-         class="px-3 py-2 rounded hover:bg-gray-100 transition-colors duration-150">
+      <a routerLink="security"
+         routerLinkActive="bg-[var(--hover)]"
+         class="px-3 py-2 rounded hover:bg-[var(--hover)] transition-colors duration-150">
         Security
       </a>
 
-      <hr class="my-2">
+      <hr class="my-2 border-[var(--border)]">
 
-      <a routerLink="account" routerLinkActive="bg-red-100 text-red-600"
-         class="px-3 py-2 rounded hover:bg-red-50 transition-colors duration-150">
+      <a routerLink="account"
+         routerLinkActive="bg-red-500/10 text-red-500"
+         class="px-3 py-2 rounded hover:bg-red-500/5 transition-colors duration-150">
         Account
       </a>
 
     </nav>
+
   </div>
 
   <!-- Content -->
-  <div class="flex-1 p-6 overflow-y-auto">
+  <div class="flex-1 p-6 overflow-y-auto text-[var(--text)]">
     <router-outlet></router-outlet>
   </div>
 

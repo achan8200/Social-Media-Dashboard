@@ -2,7 +2,8 @@
   <div class="max-w-4xl mx-auto space-y-6 flex flex-col">
 
     <!-- Group Card -->
-    <div class="bg-white rounded-xl shadow p-6 flex flex-col sm:flex-row items-center sm:items-start gap-6 relative">
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-3xl opacity-80 backdrop-blur-2xl
+      shadow-xl p-6 md:p-8  flex flex-col sm:flex-row items-center sm:items-start gap-6 relative text-[var(--text)]">
 
       <!-- Avatar -->
       <div class="relative w-32 h-32">
@@ -11,7 +12,7 @@
         <ng-container *ngIf="vm.group?.avatar; else defaultAvatar">
           <img
             [src]="vm.group?.avatar"
-            class="w-32 h-32 rounded-full object-cover border"
+            class="w-32 h-32 rounded-full object-cover border-4 border-[var(--border)] shadow-xl"
           />
         </ng-container>
 
@@ -66,7 +67,7 @@
         </div>
 
         <!-- Bio -->
-        <p class="text-gray-700 max-w-xl break-words whitespace-pre-wrap max-h-[150px] overflow-y-auto">{{ vm.group?.bio || 'No description' }}</p>
+        <p class="text-[var(--text)] opacity-70  max-w-xl break-words whitespace-pre-wrap max-h-[150px] overflow-y-auto">{{ vm.group?.bio || 'No description' }}</p>
 
         <!-- Banned notice -->
         <div
@@ -100,12 +101,13 @@
         <!-- Private Badge -->
         <div
           *ngIf="vm.group?.isPrivate"
-          class="w-9 h-9 rounded-full flex items-center justify-center bg-white/80 backdrop-blur-md border border-gray-200 shadow-sm"
+          class="w-9 h-9 rounded-full flex items-center justify-center bg-[var(--card)] backdrop-blur-md border border-[var(--border)] shadow-sm"
           title="Private Group - Invite only"
         >
           <img
             src="assets/icons/private.svg"
             class="w-5 h-5 opacity-80"
+            style="filter: var(--icon-filter);"
           />
         </div>
 
@@ -118,17 +120,17 @@
             <!-- Decline -->
             <button
               (click)="declineInvite(invite)"
-              class="px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-700
-              hover:bg-gray-100 transition-colors duration-150 text-sm"
+              class="px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg)] hover:bg-[var(--hover)]
+              transition-colors duration-150 text-sm"
             >
-              Decline
+              <span class="text-[var(--text)] opacity-80">Decline</span>
             </button>
 
             <!-- Accept -->
             <button
               (click)="acceptInvite(invite)"
-              class="px-3 py-1.5 rounded-lg bg-blue-600 text-white
-              hover:bg-blue-700 transition-colors duration-150 text-sm"
+              class="px-3 py-1.5 rounded-lg bg-[var(--primary)] text-white
+              hover:bg-[var(--primary-hover)] transition text-sm"
             >
               Accept
             </button>
@@ -141,13 +143,14 @@
           *ngIf="canEditGroup$ | async"
           (click)="openSettings(); $event.stopPropagation()"
           class="w-9 h-9 rounded-full flex items-center justify-center
-                bg-white/80 backdrop-blur-md border border-gray-200
-                shadow-sm hover:bg-gray-100 transition-colors duration-150"
+                bg-[var(--card)] backdrop-blur-md border border-[var(--border)]
+                shadow-sm hover:bg-[var(--hover)] transition-colors duration-150"
           title="Group Settings"
         >
           <img
             src="assets/icons/setting-lines.svg"
             class="w-5 h-5 opacity-80"
+            style="filter: var(--icon-filter);"
           />
         </button>
 
@@ -163,10 +166,10 @@
             )
           "
           (click)="toggleMembership(vm.isMember)"
-          class="px-3 py-1.5 text-sm rounded-lg text-white transition-colors duration-150"
+          class="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] transition-colors duration-150"
           [ngClass]="{
-            'bg-blue-600 hover:bg-blue-700': !vm.isMember,
-            'bg-gray-400 hover:bg-gray-500': vm.isMember
+            'bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white': !vm.isMember,
+            'bg-[var(--bg)] hover:bg-[var(--hover)]': vm.isMember
           }">
           {{ vm.isMember ? 'Leave' : 'Join' }}
         </button>
@@ -178,43 +181,44 @@
     <!-- Stats Section -->
     <div class="grid grid-cols-2 gap-4 text-center">
 
-      <div class="bg-white rounded-lg shadow p-4">
-        <p class="text-xl font-bold">{{ vm.postCount }}</p>
-        <p class="text-gray-500 text-sm">Posts</p>
+      <div class="rounded-2xl border border-[var(--border)] bg-[var(--card)] opacity-70 backdrop-blur-xl shadow-lg p-5">
+        <p class="text-2xl font-bold text-[var(--text)]">{{ vm.postCount }}</p>
+        <p class="text-sm mt-1 text-[var(--text)] opacity-60">Posts</p>
       </div>
 
       <button
-        class="bg-white rounded-lg shadow p-4 cursor-pointer disabled:cursor-not-allowed"
+        class="rounded-2xl border border-[var(--border)] bg-[var(--card)] opacity-70 backdrop-blur-xl shadow-lg p-5
+          hover:bg-[var(--hover)] transition block cursor-pointer disabled:cursor-not-allowed"
         (click)="showMembersModal = true"
         [disabled]="!vm.isMember && vm.group?.isPrivate">
 
-        <p class="text-xl font-bold hover:text-gray-400">
+        <p class="text-2xl font-bold text-[var(--text)]">
           {{ vm.memberCount }}
         </p>
-        <p class="text-gray-500 text-sm">Members</p>
+        <p class="text-sm mt-1 text-[var(--text)] opacity-60">Members</p>
 
       </button>
 
     </div>
 
     <!-- Tabs -->
-    <div class="bg-white rounded-lg shadow flex mt-2 overflow-hidden">
+    <div class="bg-white rounded-xl opacity-80 shadow-lg flex mt-2 overflow-hidden">
       <button
         (click)="setTab('posts')"
         class="flex-1 py-3 text-sm font-medium transition"
         [ngClass]="activeTab === 'posts'
-            ? 'bg-gray-900 text-white'
-            : 'bg-gray-200 hover:bg-gray-300'">
+            ? 'bg-[var(--primary)] text-white'
+            : 'bg-[var(--card)] hover:bg-[var(--hover)] text-[var(--text)]'">
         Posts
       </button>
 
       <button
         (click)="openMessagesTab()"
         [disabled]="!vm.isMember || vm.isBanned"
-        class="flex-1 py-3 text-sm font-medium transition disabled:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="flex-1 py-3 text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
         [ngClass]="activeTab === 'messages'
-            ? 'bg-gray-900 text-white'
-            : 'bg-gray-200 hover:bg-gray-300'">
+            ? 'bg-[var(--primary)] text-white'
+            : 'bg-[var(--card)] hover:bg-[var(--hover)] text-[var(--text)]'">
 
         <span class="flex items-center justify-center gap-2">
           Messages
@@ -236,14 +240,16 @@
       <ng-container *ngIf="activeTab === 'posts'">
         <!-- Group Posts Grid -->
         <ng-container *ngIf="!vm.isBanned && (vm.isMember || (invite$ | async) || !vm.group?.isPrivate)">
-          <div class="grid grid-cols-3 gap-2">
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
             <ng-container *ngIf="groupPosts$ | async as posts">
               <ng-container *ngIf="posts.length > 0; else noPosts">
                 <ng-container *ngFor="let post of posts; trackBy: trackByPostId">
                   <!-- media post -->
                   <div *ngIf="post.media!.length > 0; else captionOnlyPost" 
                     (click)="openPostModal(post)"
-                    class="relative aspect-square bg-gray-100 overflow-hidden rounded cursor-pointer">
+                    class="relative aspect-square rounded-2xl overflow-hidden cursor-pointer
+                      border border-[var(--border)] bg-[var(--card)]
+                      hover:scale-[1.01] transition-all duration-200 shadow-lg">
                     <!-- Stack icon (only if multiple media) -->
                     <img *ngIf="(post?.media?.length ?? 0) > 1"
                       src="assets/icons/stack.svg"
@@ -256,19 +262,23 @@
                   <ng-template #captionOnlyPost>
                     <div
                       (click)="openPostModal(post)"
-                      class="relative aspect-square bg-white rounded overflow-hidden cursor-pointer">
-                      <div class="absolute inset-3 flex items-center justify-center p-2">
-                        <p class="text-center text-sm text-gray-700 whitespace-pre-wrap break-words">
+                      class="relative aspect-square rounded-2xl overflow-hidden cursor-pointer
+                        border border-[var(--border)] bg-[var(--card)] opacity-80
+                        backdrop-blur-xl hover:bg-[var(--hover)] hover:scale-[1.01]
+                        transition-all duration-200 shadow-lg">
+                      <div class="absolute inset-3 flex items-center justify-center p-3">
+                        <p class="text-center text-sm whitespace-pre-wrap break-words line-clamp-6
+                            text-[var(--text)] opacity-90">
                           {{ post.caption }}
                         </p>
                       </div>
                       <!-- Top fade overlay -->
                       <div class="pointer-events-none absolute top-0 left-0 right-0 h-16
-                                  bg-gradient-to-b from-white to-transparent">
+                        bg-gradient-to-b from-white to-transparent">
                       </div>
                       <!-- Bottom fade overlay -->
                       <div class="pointer-events-none absolute bottom-0 left-0 right-0 h-16
-                                  bg-gradient-to-t from-white to-transparent">
+                        bg-gradient-to-t from-white to-transparent">
                       </div>
                     </div>
                   </ng-template>
@@ -296,8 +306,8 @@
   <button
     *ngIf="activeTab === 'posts' && (isMember$ | async)"
     (click)="openCreateModal()"
-    class="fixed bottom-8 right-8 w-14 h-14 bg-blue-600 text-white text-3xl rounded-full shadow-lg hover:scale-105 transition
-          flex items-center justify-center leading-none"
+    class="fixed bottom-8 right-8 w-14 h-14 bg-[var(--primary)] text-white text-3xl rounded-full shadow-lg hover:bg-[var(--primary-hover)] hover:scale-105 transition
+      flex items-center justify-center leading-none"
   >
     <span class="relative -top-0.5">+</span>
   </button>
@@ -325,7 +335,8 @@
 >
   <div
     @modalScale
-    class="bg-white rounded-xl p-6 w-full max-w-sm space-y-4 max-h-[80vh] overflow-y-auto"
+    class="border border-[var(--border)] bg-[var(--card)] backdrop-blur-2xl shadow-2xl rounded-3xl 
+      p-6 w-full max-w-sm space-y-4 max-h-[80vh] overflow-y-auto text-[var(--text)]"
   >
 
     <div class="flex items-center justify-between">
@@ -345,7 +356,7 @@
 
         <!-- EMPTY STATE -->
         <ng-container *ngIf="ownedTitles.length === 0; else hasTitles">
-          <div class="text-center py-6 text-gray-500">
+          <div class="text-center py-6 opacity-60">
             You don't have any titles yet.
           </div>
         </ng-container>
@@ -356,7 +367,7 @@
           <button
             *ngFor="let title of ownedTitles"
             (click)="displayActiveTitle(title)"
-            class="w-full flex items-center justify-between px-4 py-3 rounded-lg border hover:bg-gray-50 transition"
+            class="w-full flex items-center justify-between px-4 py-3 rounded-lg bg-[var(--form)] border border-[var(--border)] hover:bg-[var(--hover)] transition"
           >
             <span
               class="px-2 py-1 rounded-full text-xs text-white"
@@ -370,7 +381,7 @@
           <!-- Remove -->
           <button
             (click)="displayActiveTitle(null)"
-            class="w-full px-4 py-3 rounded-lg border text-red-600 hover:bg-red-50 transition"
+            class="w-full px-4 py-3 rounded-lg border border-[var(--border)] text-red-600 hover:bg-red-500/10 transition"
           >
             Remove Active Title
           </button>
@@ -388,7 +399,8 @@
   <div
     *ngIf="showMembersModal" @overlayFade
     class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <div @modalScale class="bg-white w-full max-w-md rounded-xl shadow-lg p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+    <div @modalScale class="border border-[var(--border)] bg-[var(--card)] w-full max-w-md rounded-3xl shadow-2xl
+      p-6 space-y-4 max-h-[80vh] overflow-y-auto text-[var(--text)]">
 
       <!-- Header -->
       <div class="flex justify-between items-center">
@@ -400,7 +412,7 @@
       <div class="max-h-80 overflow-y-auto space-y-2">
         <div
           *ngFor="let member of vm.members"
-          class="flex items-center justify-between px-3 py-2 rounded-lg">
+          class="flex items-center justify-between px-3 py-2 bg-[var(--form)] rounded-lg">
 
           <!-- Left: User -->
           <div class="flex items-center gap-3">
@@ -412,15 +424,15 @@
             </app-avatar>
 
             <div class="flex flex-col">
-              <span class="text-base font-medium text-gray-900 truncate">
+              <span class="text-base font-medium truncate">
                 {{ member.user?.displayName || member.user?.username }}
 
-                <span *ngIf="member.uid === vm.user?.uid" class="text-xs text-gray-500 ml-1">
+                <span *ngIf="member.uid === vm.user?.uid" class="text-xs opacity-60 ml-1">
                   (You)
                 </span>
               </span>
 
-              <span class="text-xs text-gray-400">
+              <span class="text-xs opacity-50">
                 @{{ member.user?.username }}
               </span>
             </div>
@@ -458,8 +470,8 @@
                 <button
                   *ngIf="canManageMember(currentRole, member, vm.user?.uid)"
                   (click)="toggleMenu(member.uid, $event)"
-                  [class.bg-gray-200]="openMenuUid === member.uid"
-                  class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center">
+                  [class.bg-[var(--hover)]]="openMenuUid === member.uid"
+                  class="w-8 h-8 rounded-full hover:bg-[var(--hover)] flex items-center justify-center transition">
                   <span class="relative -top-[1.5px]">⋯</span>
                 </button>
                 <div
@@ -470,7 +482,7 @@
                   (click)="$event.stopPropagation()"
                 >
 
-                  <div class="w-44 bg-white border rounded-lg shadow z-50 overflow-hidden">
+                  <div class="w-44 bg-[var(--card)] backdrop-blur-xl border border-[var(--border)] rounded-2xl shadow-2xl z-50 overflow-hidden">
 
                     <!-- OWNER MENU -->
                     <ng-container *ngIf="(currentUserRole$ | async) === 'owner'">
@@ -500,14 +512,14 @@
                       <button
                         *ngIf="canBanMember(vm.currentMember?.role || null, member.role)"
                         (click)="openConfirm('ban', member)"
-                        class="dropdown-item text-red-600">
+                        class="w-full text-left px-4 py-2 text-red-500 hover:bg-red-500/10 text-sm transition">
                         Ban user
                       </button>
 
                       <button
                         *ngIf="member.role !== 'owner'"
                         (click)="openConfirm('transfer', member)"
-                        class="dropdown-item text-red-600">
+                        class="w-full text-left px-4 py-2 text-red-500 hover:bg-red-500/10 text-sm transition">
                         Transfer ownership
                       </button>
 
@@ -522,7 +534,7 @@
                       <button
                         *ngIf="canBanMember(vm.currentMember?.role || null, member.role)"
                         (click)="openConfirm('ban', member)"
-                        class="dropdown-item text-red-600">
+                        class="w-full text-left px-4 py-2 text-red-500 hover:bg-red-500/10 text-sm transition">
                         Ban user
                       </button>
                     </ng-container>
@@ -546,7 +558,8 @@
     *ngIf="confirmAction" @overlayFade
     class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
 
-    <div @modalScale class="bg-white rounded-xl p-6 w-full max-w-sm space-y-4">
+    <div @modalScale class="border border-[var(--border)] bg-[var(--card)] shadow-2xl rounded-3xl 
+      p-6 w-full max-w-sm space-y-4 overflow-hidden text-[var(--text)]">
 
       <h3 class="text-lg font-semibold capitalize">
         {{ confirmAction.type }} {{ confirmAction.member.user?.username }}
@@ -554,13 +567,13 @@
 
       <!-- Ban reason (only for ban action) -->
       <div *ngIf="confirmAction.type === 'ban'">
-        <label class="block text-sm text-gray-600 mb-1">
+        <label class="block text-sm opacity-70 mb-1">
           Reason for ban
         </label>
 
         <select
           [(ngModel)]="selectedBanReason"
-          class="w-full rounded-lg border px-3 py-2 bg-white"
+          class="w-full rounded-lg border border-[var(--border)] px-3 py-2 bg-[var(--card)]"
         >
           <option
             *ngFor="let reason of banReasons"
@@ -577,33 +590,33 @@
             type="text"
             maxlength="100"
             placeholder="Enter custom reason"
-            class="w-full rounded-lg border border-gray-300 px-3 py-2
-              focus:outline-none focus:ring-2 focus:ring-red-200
-            focus:border-red-400 transition"
+            class="w-full rounded-lg bg-[var(--form)] border border-[var(--border)] px-3 py-2
+              outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 transition"
           />
 
-          <p class="mt-1 text-xs text-gray-400 text-right">
+          <p class="mt-1 text-xs opacity-50 text-right">
             {{ customBanReason.length }}/100
           </p>
         </div>
       </div>
 
-      <p class="text-sm text-gray-600">
+      <p class="text-sm opacity-70">
         Type to confirm:
       </p>
 
       <input
         [(ngModel)]="confirmInput"
-        class="w-full border rounded px-3 py-2"
+        class="w-full bg-[var(--form)] border border-[var(--border)] rounded px-3 py-2
+          outline-none focus:ring-2 focus:ring-[var(--primary)] transition"
         [placeholder]="getConfirmPlaceholder(vm)"/>
 
       <div class="flex justify-end gap-2">
-        <button class="px-4 py-2 text-gray-500 hover:text-gray-800" (click)="closeConfirm()">Cancel</button>
+        <button class="px-4 py-2 opacity-60 hover:opacity-70 transition" (click)="closeConfirm()">Cancel</button>
 
         <button
           [disabled]="!isConfirmValid(vm.user)"
           (click)="executeAction(vm)"
-          class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150">
+          class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-2xl disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150">
 
           Confirm
         </button>
@@ -617,7 +630,8 @@
 <ng-container *ngIf="showSettingsModal && (group$ | async) as group">
   <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @overlayFade>
 
-    <div @modalScale class="bg-white rounded-xl p-6 w-full max-w-md space-y-4 max-h-[80vh] overflow-y-auto">
+    <div @modalScale class="bg-[var(--card)] rounded-3xl border border-[var(--border)] text-[var(--text)] shadow-2xl 
+      p-6 w-full max-w-md space-y-4 max-h-[80vh] overflow-y-auto">
 
       <div class="flex justify-between items-center">
         <h2 class="text-lg font-semibold">Group Settings</h2>
@@ -632,7 +646,7 @@
           <ng-container *ngIf="groupForm.avatar; else defaultGroupAvatar">
             <img
               [src]="groupForm.avatar"
-              class="w-24 h-24 rounded-full object-cover border"
+              class="w-24 h-24 rounded-full object-cover border border-[var(--border)]"
             />
           </ng-container>
 
@@ -661,7 +675,8 @@
             <button *ngIf="groupForm.avatar"
               type="button"
               (click)="confirmRemoveProfilePicture()"
-              class="w-8 h-8 bg-red-600 text-white flex items-center justify-center rounded-full hover:bg-red-700 shadow -mb-1"
+              class="w-8 h-8 bg-red-500 hover:bg-red-600 text-white flex items-center justify-center rounded-full 
+                shadow-lg transition -mb-1 border-2 border-[var(--card)]"
               title="Remove profile picture">
               <span class="relative -top-[1px]">✕</span>
             </button>
@@ -669,7 +684,8 @@
             <!-- Pencil / Change button -->
             <button type="button"
               (click)="groupFileInput.click()"
-              class="w-8 h-8 bg-gray-900 text-white flex items-center justify-center rounded-full hover:bg-gray-700 shadow">
+              class="w-8 h-8 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white flex items-center justify-center rounded-full
+                shadow-lg border-2 border-[var(--card)]">
               <span class="relative -top-[1px]">✎</span>
             </button>
           </div>
@@ -681,7 +697,8 @@
         <h3 class="font-medium">Name</h3>
         <input
           [(ngModel)]="groupForm.name"
-          class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full text-[var(--text)] bg-[var(--form)] border border-[var(--border)] rounded-xl 
+            px-3 py-2 focus:ring-2 focus:ring-[var(--primary)] outline-none"
           placeholder="Group name"
         />
       </div>
@@ -691,27 +708,28 @@
         <h3 class="font-medium">Bio</h3>
         <textarea
           [(ngModel)]="groupForm.bio"
-          class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full text-[var(--text)] bg-[var(--form)] border border-[var(--border)] rounded-xl 
+            px-3 py-2 focus:ring-2 focus:ring-[var(--primary)] outline-none"
           placeholder="Group bio"
         ></textarea>
       </div>
 
       <!-- Titles Section -->
-      <div class="border-t pt-4 space-y-3">
+      <div class="border-t border-[var(--border)] pt-4 space-y-3">
 
         <ng-container *ngIf="titles$ | async as titles">
 
           <div class="flex items-center justify-between">
             <h3 class="font-medium flex items-center gap-2">
               <span [class.opacity-50]="!(isOwner$ | async)">Custom Titles</span>
-              <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">Owner only</span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-[var(--form)] text-[var(--text)] border border-[var(--border)] opacity-80 shadow">Owner only</span>
             </h3>
 
             <!-- Count -->
             <span
-              class="text-xs px-2 py-0.5 rounded-full"
+              class="text-xs px-2 py-0.5 rounded-full border border-[var(--border)] opacity-80 shadow"
               [ngClass]="{
-                'bg-gray-100 text-gray-600': titles.length < 25,
+                'bg-[var(--form)] text-[var(--text)]': titles.length < 25,
                 'bg-red-100 text-red-600': titles.length >= 25
               }"
             >{{ titles.length }}/25</span>
@@ -720,9 +738,9 @@
               *ngIf="isOwner$ | async"
               (click)="openCreateTitleModal()"
               [disabled]="titles.length >= 25"
-              class="px-3 py-1 rounded transition-colors duration-150"
+              class="px-3 py-1 rounded-2xl transition-colors duration-150"
               [ngClass]="{
-                'bg-blue-600 text-white hover:bg-blue-700': titles.length < 25,
+                'bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]': titles.length < 25,
                 'bg-gray-300 text-gray-500 cursor-not-allowed': titles.length >= 25
               }">
               Add Title
@@ -732,7 +750,7 @@
           <!-- Empty State -->
           <div
             *ngIf="titles.length === 0"
-            class="text-center text-sm text-gray-500 py-5 border rounded-lg"
+            class="text-center text-sm opacity-60 py-5 border rounded-lg"
           >
             No custom titles created.
           </div>
@@ -743,7 +761,7 @@
             <!-- Title List -->
             <div
               *ngFor="let title of titles"
-              class="flex items-center justify-between border rounded-lg p-2 hover:bg-gray-50 transition">
+              class="flex items-center justify-between border border-[var(--border)] rounded-lg p-2 bg-[var(--form)] hover:bg-[var(--hover)] transition">
 
               <div class="flex items-center gap-2">
                 <span
@@ -759,7 +777,7 @@
                 <!-- Edit -->
                 <button
                   (click)="openEditTitle(title)"
-                  class="w-8 h-8 flex items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-150"
+                  class="w-8 h-8 flex items-center justify-center rounded-md opacity-70 hover:text-[var(--primary)] transition"
                   title="Edit title"
                 >
                   ✎
@@ -768,7 +786,7 @@
                 <!-- Delete -->
                 <button
                   (click)="deleteTitle(title)"
-                  class="w-8 h-8 flex items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 hover:text-red-600 transition-colors duration-150"
+                  class="w-8 h-8 flex items-center justify-center rounded-md opacity-70 hover:text-red-500 transition"
                   title="Delete title"
                 >
                   ✕
@@ -782,11 +800,11 @@
       </div>
 
       <!-- Privacy Toggle -->
-      <label class="flex items-center justify-between border rounded-lg p-3"
+      <label class="flex items-center justify-between bg-[var(--form)] hover:bg-[var(--hover)] border border-[var(--border)] rounded-xl p-3 transition"
         [class.opacity-50]="!(isOwner$ | async)">
         <div>
           <p class="font-medium">Private Group</p>
-          <p class="text-sm text-gray-500">
+          <p class="text-sm opacity-60">
             Only invited users can join
           </p>
         </div>
@@ -802,33 +820,33 @@
       <!-- Invitations -->
       <div
         *ngIf="originalGroupForm.isPrivate"
-        class="border-t pt-4"
+        class="border-t border-[var(--border)] pt-4"
       >
         <button
           (click)="openInvitesModal()"
-          class="w-full flex items-center justify-between border rounded-lg p-3 hover:bg-gray-50 transition"
+          class="w-full flex items-center justify-between bg-[var(--form)] hover:bg-[var(--hover)] border border-[var(--border)] rounded-xl p-3 transition"
         >
           <div class="text-left">
             <p class="font-medium">
               Invitations
             </p>
 
-            <p class="text-sm text-gray-500">
+            <p class="text-sm opacity-60">
               Manage invites and invite users
             </p>
           </div>
 
-          <span class="text-gray-400 text-lg">
+          <span class="opacity-50 text-lg">
             →
           </span>
         </button>
       </div>
 
       <!-- Blacklist -->
-      <div class="border-t pt-4">
+      <div class="border-t border-[var(--border)] pt-4">
         <button
           (click)="showBlacklistModal = true"
-          class="w-full flex items-center justify-between border rounded-lg p-3 hover:bg-gray-50 transition"
+          class="w-full flex items-center justify-between bg-[var(--form)] hover:bg-[var(--hover)] border border-[var(--border)] rounded-xl p-3 transition"
         >
 
           <div class="text-left">
@@ -836,12 +854,12 @@
               Blacklist
             </p>
 
-            <p class="text-sm text-gray-500">
+            <p class="text-sm opacity-60">
               Manage banned users
             </p>
           </div>
 
-          <span class="text-gray-400 text-lg">
+          <span class="opacity-50 text-lg">
             →
           </span>
 
@@ -849,12 +867,12 @@
       </div>
 
       <!-- Delete Group Section -->
-      <div class="border-t pt-4 mt-4 space-y-2">
+      <div class="border-t border-[var(--border)] pt-4 mt-4 space-y-2">
 
         <button
           (click)="openDeleteConfirm()"
           [disabled]="!(isOwner$ | async)"
-          class="w-full px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 transition-colors duration-150
+          class="w-full px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition
           disabled:bg-gray-400 disabled:text-gray-500 disabled:cursor-not-allowed">
           Delete Group
         </button>
@@ -863,7 +881,7 @@
 
       <!-- Actions -->
       <div class="flex justify-end gap-2">
-        <button (click)="closeSettings()" class="px-4 py-2 text-gray-500 hover:text-gray-700 transition-colors duration-150">Cancel</button>
+        <button (click)="closeSettings()" class="px-4 py-2 opacity-60 hover:opacity-70 transition">Cancel</button>
         <button
           (click)="saveGroupSettings()"
           [disabled]="
@@ -873,7 +891,7 @@
             groupForm.avatar === originalGroupForm?.avatar &&
             groupForm.isPrivate === originalGroupForm?.isPrivate)
           "
-          class="bg-green-600 hover:bg-green-700 transition-colors duration-150 text-white px-4 py-2 rounded disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed">
+          class="bg-[var(--primary)] hover:bg-[var(--primary-hover)] transition text-white px-4 py-2 rounded-2xl disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed">
           Save
         </button>
       </div>
@@ -890,7 +908,8 @@
 >
   <div
     @modalScale
-    class="bg-white rounded-xl w-full max-w-lg p-6 space-y-4 max-h-[80vh] overflow-y-auto flex flex-col"
+    class="bg-[var(--card)] rounded-3xl border border-[var(--border)] text-[var(--text)] shadow-2xl
+      w-full max-w-lg p-6 space-y-4 max-h-[80vh] overflow-y-auto flex flex-col"
   >
 
     <!-- Header -->
@@ -911,7 +930,8 @@
         (input)="onInviteSearch($event.target.value)"
         [value]="inviteSearchValue"
         placeholder="Search users to invite"
-        class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="w-full bg-[var(--form)] border border-[var(--border)] rounded-xl px-3 py-2 
+          focus:ring-2 focus:ring-[var(--primary)] outline-none"
       />
 
       <!-- Search Results -->
@@ -919,13 +939,13 @@
 
         <div
           *ngIf="results.length > 0"
-          class="border rounded-lg max-h-[20vh] overflow-y-auto"
+          class="border border-[var(--border)] rounded-2xl max-h-[20vh] overflow-y-auto"
         >
 
           <button
             *ngFor="let user of results"
             (click)="sendInvite(user)"
-            class="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition border-b last:border-b-0"
+            class="w-full flex items-center justify-between px-4 py-3 hover:bg-[var(--hover)] transition border-b last:border-b-0 border-[var(--border)]"
           >
 
             <div class="flex items-center gap-3">
@@ -941,14 +961,14 @@
                   {{ user.displayName || user.username }}
                 </p>
 
-                <p class="text-sm text-gray-500">
+                <p class="text-sm opacity-50">
                   @{{ user.username }}
                 </p>
               </div>
 
             </div>
 
-            <span class="text-blue-600 text-sm font-medium">
+            <span class="text-[var(--primary)] text-sm font-medium">
               Invite
             </span>
 
@@ -959,7 +979,7 @@
         <!-- Empty state (only show when user has typed something) -->
         <div
           *ngIf="results?.length === 0 && inviteSearchValue.trim().length > 0"
-          class="text-center text-sm text-gray-500 py-6 border rounded-lg"
+          class="text-center text-sm opacity-60 py-6 border border-[var(--border)] rounded-2xl"
         >
           No users found.
         </div>
@@ -976,7 +996,7 @@
         <!-- Empty -->
         <div
           *ngIf="invites.length === 0"
-          class="text-center text-sm text-gray-500 py-8"
+          class="text-center text-sm opacity-60 py-8"
         >
           No invitations yet.
         </div>
@@ -984,7 +1004,7 @@
         <!-- Invite rows -->
         <div
           *ngFor="let invite of invites"
-          class="flex items-center justify-between border rounded-lg px-4 py-3"
+          class="flex items-center justify-between bg-[var(--form)] border border-[var(--border)] rounded-2xl px-4 py-3"
         >
 
           <div class="flex items-center gap-3 min-w-0">
@@ -1004,17 +1024,17 @@
 
               <div class="flex items-center gap-2 flex-wrap">
 
-                <span class="text-sm text-gray-500">
+                <span class="text-sm opacity-60">
                   @{{ invite.user?.username || 'unknown' }}
                 </span>
 
                 <!-- Status -->
                 <span
-                  class="text-xs px-2 py-0.5 rounded-full"
+                  class="text-xs text-white px-2 py-0.5 rounded-full"
                   [ngClass]="{
-                    'bg-yellow-100 text-yellow-700': invite.status === 'pending',
-                    'bg-green-100 text-green-700': invite.status === 'accepted',
-                    'bg-red-100 text-red-700': invite.status === 'declined'
+                    'bg-yellow-500': invite.status === 'pending',
+                    'bg-green-500': invite.status === 'accepted',
+                    'bg-red-500': invite.status === 'declined'
                   }"
                 >
                   {{ invite.status | titlecase }}
@@ -1022,7 +1042,7 @@
 
                 <p
                   *ngIf="invite.inviter"
-                  class="text-xs text-gray-400 mt-0.5 truncate"
+                  class="text-xs opacity-50 mt-0.5 truncate"
                 >
                   Invited by
                   @{{ invite.inviter.username }}
@@ -1037,7 +1057,7 @@
           <!-- Delete -->
           <button
             (click)="deleteInvite(invite)"
-            class="w-8 h-8 rounded-full hover:bg-red-50 text-gray-500 hover:text-red-600 transition flex items-center justify-center"
+            class="w-8 h-8 rounded-full opacity-60 hover:text-red-600 transition flex items-center justify-center"
             title="Delete invite"
           >
             ✕
@@ -1060,7 +1080,8 @@
   >
     <div
       @modalScale
-      class="bg-white rounded-xl w-full max-w-lg p-6 space-y-4 max-h-[80vh] overflow-y-auto flex flex-col"
+      class="bg-[var(--card)] rounded-3xl border border-[var(--border)] text-[var(--text)] shadow-2xl 
+        w-full max-w-lg p-6 space-y-4 max-h-[80vh] overflow-y-auto flex flex-col"
     >
 
       <!-- Header -->
@@ -1081,14 +1102,14 @@
 
           <div
             *ngIf="users.length === 0"
-            class="text-center text-sm text-gray-500 py-8"
+            class="text-center text-sm opacity-60 py-8"
           >
             No blacklisted users.
           </div>
 
           <div
             *ngFor="let ban of users"
-            class="flex items-center justify-between border rounded-lg px-4 py-3"
+            class="flex items-center justify-between bg-[var(--form)] border border-[var(--border)] rounded-2xl px-4 py-3"
           >
 
             <div class="flex items-center gap-3 min-w-0">
@@ -1104,7 +1125,7 @@
                   {{ ban.user?.displayName || ban.user?.username }}
                 </p>
 
-                <p class="text-sm text-gray-500">
+                <p class="text-sm opacity-60">
                   @{{ ban.user?.username }}
                 </p>
 
@@ -1114,7 +1135,7 @@
 
                 <p
                   *ngIf="ban.bannedByUser"
-                  class="text-xs text-gray-400"
+                  class="text-xs opacity-50"
                 >
                   Banned by @{{ ban.bannedByUser.username }}
                 </p>
@@ -1123,7 +1144,7 @@
 
             <button
               (click)="unbanUser(ban)"
-              class="px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors duration-150 text-sm"
+              class="px-3 py-1.5 rounded-2xl bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white transition text-sm"
             >
               Unban
             </button>
@@ -1146,7 +1167,8 @@
 >
   <div
     @modalScale
-    class="bg-white rounded-xl p-6 w-full max-w-sm space-y-4"
+    class="bg-[var(--card)] rounded-3xl border border-[var(--border)] text-[var(--text)] shadow-2xl 
+      p-6 w-full max-w-sm space-y-4"
   >
 
     <!-- Header -->
@@ -1165,18 +1187,19 @@
     <!-- Name -->
     <div class="space-y-1">
 
-      <label class="text-sm font-medium text-gray-700">
+      <label class="text-sm font-medium opacity-80">
         Title Name
       </label>
 
       <input
         [(ngModel)]="titleForm.name"
         maxlength="24"
-        class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="w-full bg-[var(--form)] border border-[var(--border)] rounded-xl px-3 py-2 
+          focus:ring-2 focus:ring-[var(--primary)] outline-none"
         placeholder="Example: Elite Member"
       />
 
-      <div class="text-xs text-gray-500 text-right">
+      <div class="text-xs opacity-60 text-right">
         {{ titleForm.name.length }}/24
       </div>
 
@@ -1185,7 +1208,7 @@
     <!-- Gradient Colors -->
     <div class="space-y-3">
 
-      <label class="text-sm font-medium text-gray-700">
+      <label class="text-sm font-medium opacity-80">
         Gradient Colors
       </label>
 
@@ -1193,28 +1216,28 @@
 
         <!-- Color 1 -->
         <div class="flex flex-col items-center gap-1">
-          <span class="text-xs text-gray-500">Start</span>
+          <span class="text-xs opacity-60">Start</span>
 
           <input
             type="color"
             [(ngModel)]="titleForm.color"
-            class="w-14 h-10 border rounded cursor-pointer"
+            class="w-14 h-10 border border-[var(--border)] rounded cursor-pointer"
           />
         </div>
 
         <!-- Arrow -->
-        <div class="text-gray-400 text-sm">
+        <div class="opacity-50 text-sm">
           →
         </div>
 
         <!-- Color 2 -->
         <div class="flex flex-col items-center gap-1">
-          <span class="text-xs text-gray-500">End</span>
+          <span class="text-xs opacity-60">End</span>
 
           <input
             type="color"
             [(ngModel)]="titleForm.color2"
-            class="w-14 h-10 border rounded cursor-pointer"
+            class="w-14 h-10 border border-[var(--border)] rounded cursor-pointer"
           />
         </div>
 
@@ -1246,7 +1269,7 @@
 
       <button
         (click)="closeTitleEditor()"
-        class="px-4 py-2 text-gray-500 hover:text-gray-700"
+        class="px-4 py-2 opacity-60 hover:opacity-70 transition"
       >
         Cancel
       </button>
@@ -1254,7 +1277,8 @@
       <button
         (click)="saveTitle()"
         [disabled]="!titleForm.name.trim()"
-        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition-colors duration-150 disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white px-4 py-2 rounded-2xl transition-colors duration-150 
+          disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Save
       </button>
@@ -1283,7 +1307,8 @@
 >
   <div
     @modalScale
-    class="bg-white rounded-xl p-6 w-full max-w-sm space-y-4 max-h-[80vh] overflow-y-auto"
+    class="bg-[var(--card)] rounded-3xl border border-[var(--border)] text-[var(--text)] shadow-2xl 
+      p-6 w-full max-w-sm space-y-4 max-h-[80vh] overflow-y-auto"
   >
 
     <!-- Header -->
@@ -1298,9 +1323,9 @@
     </div>
 
     <!-- Member info -->
-    <div class="text-sm text-gray-600">
+    <div class="text-sm opacity-70">
       Assign titles to
-      <span class="font-medium text-gray-900">
+      <span class="font-medium">
         {{ selectedTitleMember.user?.displayName || selectedTitleMember.user?.username }}
       </span>
     </div>
@@ -1310,10 +1335,10 @@
       <button
         *ngFor="let title of (titles$ | async)"
         (click)="toggleSelectedTitle(title.id!)"
-        class="w-full flex items-center justify-between px-3 py-2 rounded-lg border transition"
+        class="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-[var(--border)] transition"
         [ngClass]="{
-          'bg-gray-100': selectedTitleIds.has(title.id!),
-          'hover:bg-gray-50': !selectedTitleIds.has(title.id!)
+          'bg-[var(--form)]': selectedTitleIds.has(title.id!),
+          'hover:bg-[var(--hover)]': !selectedTitleIds.has(title.id!)
         }"
       >
 
@@ -1337,14 +1362,14 @@
     <div class="flex justify-end gap-2">
       <button
         (click)="selectedTitleMember = null"
-        class="px-4 py-2 text-gray-500 hover:text-gray-700"
+        class="px-4 py-2 opacity-60 hover:opacity-70 transition"
       >
         Cancel
       </button>
 
       <button
         (click)="saveMemberTitles()"
-        class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors duration-150"
+        class="px-4 py-2 bg-[var(--primary)] text-white rounded-2xl hover:bg-[var(--primary-hover)] transition"
       >
         Save
       </button>
@@ -1386,9 +1411,9 @@
 <!-- Crop Modal -->
 <div *ngIf="cropImageSrc && (canEditGroup$ | async)" @overlayFade
   class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-  <div @modalScale class="bg-white p-4 rounded-lg relative w-full max-w-sm h-auto flex flex-col items-center">
-    <h2 class="text-lg font-bold mb-4">Adjust Group Picture</h2>
-    <div #cropCircle class="relative w-[264px] h-[264px] rounded-full overflow-hidden border-4 border-gray-200 shadow-inner touch-none"
+  <div @modalScale class="bg-[var(--bg)] p-4 rounded-3xl border border-[var(--border)] backdrop-blur-2xl relative w-full max-w-sm h-auto flex flex-col items-center">
+    <h2 class="text-lg text-[var(--text)] font-semibold mb-4">Adjust Group Picture</h2>
+    <div #cropCircle class="relative w-[264px] h-[264px] rounded-full overflow-hidden border-4 border-[var(--border)] shadow-inner touch-none"
       (mousedown)="startDrag($event)" (mousemove)="drag($event)" (mouseup)="endDrag()" (mouseleave)="endDrag()"
       (touchstart)="startDrag($event)" (touchmove)="drag($event)" (touchend)="endDrag()" (touchcancel)="endDrag()">
       <img
@@ -1412,8 +1437,8 @@
       class="mt-4 w-64"
     />
     <div class="mt-4 flex gap-2">
-      <button (click)="saveCroppedGroupAvatar()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Finish</button>
-      <button (click)="cancelCrop()" class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500">Cancel</button>
+      <button (click)="saveCroppedGroupAvatar()" class="px-5 py-2.5 bg-[var(--primary)] text-white rounded-2xl hover:bg-[var(--primary-hover)] transition">Finish</button>
+      <button (click)="cancelCrop()" class="px-5 py-2.5 rounded-2xl border border-[var(--border)] bg-[var(--bg)] hover:bg-[var(--hover)] text-[var(--text)] transition">Cancel</button>
     </div>
   </div>
 </div>
@@ -1421,16 +1446,16 @@
 <!-- Remove Profile Picture Confirmation -->
 <div *ngIf="showRemoveConfirm && (canEditGroup$ | async)" @overlayFade
   class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-  <div @modalScale class="bg-white p-4 rounded-lg w-full max-w-sm flex flex-col items-center">
-    <h2 class="text-lg font-bold mb-4">Remove Group Picture?</h2>
-    <p class="text-gray-700 mb-4">This will revert the group picture to the default avatar.</p>
+  <div @modalScale class="bg-[var(--card)] p-4 rounded-3xl border border-[var(--border)] backdrop-blur-2xl text-[var(--text)] w-full max-w-sm flex flex-col items-center">
+    <h2 class="text-lg text-[var(--text)] font-semibold mb-4">Remove Group Picture?</h2>
+    <p class="opacity-60 mb-4">This will revert the group picture to the default avatar.</p>
     <div class="flex gap-2">
       <button (click)="removeGroupPicture()"
-          class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+        class="px-5 py-2.5 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition">
         Yes, Remove
       </button>
       <button (click)="cancelRemoveGroupPicture()"
-        class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500">
+        class="px-5 py-2.5 rounded-2xl border border-[var(--border)] bg-[var(--bg)] hover:bg-[var(--hover)] text-[var(--text)] transition">
         Cancel
       </button>
     </div>
@@ -1441,23 +1466,25 @@
 <ng-container *ngIf="showDeleteConfirm && (group$ | async) as group">
   <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @overlayFade>
 
-    <div @modalScale class="bg-white rounded-xl p-6 w-full max-w-sm space-y-4">
+    <div @modalScale class="bg-[var(--card)] rounded-3xl border border-[var(--border)] text-[var(--text)] shadow-2xl 
+      p-6 w-full max-w-sm space-y-4">
 
       <h2 class="text-lg font-semibold text-red-600">
         Delete Group
       </h2>
 
-      <p class="text-sm text-gray-600">
+      <p class="text-sm opacity-70">
         This action cannot be undone. Type the group name to confirm.
       </p>
 
-      <p class="text-sm font-medium text-gray-800">
+      <p class="text-sm font-medium opacity-90">
         {{ group.name }}
       </p>
 
       <input
         [(ngModel)]="deleteInput"
-        class="w-full border rounded px-3 py-2"
+        class="w-full bg-[var(--form)] border border-[var(--border)] rounded-xl px-3 py-2 
+          focus:ring-2 focus:ring-[var(--primary)] outline-none"
         placeholder="Enter group name"
       />
 
@@ -1465,14 +1492,14 @@
 
         <button
           (click)="closeDeleteConfirm()"
-          class="px-4 py-2 text-gray-500 hover:text-gray-800">
+          class="px-4 py-2 opacity-60 hover:opacity-70 transition">
           Cancel
         </button>
 
         <button
           (click)="confirmDeleteGroup(group.name)"
           [disabled]="deleteInput !== group.name || isDeleting"
-          class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded transition-colors duration-150
+          class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-2xl transition
           disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed">
           {{ isDeleting ? 'Deleting...' : 'Delete' }}
         </button>

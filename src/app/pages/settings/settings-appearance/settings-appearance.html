@@ -1,48 +1,135 @@
-<div class="space-y-6">
+<div
+  class="rounded-3xl border border-[var(--border)] bg-[var(--card)] backdrop-blur-xl shadow-xl p-6 space-y-8"
+>
 
-  <div class="space-y-2">
-    <h2 class="text-xl font-semibold">Appearance</h2>
-    <p class="text-[var(--text)]/60 text-sm">
-      Choose how your app looks. This theme is only visible to you.
-    </p>
+  <!-- Header -->
+  <div class="flex items-start justify-between gap-4">
+
+    <div class="space-y-2">
+      <h2 class="text-xl font-semibold tracking-tight">
+        Appearance
+      </h2>
+
+      <p class="text-[var(--text)] opacity-60 text-sm max-w-xl leading-relaxed">
+        Customize the look and feel of your app with personalized themes and gradients.
+        Changes are only visible to you.
+      </p>
+    </div>
+
+    <!-- Current Theme Badge -->
+    <div class="px-3 py-1.5 rounded-full capitalize text-xs font-semibold border border-[var(--border)] bg-[var(--card)] text-[var(--text)] text-opacity-70">
+      Current:
+      {{ savedTheme.replaceAll('-', ' ') }}
+    </div>
+
   </div>
 
   <!-- Theme Grid -->
-  <div class="grid grid-cols-2 md:grid-cols-3 gap-5">
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-5">
 
     <div *ngFor="let theme of themes"
-         class="flex flex-col items-center gap-2 cursor-pointer"
-         (mouseenter)="apply(theme)"
-         (click)="save(theme)">
+      class="group flex flex-col gap-3 cursor-pointer"
+      (click)="preview(theme)"
+    >
 
-      <!-- Square Card -->
-      <div
-        class="w-full aspect-square rounded-2xl border transition-all duration-200 hover:scale-[1.03] p-3"
+      <!-- Theme Card -->
+      <div class="relative aspect-square rounded-3xl overflow-hidden border p-3 transition-all duration-300 hover:scale-[1.03]"
         [ngClass]="{
-          'border-[var(--primary)] shadow-md': selectedTheme === theme,
-          'border-[var(--border)]': selectedTheme !== theme
+          'border-[var(--primary)] shadow-2xl ring-1 ring-[var(--primary)] ring-opacity-30':
+            selectedTheme === theme,
+
+          'border-[var(--border)] hover:border-[var(--primary)] ring-opacity-40':
+            selectedTheme !== theme
         }"
       >
 
-        <!-- Inner Preview -->
-        <div
-          class="w-full h-full rounded-lg relative overflow-hidden border border-[var(--border)]"
+        <!-- Glow -->
+        <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 blur-2xl"
+          style="background: var(--primary);"
+        ></div>
+
+        <!-- Mini App Preview -->
+        <div class="relative w-full h-full rounded-2xl overflow-hidden border border-white/10 shadow-inner"
           [ngClass]="'theme-' + theme"
         >
 
-          <!-- Fake UI Preview -->
-          <div class="absolute top-2 left-2 w-12 h-2 rounded bg-[var(--primary)]"></div>
-          <div class="absolute top-6 left-2 right-2 h-2 rounded bg-[var(--text)] opacity-20"></div>
-          <div class="absolute bottom-2 left-2 right-2 h-2 rounded bg-[var(--card)]"></div>
+          <!-- Background -->
+          <div class="absolute inset-0"
+            [ngStyle]="{
+              background:
+                ['light', 'ash', 'dark', 'onyx'].includes(theme)
+                  ? 'var(--bg)'
+                  : 'linear-gradient(to bottom right, var(--gradient-from), var(--gradient-via), var(--gradient-to))'
+            }"
+          ></div>
 
+          <!-- Fake Navbar -->
+          <div class="absolute top-0 left-0 right-0 h-5 border-b border-black/5 backdrop-blur-sm bg-white/10"></div>
+
+          <!-- Fake Sidebar -->
+          <div class="absolute left-0 top-5 bottom-0 w-5 bg-black/10"></div>
+
+          <!-- Fake Content -->
+          <div class="absolute top-7 left-7 w-10 h-2 rounded-full bg-[var(--primary)]"></div>
+
+          <div class="absolute top-11 left-7 right-4 h-2 rounded-full bg-[var(--text)] opacity-20"></div>
+
+          <div class="absolute top-16 left-7 right-8 h-2 rounded-full bg-[var(--text)] opacity-10"></div>
+
+          <!-- Fake Card -->
+          <div class="absolute bottom-4 left-7 right-4 h-12 rounded-xl bg-[var(--card)] border border-black/5 shadow-sm"></div>
+
+        </div>
+
+        <!-- Selected Badge -->
+        <div *ngIf="selectedTheme === theme"
+          class="absolute top-3 right-3 w-7 h-7 rounded-full bg-[var(--primary)] text-white flex items-center justify-center shadow-lg"
+        >
+          ✓
         </div>
 
       </div>
 
-      <!-- Label BELOW square -->
-      <p class="text-sm font-medium text-center capitalize text-[var(--text)]">
-        {{ theme.replaceAll('-', ' ') }}
-      </p>
+      <!-- Label -->
+      <div class="text-center">
+
+        <p class="text-sm font-semibold capitalize leading-none">{{ theme.replaceAll('-', ' ') }}</p>
+
+        <p *ngIf="savedTheme === theme"
+          class="text-xs text-[var(--primary)] mt-1"
+        >
+          Applied
+        </p>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Sticky Save Bar -->
+  <div class="sticky bottom-0 pt-4">
+
+    <div class="flex items-center justify-between gap-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] backdrop-blur-md px-5 py-4 shadow-lg">
+
+      <div>
+        <p class="font-semibold">
+          Save Theme Changes
+        </p>
+
+        <p class="text-sm text-[var(--text)] opacity-60">
+          Your selected appearance will be synced to your account.
+        </p>
+      </div>
+
+      <button class="px-6 py-2.5 rounded-2xl bg-[var(--primary)] text-white font-semibold shadow-lg 
+        hover:scale-[1.02] hover:bg-[var(--primary-hover)] active:scale-[0.98] transition 
+        disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
+        (click)="save()"
+        [disabled]="selectedTheme === savedTheme"
+      >
+        Save Changes
+      </button>
 
     </div>
 

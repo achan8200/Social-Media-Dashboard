@@ -3,30 +3,30 @@
   class="max-w-4xl mx-auto space-y-6 animate-pulse">
 
   <!-- Profile Card Skeleton -->
-  <div class="bg-white rounded-xl shadow p-6 flex gap-6">
-    <div class="w-32 h-32 rounded-full bg-gray-200"></div>
+  <div class="rounded-3xl border border-[var(--border)] bg-[var(--card)] backdrop-blur-xl shadow-xl p-6 flex gap-6">
+    <div class="w-32 h-32 rounded-full bg-[var(--hover)]"></div>
 
     <div class="flex-1 space-y-4">
-      <div class="h-7 w-48 bg-gray-200 rounded"></div>
-      <div class="h-4 w-32 bg-gray-200 rounded"></div>
-      <div class="h-4 w-full bg-gray-200 rounded"></div>
-      <div class="h-4 w-2/3 bg-gray-200 rounded"></div>
+      <div class="h-7 w-48 bg-[var(--hover)] rounded-xl"></div>
+      <div class="h-4 w-32 bg-[var(--hover)] rounded-lg"></div>
+      <div class="h-4 w-full bg-[var(--hover)] rounded-lg"></div>
+      <div class="h-4 w-2/3 bg-[var(--hover)] rounded-lg"></div>
     </div>
   </div>
 
   <!-- Stats Skeleton -->
-  <div class="grid grid-cols-4 gap-4">
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
     <div *ngFor="let i of [1,2,3,4]"
-      class="bg-white rounded-lg shadow p-4 space-y-2">
-      <div class="h-6 w-10 mx-auto bg-gray-200 rounded"></div>
-      <div class="h-4 w-16 mx-auto bg-gray-200 rounded"></div>
+      class="rounded-2xl border border-[var(--border)] bg-[var(--card)] opacity-70 backdrop-blur-xl p-4 space-y-2">
+      <div class="h-6 w-10 mx-auto bg-[var(--hover)] rounded"></div>
+      <div class="h-4 w-16 mx-auto bg-[var(--hover)] rounded"></div>
     </div>
   </div>
 
   <!-- Posts Grid Skeleton -->
   <div class="grid grid-cols-3 gap-2">
     <div *ngFor="let i of [1,2,3,4,5,6]"
-      class="aspect-square bg-gray-200 rounded"></div>
+      class="aspect-square bg-[var(--card)] rounded-2xl border border-[var(--border)]"></div>
   </div>
 
 </div>
@@ -38,21 +38,22 @@
     <div class="max-w-4xl mx-auto space-y-6">
 
       <!-- Profile Card -->
-      <div class="bg-white rounded-xl shadow p-6 flex flex-col sm:flex-row items-center sm:items-start gap-6">
+      <div class="rounded-3xl border border-[var(--border)] bg-[var(--card)] opacity-80 backdrop-blur-2xl 
+        shadow-xl p-6 md:p-8 flex flex-col lg:flex-row items-center lg:items-start gap-6 text-[var(--text)]">
 
         <!-- Avatar -->
-        <div class="relative w-32 h-32">
+        <div class="relative w-32 h-32 shrink-0">
 
           <!-- Profile image -->
           <img *ngIf="profile.profilePicture; else defaultAvatar"
               [src]="profile.profilePicture"
               alt="Profile picture"
-              class="w-32 h-32 rounded-full object-cover border"/>
+              class="w-32 h-32 rounded-full object-cover border-4 border-[var(--border)] shadow-xl"/>
 
           <!-- Default avatar -->
           <ng-template #defaultAvatar>
-            <div class="w-32 h-32 rounded-full flex items-center justify-center text-white text-[64px] font-normal select-none"
-                [ngStyle]="{ 'background-color': getAvatarColor(profile.username) }">
+            <div class="w-32 h-32 rounded-full flex items-center justify-center text-white text-[64px] font-normal select-none shadow-xl"
+              [ngStyle]="{ 'background-color': getAvatarColor(profile.username) }">
               <span class="relative -top-[1px] -right-[0.5px]">{{ getInitial(profile.username) }}</span>
             </div>
           </ng-template>
@@ -67,7 +68,8 @@
               <button *ngIf="editMode && profileForm.value.profilePicture"
                 type="button"
                 (click)="confirmRemoveProfilePicture()"
-                class="w-8 h-8 bg-red-600 text-white flex items-center justify-center rounded-full hover:bg-red-700 shadow -mb-1"
+                class="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg
+                    flex items-center justify-center transition -mb-1 border-2 border-[var(--card)]"
                 title="Remove profile picture">
                 <span class="relative -top-[1px]">✕</span>
               </button>
@@ -75,38 +77,45 @@
               <!-- Pencil / Change button -->
               <button type="button"
                 (click)="fileInput.click()"
-                class="w-8 h-8 bg-gray-900 text-white flex items-center justify-center rounded-full hover:bg-gray-700 shadow">
+                class="w-8 h-8 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white flex items-center justify-center rounded-full shadow-lg transition
+                  border-2 border-[var(--card)]">
                 <span class="relative -top-[1px]">✎</span>
               </button>
           </div>
         </div>
 
         <!-- User Info -->
-        <form [formGroup]="profileForm" class="flex-1 text-center sm:text-left space-y-2">
+        <form [formGroup]="profileForm" class="flex-1 w-full text-center sm:text-left space-y-2">
           <!-- Display Name -->
-          <div>
+          <div class="space-y-1">
             <ng-container *ngIf="editMode; else viewDisplayName">
-              <label class="font-semibold">Display Name</label>
-              <input type="text" formControlName="displayName" class="border rounded p-1 w-full"/>
+              <label class="font-semibold text-[var(--text)]">Display Name</label>
+              <input type="text" formControlName="displayName"
+                class="w-full rounded-2xl bg-[var(--form)] border border-[var(--border)]
+                  px-4 py-3 text-[var(--text)] outline-none
+                  focus:ring-2 focus:ring-[var(--primary)] transition"/>
             </ng-container>
             <ng-template #viewDisplayName>
-              <h1 class="text-2xl font-normal">{{ profile.displayName || 'Your Name' }}</h1>
+              <h1 class="text-2xl font-semibold tracking-tight">{{ profile.displayName || 'Your Name' }}</h1>
             </ng-template>
           </div>
 
           <!-- Username -->
-          <div>
+          <div class="space-y-1">
             <ng-container *ngIf="editMode; else viewUsername">
-              <label class="font-semibold">Username</label>
-              <input type="text" formControlName="username" class="border rounded p-1 w-full"/>
+              <label class="font-semibold text-[var(--text)]">Username</label>
+              <input type="text" formControlName="username"
+                class="w-full rounded-2xl bg-[var(--form)] border border-[var(--border)]
+                  px-4 py-3 text-[var(--text)] outline-none
+                  focus:ring-2 focus:ring-[var(--primary)] transition"/>
                 <!-- Current username hint -->
-                <p class="text-gray-400 text-sm mt-1">
+                <p class="text-[var(--text)] opacity-50 text-sm mt-1">
                     Your current username {{ profile.username }} is available.
                 </p>
                 <div class="flex items-center gap-2 mt-1 min-h-[20px] text-sm leading-none">
                   <!-- Spinner -->
                   <div *ngIf="checkingUsername" 
-                      class="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin">
+                      class="w-4 h-4 border-2 border-[var(--border)] border-t-[var(--primary)] rounded-full animate-spin">
                   </div>
                   <ng-container *ngIf="usernameStatus$ | async as status">
                       <!-- Format error -->
@@ -124,18 +133,22 @@
                 </div>
             </ng-container>
             <ng-template #viewUsername>
-              <p class="text-gray-500">@{{ profile.username || 'username' }}</p>
+              <p class="text-[var(--text)] opacity-60">@{{ profile.username || 'username' }}</p>
             </ng-template>
           </div>
 
           <!-- Bio -->
-          <div>
+          <div class="space-y-1">
             <ng-container *ngIf="editMode; else viewBio">
-              <label class="font-semibold">Bio</label>
-              <textarea formControlName="bio" class="border rounded p-1 w-full"></textarea>
+              <label class="font-semibold text-[var(--text)]">Bio</label>
+              <textarea formControlName="bio"
+                class="w-full rounded-2xl bg-[var(--form)] border border-[var(--border)]
+                  px-4 py-3 text-[var(--text)] outline-none
+                  focus:ring-2 focus:ring-[var(--primary)] transition"
+              ></textarea>
             </ng-container>
             <ng-template #viewBio>
-              <p class="text-gray-700 max-w-xl break-words whitespace-pre-wrap max-h-[150px] overflow-y-auto">{{ profile.bio || '' }}</p>
+              <p class="text-[var(--text)] opacity-70 leading-7 max-w-xl break-words whitespace-pre-wrap max-h-[150px] overflow-y-auto">{{ profile.bio || '' }}</p>
             </ng-template>
           </div>
         </form>
@@ -144,8 +157,8 @@
         <div class="self-center sm:self-start" *ngIf="isOwner$ | async">
           <!-- Edit button -->
           <button *ngIf="!editMode"
-                  (click)="enterEditMode()"
-                  class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+            (click)="enterEditMode()"
+            class="px-5 py-2.5 rounded-2xl bg-[var(--primary)] text-white shadow-lg hover:bg-[var(--primary-hover)] transition-all duration-200">
             Edit Profile
           </button>
 
@@ -154,15 +167,17 @@
             <button 
                 (click)="saveEditProfile()"
                 [disabled]="!canSave"
-                class="px-4 py-2 text-white rounded-lg transition-colors duration-200 disabled:opacity-80"
+                class="px-5 py-2.5 rounded-2xl text-white shadow-lg
+                  transition-all duration-200 disabled:opacity-40 disabled:hover:scale-100"
                 [ngClass]="{
-                    'bg-gray-400 cursor-not-allowed': !canSave,
-                    'bg-green-600 hover:bg-green-700': canSave
+                  'bg-[var(--primary)] hover:scale-[1.02] hover:bg-[var(--primary-hover)]': canSave,
+                  'bg-gray-400 cursor-not-allowed': !canSave
                 }">
               Save
             </button>
             <button (click)="cancelEditProfile()"
-                    class="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500">
+              class="px-5 py-2.5 rounded-2xl border border-[var(--border)]
+                bg-[var(--bg)] text-[var(--text)] hover:bg-[var(--hover)] transition">
               Cancel
             </button>
           </div>
@@ -171,65 +186,96 @@
         <div *ngIf="!(isOwner$ | async) && !(isGuest$ | async)" class="flex gap-2 self-start">
           <button *ngIf="following"
                   (click)="openMessageThread()"
-                  class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-150">
+                  class="px-5 py-2.5 rounded-2xl bg-[var(--primary)] text-white
+                    hover:bg-[var(--primary-hover)] shadow-lg transition-all duration-200">
             Message
           </button>
 
           <button
                   (click)="toggleFollow()"
-                  class="px-4 py-2 rounded-lg text-white transition-colors duration-150"
+                  class="px-5 py-2.5 rounded-2xl text-white shadow-lg transition-all duration-200"
                   [ngClass]="{
-                    'bg-blue-500 hover:bg-blue-600': !following,
-                    'bg-gray-400 hover:bg-gray-500': following
+                    'bg-[var(--primary)] hover:bg-[var(--primary-hover)]': !following,
+                    'bg-gray-400 hover:opacity-80': following
                   }">
             {{ following ? 'Following' : 'Follow' }}
           </button>
         </div>
       </div>
 
-      <!-- Stats (Posts, Followers, Following, Groups) -->
-      <div class="grid grid-cols-4 gap-4 text-center">
-        <div class="bg-white rounded-lg shadow p-4">
-          <p class="text-xl font-bold">{{ userPostCount$ | async }}</p>
-          <p class="text-gray-500 text-sm">Posts</p>
+      <!-- Stats -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+
+        <div class="rounded-2xl border border-[var(--border)] bg-[var(--card)] opacity-70 backdrop-blur-xl shadow-lg p-5">
+          <p class="text-2xl font-bold text-[var(--text)]">
+            {{ userPostCount$ | async }}
+          </p>
+
+          <p class="text-sm mt-1 text-[var(--text)] opacity-60">
+            Posts
+          </p>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-4">
-          <a [routerLink]="['/connections', profile.username]" 
-            [queryParams]="{ tab: 'followers' }" 
-            class="block hover:text-gray-400">
-            <p class="text-xl font-bold">{{ followerCount$ | async }}</p>
-            <p class="text-gray-500 text-sm">Followers</p>
-          </a>
-        </div>
+        <a
+          [routerLink]="['/connections', profile.username]"
+          [queryParams]="{ tab: 'followers' }"
+          class="rounded-2xl border border-[var(--border)] bg-[var(--card)] opacity-70 backdrop-blur-xl shadow-lg p-5
+            hover:bg-[var(--hover)] transition block">
 
-        <div class="bg-white rounded-lg shadow p-4">
-          <a [routerLink]="['/connections', profile.username]"
-            [queryParams]="{ tab: 'following' }"
-            class="block hover:text-gray-400">
-            <p class="text-xl font-bold">{{ followingCount$ | async }}</p>
-            <p class="text-gray-500 text-sm">Following</p>
-          </a>
-        </div>
+          <p class="text-2xl font-bold text-[var(--text)]">
+            {{ followerCount$ | async }}
+          </p>
 
-        <div class="bg-white rounded-lg shadow p-4">
-          <a [routerLink]="['/groups', profile.username]"
-            class="block hover:text-gray-400">
-            <p class="text-xl font-bold">{{ groupsCount$ | async }}</p>
-            <p class="text-gray-500 text-sm">Groups</p>
-          </a>
-        </div>
+          <p class="text-sm mt-1 text-[var(--text)] opacity-60">
+            Followers
+          </p>
+
+        </a>
+
+        <a
+          [routerLink]="['/connections', profile.username]"
+          [queryParams]="{ tab: 'following' }"
+          class="rounded-2xl border border-[var(--border)] bg-[var(--card)] opacity-70 backdrop-blur-xl shadow-lg p-5
+            hover:bg-[var(--hover)] transition block">
+
+          <p class="text-2xl font-bold text-[var(--text)]">
+            {{ followingCount$ | async }}
+          </p>
+
+          <p class="text-sm mt-1 text-[var(--text)] opacity-60">
+            Following
+          </p>
+
+        </a>
+
+        <a
+          [routerLink]="['/groups', profile.username]"
+          class="rounded-2xl border border-[var(--border)] bg-[var(--card)] opacity-70 backdrop-blur-xl shadow-lg p-5
+            hover:bg-[var(--hover)] transition block">
+
+          <p class="text-2xl font-bold text-[var(--text)]">
+            {{ groupsCount$ | async }}
+          </p>
+
+          <p class="text-sm mt-1 text-[var(--text)] opacity-60">
+            Groups
+          </p>
+
+        </a>
+
       </div>
 
       <!-- Profile Posts Grid -->
-      <div class="grid grid-cols-3 gap-2 mt-6">
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-6">
         <ng-container *ngIf="userPosts$ | async as posts">
           <ng-container *ngIf="posts.length > 0; else noPosts">
             <ng-container *ngFor="let post of posts; trackBy: trackByPostId">
               <!-- media post -->
               <div *ngIf="post.media!.length > 0; else captionOnlyPost" 
                 (click)="openPostModal(post)"
-                class="relative aspect-square bg-gray-100 overflow-hidden rounded cursor-pointer">
+                class="relative aspect-square rounded-2xl overflow-hidden cursor-pointer
+                  border border-[var(--border)] bg-[var(--card)]
+                  hover:scale-[1.01] transition-all duration-200 shadow-lg">
                 <!-- Stack icon (only if multiple media) -->
                 <img *ngIf="(post?.media?.length ?? 0) > 1"
                   src="assets/icons/stack.svg"
@@ -242,19 +288,25 @@
               <ng-template #captionOnlyPost>
                 <div
                   (click)="openPostModal(post)"
-                  class="relative aspect-square bg-white rounded overflow-hidden cursor-pointer">
-                  <div class="absolute inset-3 flex items-center justify-center p-2">
-                    <p class="text-center text-sm text-gray-700 whitespace-pre-wrap break-words">
+                  class="relative aspect-square rounded-2xl overflow-hidden cursor-pointer
+                    border border-[var(--border)] bg-[var(--card)] opacity-80
+                    backdrop-blur-xl hover:bg-[var(--hover)] hover:scale-[1.01]
+                    transition-all duration-200 shadow-lg">
+                  <div class="absolute inset-3 flex items-center justify-center p-3">
+                    <p class="text-center text-sm whitespace-pre-wrap break-words line-clamp-6
+                        text-[var(--text)] opacity-90">
                       {{ post.caption }}
                     </p>
                   </div>
-                  <!-- Top fade overlay -->
+
+                  <!-- Top fade -->
                   <div class="pointer-events-none absolute top-0 left-0 right-0 h-16
-                              bg-gradient-to-b from-white to-transparent">
+                    bg-gradient-to-b from-[var(--card)] to-transparent">
                   </div>
-                  <!-- Bottom fade overlay -->
+
+                  <!-- Bottom fade -->
                   <div class="pointer-events-none absolute bottom-0 left-0 right-0 h-16
-                              bg-gradient-to-t from-white to-transparent">
+                    bg-gradient-to-t from-[var(--card)] to-transparent">
                   </div>
                 </div>
               </ng-template>
@@ -263,7 +315,14 @@
         </ng-container>
 
         <ng-template #noPosts>
-          <p class="text-center col-span-3 text-gray-500">No posts yet.</p>
+          <div class="col-span-full rounded-3xl border border-[var(--border)]
+                    bg-[var(--card)] backdrop-blur-xl shadow-lg p-10 text-center">
+
+            <p class="text-[var(--text)] opacity-60">
+              No posts yet.
+            </p>
+
+          </div>
         </ng-template>
       </div>
 
@@ -271,8 +330,8 @@
       <button
         *ngIf="isOwner$ | async"
         (click)="openCreateModal()"
-        class="fixed bottom-8 right-8 w-14 h-14 bg-blue-600 text-white text-3xl rounded-full shadow-lg hover:scale-105 transition
-              flex items-center justify-center leading-none"
+        class="fixed bottom-8 right-8 w-14 h-14 bg-[var(--primary)] text-white text-3xl rounded-full shadow-lg hover:bg-[var(--primary-hover)] hover:scale-105 transition
+          flex items-center justify-center leading-none"
       >
         <span class="relative -top-0.5">+</span>
       </button>
@@ -293,9 +352,9 @@
       <!-- Crop Modal -->
       <div *ngIf="cropImageSrc && (isOwner$ | async)" @overlayFade
           class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div @modalScale class="bg-white p-4 rounded-lg relative w-full max-w-sm h-auto flex flex-col items-center">
-          <h2 class="text-lg font-bold mb-4">Adjust Profile Picture</h2>
-          <div #cropCircle class="relative w-[264px] h-[264px] rounded-full overflow-hidden border-4 border-gray-200 shadow-inner touch-none"
+        <div @modalScale class="bg-[var(--card)] p-4 rounded-3xl border border-[var(--border)] backdrop-blur-2xl relative w-full max-w-sm h-auto flex flex-col items-center">
+          <h2 class="text-lg text-[var(--text)] font-semibold mb-4">Adjust Profile Picture</h2>
+          <div #cropCircle class="relative w-[264px] h-[264px] rounded-full overflow-hidden border-4 border-[var(--border)] shadow-inner touch-none"
             (mousedown)="startDrag($event)" (mousemove)="drag($event)" (mouseup)="endDrag()" (mouseleave)="endDrag()"
             (touchstart)="startDrag($event)" (touchmove)="drag($event)" (touchend)="endDrag()" (touchcancel)="endDrag()">
             <img
@@ -319,8 +378,8 @@
             class="mt-4 w-64"
           />
           <div class="mt-4 flex gap-2">
-            <button (click)="saveCroppedProfilePicture()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Save</button>
-            <button (click)="cancelCrop()" class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500">Cancel</button>
+            <button (click)="saveCroppedProfilePicture()" class="px-5 py-2.5 bg-[var(--primary)] text-white rounded-2xl hover:bg-[var(--primary-hover)] transition">Save</button>
+            <button (click)="cancelCrop()" class="px-5 py-2.5 rounded-2xl border border-[var(--border)] bg-[var(--bg)] hover:bg-[var(--hover)] text-[var(--text)] transition">Cancel</button>
           </div>
         </div>
       </div>
@@ -328,16 +387,16 @@
       <!-- Remove Profile Picture Confirmation -->
       <div *ngIf="showRemoveConfirm && (isOwner$ | async)" @overlayFade
           class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div @modalScale class="bg-white p-4 rounded-lg w-full max-w-sm flex flex-col items-center">
-          <h2 class="text-lg font-bold mb-4">Remove Profile Picture?</h2>
-          <p class="text-gray-700 mb-4">This will revert your profile picture to the default avatar.</p>
+        <div @modalScale class="bg-[var(--card)] p-4 rounded-3xl border border-[var(--border)] backdrop-blur-2xl text-[var(--text)] w-full max-w-sm flex flex-col items-center">
+          <h2 class="text-lg font-semibold mb-4">Remove Profile Picture?</h2>
+          <p class="opacity-60 mb-4">This will revert your profile picture to the default avatar.</p>
           <div class="flex gap-2">
             <button (click)="removeProfilePicture()"
-                    class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+              class="px-5 py-2.5 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition">
               Yes, Remove
             </button>
             <button (click)="cancelRemoveProfilePicture()"
-                    class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500">
+              class="px-5 py-2.5 rounded-2xl border border-[var(--border)] bg-[var(--bg)] hover:bg-[var(--hover)] text-[var(--text)] transition">
               Cancel
             </button>
           </div>
@@ -351,27 +410,30 @@
   <!-- Empty State -->
   <ng-template #profileNotFound>
     <div class="max-w-2xl mx-auto py-20 px-6">
-      <div class="bg-white rounded-2xl shadow p-10 text-center">
+      <div
+        class="bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-lg p-10 text-center text-[var(--text)]">
 
         <div class="flex justify-center mb-4">
           <img
             src="assets/icons/user.svg"
             alt="User not found"
             class="w-16 h-16 opacity-60"
+            [style.filter]="'var(--icon-filter)'"
           />
         </div>
 
-        <h1 class="text-2xl font-bold text-gray-800">
+        <h1 class="text-2xl font-bold">
           User not found
         </h1>
 
-        <p class="text-gray-500 mt-3">
+        <p class="mt-3 text-[var(--text)] opacity-70">
           The user you are looking for does not exist or may have been deleted.
         </p>
 
         <button
           routerLink="/"
-          class="mt-6 px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150">
+          class="mt-6 px-5 py-2 rounded-2xl font-medium text-white
+            bg-[var(--primary)] hover:bg-[var(--primary-hover)] transition-all duration-150">
           Go Home
         </button>
 

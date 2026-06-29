@@ -8,8 +8,15 @@ export interface Message {
   type: 'text' | 'system';
   isEdited?: boolean;
   isDeleted?: boolean;
-  reactions?: Record<string, string>;
+  reactions?: {
+    [uid: string]: MessageReaction;
+  };
   replyTo?: MessageReply | null;
+}
+
+export interface MessageReaction {
+  emoji: string;
+  createdAt: any;
 }
 
 export interface MessageReply {

@@ -7,9 +7,9 @@
   <!-- Modal Card -->
   <div
     @modalScale
-    class="bg-white w-full max-w-sm rounded-xl shadow-xl p-6">
+    class="bg-[var(--card)] w-full max-w-sm rounded-3xl border border-[var(--border)] backdrop-blur-2xl text-[var(--text)] shadow-2xl p-6">
 
-    <h2 class="text-lg font-semibold text-gray-800 mb-2">
+    <h2 class="text-lg font-semibold mb-2">
       {{ title }}
     </h2>
 
@@ -17,7 +17,7 @@
       <ng-content></ng-content>
 
       <!-- fallback if no custom content -->
-      <p *ngIf="!hasProjectedContent" class="text-sm text-gray-600 whitespace-pre-line">
+      <p *ngIf="!hasProjectedContent" class="text-sm text-[var(--text)] opacity-70 whitespace-pre-line">
         {{ message }}
       </p>
     </div>
@@ -25,13 +25,14 @@
     <div class="flex justify-end space-x-3">
       <button
         (click)="onCancel()"
-        class="px-4 py-2 rounded-lg border text-gray-700 hover:bg-gray-100">
+        class="px-5 py-2.5 rounded-2xl border border-[var(--border)] 
+          bg-[var(--bg)] hover:bg-[var(--hover)] transition-all duration-200">
         {{ cancelText }}
       </button>
 
       <button
         (click)="onConfirm()"
-        class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700">
+        class="px-5 py-2.5 rounded-2xl bg-red-600 text-white hover:bg-red-700 transition-all duration-200">
         {{ confirmText }}
       </button>
     </div>
