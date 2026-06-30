@@ -52,7 +52,7 @@
 				(click)="toggleMenu($event)"
 				[class.bg-[var(--hover)]]="menuOpen"
 				class="text-xl w-8 h-8 flex items-center justify-center rounded-full
-					text-[var(--text)] hover:text-[var(--text)] hover:bg-[var(--hover)] transition-all duration-150">
+					text-[var(--text)] hover:text-[var(--text)] hover:bg-[var(--hover)] transition-all duration-200">
 				<span class="relative -top-[1.5px]">⋯</span>
 			</button>
 
@@ -427,9 +427,7 @@
 						(input)="onInputChange($event)"
 						placeholder="Type a message..."
 						rows="1"
-						class="w-full bg-[var(--form)] border border-[var(--border)] text-[var(--text)]
-							rounded px-3 py-1.5 pr-10 outline-none resize-none overflow-hidden
-							focus:ring-2 focus:ring-[var(--primary)] transition"></textarea>
+						class="comment-message-input"></textarea>
 
 					<div #emojiPickerContainer>
 						<button
@@ -605,12 +603,12 @@
 						<!-- Buttons -->
 						<button
 							(click)="saveGroupName()"
-							class="bg-[var(--primary)] text-white text-sm px-3 py-1 rounded hover:bg-[var(--primary-hover)] transition">
+							class="bg-[var(--primary)] text-white text-sm px-3 py-1 rounded hover:bg-[var(--primary-hover)] transition-all duration-200">
 							Save
 						</button>
 						<button
 							(click)="closeGroupName()"
-							class="bg-gray-200 text-gray-700 text-sm px-3 py-1 rounded hover:bg-gray-300 transition-colors duration-150">
+							class="bg-gray-200 text-gray-700 text-sm px-3 py-1 rounded hover:bg-gray-300 transition-all duration-200">
 							Cancel
 						</button>
 					</div>
@@ -621,7 +619,7 @@
 				<!-- Add People -->
 				<button
 					(click)="openAddPeople()"
-					class="w-full flex items-center gap-2 p-2 hover:bg-[var(--hover)] rounded transition-colors duration-150">
+					class="w-full flex items-center gap-2 p-2 hover:bg-[var(--hover)] rounded transition-all duration-200">
 					<span class="flex items-center justify-center w-8 h-8 border border-[var(--text)] rounded-full opacity-50 text-2xl font-semibold">
 						<span class="relative -top-[2px] -right-[0.2px]">+</span>
 					</span>
@@ -688,10 +686,10 @@
     <!-- Footer -->
     <div class="p-3 border-t border-[var(--border)] flex justify-end gap-2">
       <button *ngIf="otherParticipants.length > 1" 
-				class="opacity-60 hover:opacity-70 px-3 py-1.5 transition"
+				class="opacity-60 hover:opacity-70 px-4 py-2 transition"
         (click)="leaveGroup()">Leave group</button>
 
-      <button class="border border-[var(--border)] bg-[var(--bg)] hover:bg-[var(--hover)] px-3 py-1.5 rounded-2xl transition"
+      <button class="small-secondary-button rounded-xl"
         (click)="closeModal()">Close</button>
     </div>
 
@@ -717,16 +715,14 @@
 				<input type="text" 
 					[(ngModel)]="editedGroupName" 
 					placeholder="Group name (optional)" 
-					class="w-full px-3 py-2 bg-[var(--form)] border border-[var(--border)] text-[var(--text)] rounded-2xl mb-2
-						outline-none focus:ring-2 focus:ring-[var(--primary)] text-left transition"
+					class="form-input mb-2"
 				/>
 			</div>
       <input
         [(ngModel)]="addPeopleSearchText"
         (ngModelChange)="addPeopleSearch$.next($event)"
         placeholder="Search users"
-        class="w-full bg-[var(--form)] border border-[var(--border)] text-[var(--text)] px-3 py-2 rounded-2xl
-					outline-none focus:ring-2 focus:ring-[var(--primary)] text-left transition"
+        class="form-input"
 			/>
     </div>
 
@@ -771,14 +767,14 @@
     <div class="p-3 border-t border-[var(--border)] flex justify-end gap-2">
       <button
         (click)="showAddPeopleModal = false"
-        class="text-[var(--text)] hover:opacity-70 px-3 py-1.5 transition">
+        class="text-[var(--text)] hover:opacity-70 px-4 py-2 transition">
         Cancel
       </button>
 
       <button
         (click)="addSelectedUsers()"
         [disabled]="selectedToAdd.size === 0"
-        class="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white px-3 py-1.5 rounded-2xl disabled:opacity-50 transition">
+        class="small-primary-button rounded-xl disabled:opacity-50 disabled:cursor-not-allowed">
         Add
       </button>
     </div>

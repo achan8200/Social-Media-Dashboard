@@ -21,7 +21,7 @@
         (input)="validateEmail()"
         placeholder="New email"
         class="w-full rounded-2xl bg-[var(--form)] border border-[var(--border)] text-[var(--text)] px-4 py-3 outline-none
-        focus:ring-2 focus:ring-[var(--primary)] transition"
+        focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition"
       />
       <p *ngIf="emailError" class="text-red-500 text-sm">
         {{ emailError }}
@@ -33,7 +33,7 @@
       [(ngModel)]="emailPassword"
       placeholder="Current password"
       class="w-full rounded-2xl bg-[var(--form)] border border-[var(--border)] text-[var(--text)] px-4 py-3 outline-none
-        focus:ring-2 focus:ring-[var(--primary)] transition"
+        focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition"
     />
 
     <div class="flex items-center justify-between gap-4 pt-2">
@@ -72,7 +72,7 @@
       [(ngModel)]="currentPassword"
       placeholder="Current password"
       class="w-full rounded-2xl bg-[var(--form)] border border-[var(--border)] text-[var(--text)] px-4 py-3 outline-none
-        focus:ring-2 focus:ring-[var(--primary)] transition"
+        focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition"
     />
 
     <input
@@ -81,7 +81,7 @@
       (input)="validatePassword()"
       placeholder="New password"
       class="w-full rounded-2xl bg-[var(--form)] border border-[var(--border)] text-[var(--text)] px-4 py-3 outline-none
-        focus:ring-2 focus:ring-[var(--primary)] transition"
+        focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition"
     />
 
     <input
@@ -90,7 +90,7 @@
       (input)="validateConfirmPassword()"
       placeholder="Confirm new password"
       class="w-full rounded-2xl bg-[var(--form)] border border-[var(--border)] text-[var(--text)] px-4 py-3 outline-none
-        focus:ring-2 focus:ring-[var(--primary)] transition"
+        focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition"
     />
 
     <!-- Requirements -->

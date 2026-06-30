@@ -13,7 +13,7 @@
       'hover:bg-[var(--hover)]': thread.id !== selectedThreadId
     }"
     class="flex items-center gap-3 p-4 border-b border-[var(--border)]
-      cursor-pointer relative min-h-[72px] transition-colors duration-150">
+      cursor-pointer relative min-h-[72px] transition-all duration-200">
 
     <div class="absolute left-0 top-0 h-full w-1 bg-[var(--primary)] transition-all duration-300"
          [ngStyle]="{ width: thread.id === selectedThreadId ? '4px' : '0px' }"></div>
@@ -105,7 +105,7 @@
 
   <!-- Start Chat Button -->
   <button class="absolute bottom-4 right-4 px-4 py-1 bg-[var(--primary)] text-white rounded-full shadow-lg 
-    flex items-center justify-center hover:bg-[var(--primary-hover)] hover:scale-105 transition-all duration-150 text-xl"
+    flex items-center justify-center hover:bg-[var(--primary-hover)] hover:scale-105 transition-all duration-200 text-xl"
     (click)="startChat()">
     <span class="relative -top-[1px] text-md">+ New Chat</span>
   </button>
@@ -125,9 +125,7 @@
         <button (click)="closeModal()">✕</button>
       </div>
       <input type="text" [(ngModel)]="searchText" (ngModelChange)="search$.next($event)" placeholder="Search users" 
-        class="w-full p-2 bg-[var(--form)] border border-[var(--border)] rounded-2xl
-          text-[var(--text)] placeholder:text-[var(--text)]/40
-          focus:ring-2 focus:ring-[var(--primary)] mb-2 outline-none"/>
+        class="form-input mb-2"/>
       <div *ngFor="let user of filteredNewChatUsers$ | async; trackBy: trackByUid"
         (click)="selectUser(user)"
         class="flex items-center gap-3 p-2 cursor-pointer hover:bg-[var(--hover)] rounded-2xl transition-all duration-200">
@@ -136,7 +134,7 @@
       </div>
       <div *ngIf="(filteredNewChatUsers$ | async)?.length === 0" class="text-[var(--text)] opacity-60 text-sm mt-2">No users found.</div>
       <div class="mt-4 flex justify-center">
-        <button class="px-4 py-2 bg-[var(--primary)] text-white rounded-2xl hover:bg-[var(--primary-hover)] transition-all duration-200"
+        <button class="small-primary-button rounded-2xl"
           (click)="openCreateGroupModal()">
           <span class="relative -top-[0.5px]">+ Create Group</span>
         </button>
@@ -164,13 +162,9 @@
         </button>
       </div>
       <input type="text" [(ngModel)]="groupName" placeholder="Group name (optional)" 
-        class="w-full p-2 bg-[var(--form)] border border-[var(--border)] rounded-2xl mb-2
-          text-[var(--text)] placeholder:text-[var(--text)]/40
-          focus:ring-2 focus:ring-[var(--primary)] outline-none"/>
+        class="form-input mb-2"/>
       <input type="text" [(ngModel)]="groupSearchText" (ngModelChange)="groupSearch$.next($event)" placeholder="Search users" 
-        class="w-full p-2 bg-[var(--form)] border border-[var(--border)] rounded-2xl mb-2
-          text-[var(--text)] placeholder:text-[var(--text)]/40
-          focus:ring-2 focus:ring-[var(--primary)] outline-none"/>
+        class="form-input mb-2"/>
       <div *ngFor="let user of filteredGroupUsers$ | async; trackBy: trackByUid"
         (click)="toggleUserSelection(user)"
         class="flex items-center gap-3 p-2 cursor-pointer hover:bg-[var(--hover)] rounded-2xl transition-all duration-200">

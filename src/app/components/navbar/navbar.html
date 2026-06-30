@@ -30,7 +30,7 @@
         border border-[var(--border)]
         bg-[var(--bg)] backdrop-blur-xl
         shadow-md transition
-        focus-within:ring-2 focus-within:ring-[var(--primary)]">
+        focus-within:ring-2 focus-within:ring-[var(--primary)] focus-within:border-transparent">
 
         <!-- Search Type -->
         <button
@@ -61,7 +61,6 @@
             class="w-full bg-transparent
               px-4 py-2.5 pr-10
               text-[var(--text)]
-              placeholder:text-[var(--text)]/40
               outline-none"
           />
 
@@ -299,34 +298,19 @@
     </div>
 
     <!-- Nav Buttons -->
-    <button
-      (click)="goToProfile()"
-      class="px-3 py-2 rounded-xl
-        hover:bg-[var(--hover)]
-        transition font-medium">
-
+    <button (click)="goToProfile()"
+      class="navbar-button">
       Profile
-
     </button>
 
-    <button
-      (click)="goToSettings()"
-      class="px-3 py-2 rounded-xl
-        hover:bg-[var(--hover)]
-        transition font-medium">
-
+    <button (click)="goToSettings()"
+      class="navbar-button">
       Settings
-
     </button>
 
-    <button
-      (click)="logout()"
-      class="px-3 py-2 rounded-xl
-        hover:bg-[var(--hover)]
-        transition font-medium">
-
+    <button (click)="logout()"
+      class="navbar-button">
       Logout
-
     </button>
 
   </div>

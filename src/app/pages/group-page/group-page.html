@@ -121,7 +121,7 @@
             <button
               (click)="declineInvite(invite)"
               class="px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg)] hover:bg-[var(--hover)]
-              transition-colors duration-150 text-sm"
+                transition-all duration-200 text-sm shadow-sm"
             >
               <span class="text-[var(--text)] opacity-80">Decline</span>
             </button>
@@ -130,7 +130,7 @@
             <button
               (click)="acceptInvite(invite)"
               class="px-3 py-1.5 rounded-lg bg-[var(--primary)] text-white
-              hover:bg-[var(--primary-hover)] transition text-sm"
+                hover:bg-[var(--primary-hover)] transition-all duration-200 text-sm shadow-sm"
             >
               Accept
             </button>
@@ -143,8 +143,8 @@
           *ngIf="canEditGroup$ | async"
           (click)="openSettings(); $event.stopPropagation()"
           class="w-9 h-9 rounded-full flex items-center justify-center
-                bg-[var(--card)] backdrop-blur-md border border-[var(--border)]
-                shadow-sm hover:bg-[var(--hover)] transition-colors duration-150"
+            bg-[var(--card)] backdrop-blur-md border border-[var(--border)]
+            shadow-sm hover:bg-[var(--hover)] transition-all duration-200"
           title="Group Settings"
         >
           <img
@@ -166,7 +166,7 @@
             )
           "
           (click)="toggleMembership(vm.isMember)"
-          class="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] transition-colors duration-150"
+          class="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] shadow-sm transition-all duration-200"
           [ngClass]="{
             'bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white': !vm.isMember,
             'bg-[var(--bg)] hover:bg-[var(--hover)]': vm.isMember
@@ -306,8 +306,7 @@
   <button
     *ngIf="activeTab === 'posts' && (isMember$ | async)"
     (click)="openCreateModal()"
-    class="fixed bottom-8 right-8 w-14 h-14 bg-[var(--primary)] text-white text-3xl rounded-full shadow-lg hover:bg-[var(--primary-hover)] hover:scale-105 transition
-      flex items-center justify-center leading-none"
+    class="floating-create-button"
   >
     <span class="relative -top-0.5">+</span>
   </button>
@@ -590,8 +589,8 @@
             type="text"
             maxlength="100"
             placeholder="Enter custom reason"
-            class="w-full rounded-lg bg-[var(--form)] border border-[var(--border)] px-3 py-2
-              outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 transition"
+            class="w-full rounded-xl bg-[var(--form)] border border-[var(--border)] px-3 py-2
+              outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent transition"
           />
 
           <p class="mt-1 text-xs opacity-50 text-right">
@@ -606,8 +605,9 @@
 
       <input
         [(ngModel)]="confirmInput"
-        class="w-full bg-[var(--form)] border border-[var(--border)] rounded px-3 py-2
-          outline-none focus:ring-2 focus:ring-[var(--primary)] transition"
+        class="w-full rounded-lg px-3 py-2 bg-[var(--form)] border border-[var(--border)]
+          text-[var(--text)] outline-none resize-none transition
+          focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
         [placeholder]="getConfirmPlaceholder(vm)"/>
 
       <div class="flex justify-end gap-2">
@@ -616,8 +616,7 @@
         <button
           [disabled]="!isConfirmValid(vm.user)"
           (click)="executeAction(vm)"
-          class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-2xl disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150">
-
+          class="small-danger-button disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed">
           Confirm
         </button>
       </div>
@@ -698,7 +697,7 @@
         <input
           [(ngModel)]="groupForm.name"
           class="w-full text-[var(--text)] bg-[var(--form)] border border-[var(--border)] rounded-xl 
-            px-3 py-2 focus:ring-2 focus:ring-[var(--primary)] outline-none"
+            px-3 py-2 focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent outline-none"
           placeholder="Group name"
         />
       </div>
@@ -709,7 +708,7 @@
         <textarea
           [(ngModel)]="groupForm.bio"
           class="w-full text-[var(--text)] bg-[var(--form)] border border-[var(--border)] rounded-xl 
-            px-3 py-2 focus:ring-2 focus:ring-[var(--primary)] outline-none"
+            px-3 py-2 focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent outline-none"
           placeholder="Group bio"
         ></textarea>
       </div>
@@ -738,7 +737,7 @@
               *ngIf="isOwner$ | async"
               (click)="openCreateTitleModal()"
               [disabled]="titles.length >= 25"
-              class="px-3 py-1 rounded-2xl transition-colors duration-150"
+              class="px-3 py-1 rounded-2xl transition-all duration-200"
               [ngClass]="{
                 'bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]': titles.length < 25,
                 'bg-gray-300 text-gray-500 cursor-not-allowed': titles.length >= 25
@@ -931,7 +930,7 @@
         [value]="inviteSearchValue"
         placeholder="Search users to invite"
         class="w-full bg-[var(--form)] border border-[var(--border)] rounded-xl px-3 py-2 
-          focus:ring-2 focus:ring-[var(--primary)] outline-none"
+          focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent outline-none"
       />
 
       <!-- Search Results -->
@@ -1277,8 +1276,7 @@
       <button
         (click)="saveTitle()"
         [disabled]="!titleForm.name.trim()"
-        class="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white px-4 py-2 rounded-2xl transition-colors duration-150 
-          disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="small-primary-button rounded-2xl disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Save
       </button>
@@ -1369,7 +1367,7 @@
 
       <button
         (click)="saveMemberTitles()"
-        class="px-4 py-2 bg-[var(--primary)] text-white rounded-2xl hover:bg-[var(--primary-hover)] transition"
+        class="small-primary-button rounded-2xl"
       >
         Save
       </button>
@@ -1437,8 +1435,8 @@
       class="mt-4 w-64"
     />
     <div class="mt-4 flex gap-2">
-      <button (click)="saveCroppedGroupAvatar()" class="px-5 py-2.5 bg-[var(--primary)] text-white rounded-2xl hover:bg-[var(--primary-hover)] transition">Finish</button>
-      <button (click)="cancelCrop()" class="px-5 py-2.5 rounded-2xl border border-[var(--border)] bg-[var(--bg)] hover:bg-[var(--hover)] text-[var(--text)] transition">Cancel</button>
+      <button (click)="saveCroppedGroupAvatar()" class="primary-button">Save</button>
+      <button (click)="cancelCrop()" class="secondary-button">Cancel</button>
     </div>
   </div>
 </div>
@@ -1451,11 +1449,11 @@
     <p class="opacity-60 mb-4">This will revert the group picture to the default avatar.</p>
     <div class="flex gap-2">
       <button (click)="removeGroupPicture()"
-        class="px-5 py-2.5 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition">
+        class="danger-button">
         Yes, Remove
       </button>
       <button (click)="cancelRemoveGroupPicture()"
-        class="px-5 py-2.5 rounded-2xl border border-[var(--border)] bg-[var(--bg)] hover:bg-[var(--hover)] text-[var(--text)] transition">
+        class="secondary-button">
         Cancel
       </button>
     </div>
@@ -1483,8 +1481,8 @@
 
       <input
         [(ngModel)]="deleteInput"
-        class="w-full bg-[var(--form)] border border-[var(--border)] rounded-xl px-3 py-2 
-          focus:ring-2 focus:ring-[var(--primary)] outline-none"
+        class="w-full rounded-xl bg-[var(--form)] border border-[var(--border)] px-3 py-2
+          outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent transition"
         placeholder="Enter group name"
       />
 
@@ -1499,8 +1497,7 @@
         <button
           (click)="confirmDeleteGroup(group.name)"
           [disabled]="deleteInput !== group.name || isDeleting"
-          class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-2xl transition
-          disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed">
+          class="small-danger-button disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed">
           {{ isDeleting ? 'Deleting...' : 'Delete' }}
         </button>
 

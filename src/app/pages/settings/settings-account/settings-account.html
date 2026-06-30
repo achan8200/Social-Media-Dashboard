@@ -38,8 +38,8 @@
       <input type="password"
         [(ngModel)]="password"
         placeholder="Enter password"
-        class="w-full rounded-2xl bg-[var(--form)] border border-[var(--border)] text-[var(--text)] px-4 py-3 outline-none
-          focus:ring-2 focus:ring-red-500 transition"
+        class="w-full rounded-2xl bg-red-500/5 border border-red-500/20 text-[var(--text)] px-4 py-3 outline-none
+          focus:ring-2 focus:ring-red-400 focus:border-transparent transition"
       />
 
     </div>
@@ -48,8 +48,8 @@
 
       <button (click)="openDeleteModal()"
         [disabled]="loading || !password.trim()"
-        class="px-5 py-3 rounded-2xl bg-red-500 text-white
-          font-medium shadow-lg hover:bg-red-600
+        class="px-5 py-3 rounded-2xl bg-red-600 text-white
+          font-medium shadow-lg hover:bg-red-700
           transition-all duration-200 disabled:opacity-40"
       >
         {{ loading ? 'Deleting...' : 'Delete Account' }}

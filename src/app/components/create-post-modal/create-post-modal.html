@@ -21,9 +21,7 @@
       [(ngModel)]="caption"
       (input)="adjustCaptionHeight()"
       placeholder="What's on your mind?" 
-      class="w-full bg-[var(--form)] border border-[var(--border)] rounded-2xl p-2 overflow-y-hidden outline-none resize-none
-        text-[var(--text)] placeholder:text-[var(--text)]/40
-        focus:ring-2 focus:ring-[var(--primary)] transition"
+      class="form-input overflow-y-hidden"
       rows="4"
       (keydown)="handlePostKeydown($event)"></textarea>
 
@@ -82,20 +80,9 @@
 
     <div class="flex justify-end space-x-2">
       <button (click)="onCancel()" [disabled]="isUploading" 
-            class="px-5 py-2.5 rounded-2xl
-               border border-[var(--border)]
-               bg-[var(--bg)] hover:bg-[var(--hover)]
-               transition-all duration-200
-               disabled:opacity-40 disabled:cursor-not-allowed">Cancel</button>
+            class="secondary-button disabled:opacity-40 disabled:cursor-not-allowed">Cancel</button>
       <button (click)="onCreate()" [disabled]="isPostDisabled"
-            class="px-5 py-2.5 rounded-2xl
-               bg-[var(--primary)] text-white
-               shadow-lg
-               hover:bg-[var(--primary-hover)]
-               transition-all duration-200
-               disabled:opacity-40
-               disabled:hover:scale-100
-               disabled:cursor-not-allowed">Post</button>
+            class="primary-button disabled:opacity-40 disabled:cursor-not-allowed">Post</button>
     </div>
 
   </div>

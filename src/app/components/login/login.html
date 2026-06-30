@@ -14,9 +14,7 @@
       <!-- Email -->
       <input
         type="email"
-        class="w-full rounded-lg bg-[var(--form)] border border-[var(--border)] px-4 py-3
-          text-[var(--text)] placeholder:text-[var(--text)]/40
-          outline-none transition focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
+        class="auth-form-input"
         placeholder="Email"
         [(ngModel)]="email"
         name="email"
@@ -27,9 +25,7 @@
       <div class="relative">
         <input
           [type]="showPassword ? 'text' : 'password'"
-          class="w-full rounded-lg bg-[var(--form)] border border-[var(--border)] px-4 py-3 pr-12
-            text-[var(--text)] placeholder:text-[var(--text)]/40
-            outline-none transition focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
+          class="auth-form-input pr-12"
           placeholder="Password"
           [(ngModel)]="password"
           name="password"

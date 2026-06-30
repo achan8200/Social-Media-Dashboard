@@ -16,7 +16,7 @@
 
     <button *ngIf="isOwnProfile"
       (click)="showCreateModal = true"
-      class="font-medium px-4 py-2 rounded-2xl bg-[var(--primary)] text-white transition-all duration-200 hover:bg-[var(--primary-hover)] hover:scale-105 shadow-sm">
+      class="font-medium hover:scale-105 rounded-2xl small-primary-button">
       <span class="relative -top-[0.5px]">+ Create Group</span>
     </button>
   </div>
@@ -50,9 +50,8 @@
   <input
     type="text"
     placeholder="Search groups"
-    class="w-full rounded-lg p-2 mb-4 bg-[var(--card)] border border-[var(--border)]
-      text-[var(--text)] placeholder:text-[var(--text)] placeholder:opacity-50
-      focus:ring-2 focus:ring-[var(--primary)] outline-none"
+    class="w-full rounded-lg px-3 py-2 mb-4 bg-[var(--card)] border border-[var(--border)] text-[var(--text)]
+      focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent outline-none"
     (input)="onSearch($any($event.target).value)"
   />
 
@@ -180,18 +179,19 @@
 
   <div @modalScale class="bg-[var(--card)] border border-[var(--border)] text-[var(--text)] p-6 rounded-2xl w-full max-w-sm space-y-4">
 
-    <h2 class="text-lg font-bold">Create Group</h2>
+    <h2 class="text-lg font-semibold">Create Group</h2>
 
     <input #nameInput
       type="text"
       placeholder="Group name"
       class="w-full rounded-xl p-3 bg-[var(--form)] border border-[var(--border)]
-        text-[var(--text)] focus:ring-2 focus:ring-[var(--primary)] outline-none"
+        text-[var(--text)] focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent outline-none"
       [(ngModel)]="groupName"/>
 
     <textarea #bioInput
       placeholder="Group bio (optional)"
-      class="w-full rounded-xl p-3 bg-[var(--form)] border text-[var(--text)] border-[var(--border)] focus:ring-2 focus:ring-[var(--primary)] outline-none"
+      class="w-full rounded-xl p-3 bg-[var(--form)] border border-[var(--border)]
+        text-[var(--text)] focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent outline-none"
     ></textarea>
 
     <!-- Privacy Toggle -->
@@ -212,15 +212,14 @@
 
     <div class="flex justify-end gap-2">
       <button (click)="showCreateModal = false"
-        class="px-4 py-2 bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--hover)] rounded-xl transition-colors duration-150">
+        class="small-secondary-button rounded-xl">
         Cancel
       </button>
 
       <button
         (click)="createGroup(nameInput.value, bioInput.value, isPrivateGroup)"
         [disabled]="!groupName.trim() || isCreating"
-        class="px-4 py-2 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white transition-all duration-150
-          disabled:opacity-50 disabled:cursor-not-allowed">
+        class="small-primary-button rounded-xl disabled:opacity-50 disabled:cursor-not-allowed">
         {{ isCreating ? 'Creating...' : 'Create' }}
       </button>
     </div>

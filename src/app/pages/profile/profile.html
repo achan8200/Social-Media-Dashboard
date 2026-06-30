@@ -91,9 +91,7 @@
             <ng-container *ngIf="editMode; else viewDisplayName">
               <label class="font-semibold text-[var(--text)]">Display Name</label>
               <input type="text" formControlName="displayName"
-                class="w-full rounded-2xl bg-[var(--form)] border border-[var(--border)]
-                  px-4 py-3 text-[var(--text)] outline-none
-                  focus:ring-2 focus:ring-[var(--primary)] transition"/>
+                class="form-input"/>
             </ng-container>
             <ng-template #viewDisplayName>
               <h1 class="text-2xl font-semibold tracking-tight">{{ profile.displayName || 'Your Name' }}</h1>
@@ -105,9 +103,7 @@
             <ng-container *ngIf="editMode; else viewUsername">
               <label class="font-semibold text-[var(--text)]">Username</label>
               <input type="text" formControlName="username"
-                class="w-full rounded-2xl bg-[var(--form)] border border-[var(--border)]
-                  px-4 py-3 text-[var(--text)] outline-none
-                  focus:ring-2 focus:ring-[var(--primary)] transition"/>
+                class="form-input"/>
                 <!-- Current username hint -->
                 <p class="text-[var(--text)] opacity-50 text-sm mt-1">
                     Your current username {{ profile.username }} is available.
@@ -143,7 +139,7 @@
               <label class="font-semibold text-[var(--text)]">Bio</label>
               <textarea formControlName="bio"
                 class="w-full rounded-2xl bg-[var(--form)] border border-[var(--border)]
-                  px-4 py-3 text-[var(--text)] outline-none
+                  px-3 py-2 text-[var(--text)] outline-none
                   focus:ring-2 focus:ring-[var(--primary)] transition"
               ></textarea>
             </ng-container>
@@ -158,7 +154,7 @@
           <!-- Edit button -->
           <button *ngIf="!editMode"
             (click)="enterEditMode()"
-            class="px-5 py-2.5 rounded-2xl bg-[var(--primary)] text-white shadow-lg hover:bg-[var(--primary-hover)] transition-all duration-200">
+            class="primary-button">
             Edit Profile
           </button>
 
@@ -170,14 +166,13 @@
                 class="px-5 py-2.5 rounded-2xl text-white shadow-lg
                   transition-all duration-200 disabled:opacity-40 disabled:hover:scale-100"
                 [ngClass]="{
-                  'bg-[var(--primary)] hover:scale-[1.02] hover:bg-[var(--primary-hover)]': canSave,
+                  'bg-[var(--primary)] hover:bg-[var(--primary-hover)]': canSave,
                   'bg-gray-400 cursor-not-allowed': !canSave
                 }">
               Save
             </button>
             <button (click)="cancelEditProfile()"
-              class="px-5 py-2.5 rounded-2xl border border-[var(--border)]
-                bg-[var(--bg)] text-[var(--text)] hover:bg-[var(--hover)] transition">
+              class="secondary-button">
               Cancel
             </button>
           </div>
@@ -330,8 +325,7 @@
       <button
         *ngIf="isOwner$ | async"
         (click)="openCreateModal()"
-        class="fixed bottom-8 right-8 w-14 h-14 bg-[var(--primary)] text-white text-3xl rounded-full shadow-lg hover:bg-[var(--primary-hover)] hover:scale-105 transition
-          flex items-center justify-center leading-none"
+        class="floating-create-button"
       >
         <span class="relative -top-0.5">+</span>
       </button>
@@ -378,8 +372,8 @@
             class="mt-4 w-64"
           />
           <div class="mt-4 flex gap-2">
-            <button (click)="saveCroppedProfilePicture()" class="px-5 py-2.5 bg-[var(--primary)] text-white rounded-2xl hover:bg-[var(--primary-hover)] transition">Save</button>
-            <button (click)="cancelCrop()" class="px-5 py-2.5 rounded-2xl border border-[var(--border)] bg-[var(--bg)] hover:bg-[var(--hover)] text-[var(--text)] transition">Cancel</button>
+            <button (click)="saveCroppedProfilePicture()" class="primary-button">Save</button>
+            <button (click)="cancelCrop()" class="secondary-button">Cancel</button>
           </div>
         </div>
       </div>
@@ -392,11 +386,11 @@
           <p class="opacity-60 mb-4">This will revert your profile picture to the default avatar.</p>
           <div class="flex gap-2">
             <button (click)="removeProfilePicture()"
-              class="px-5 py-2.5 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition">
+              class="danger-button">
               Yes, Remove
             </button>
             <button (click)="cancelRemoveProfilePicture()"
-              class="px-5 py-2.5 rounded-2xl border border-[var(--border)] bg-[var(--bg)] hover:bg-[var(--hover)] text-[var(--text)] transition">
+              class="secondary-button">
               Cancel
             </button>
           </div>
@@ -433,7 +427,7 @@
         <button
           routerLink="/"
           class="mt-6 px-5 py-2 rounded-2xl font-medium text-white
-            bg-[var(--primary)] hover:bg-[var(--primary-hover)] transition-all duration-150">
+            bg-[var(--primary)] hover:bg-[var(--primary-hover)] transition-all duration-200">
           Go Home
         </button>
 

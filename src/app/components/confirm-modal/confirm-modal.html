@@ -25,14 +25,13 @@
     <div class="flex justify-end space-x-3">
       <button
         (click)="onCancel()"
-        class="px-5 py-2.5 rounded-2xl border border-[var(--border)] 
-          bg-[var(--bg)] hover:bg-[var(--hover)] transition-all duration-200">
+        class="secondary-button">
         {{ cancelText }}
       </button>
 
       <button
         (click)="onConfirm()"
-        class="px-5 py-2.5 rounded-2xl bg-red-600 text-white hover:bg-red-700 transition-all duration-200">
+        class="danger-button">
         {{ confirmText }}
       </button>
     </div>

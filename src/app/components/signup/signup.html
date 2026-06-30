@@ -18,9 +18,7 @@
         <div class="relative">
           <input
             type="email"
-            class="w-full rounded-lg bg-[var(--form)] border border-[var(--border)] px-4 py-3
-              text-[var(--text)] placeholder:text-[var(--text)]/40
-              outline-none transition focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
+            class="auth-form-input"
             placeholder="Email"
             [(ngModel)]="email"
             (input)="validateEmail()"
@@ -38,14 +36,12 @@
         <div class="relative">
           <input
             [type]="showPassword ? 'text' : 'password'"
+            class="auth-form-input"
+            placeholder="Password"
             [(ngModel)]="password"
             (input)="validatePassword()"
             name="password"
-            placeholder="Password"
             required
-            class="w-full rounded-lg bg-[var(--form)] border border-[var(--border)] px-4 py-3
-              text-[var(--text)] placeholder:text-[var(--text)]/40
-              outline-none transition focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
           />
           <button
             type="button"
@@ -85,13 +81,12 @@
         <div class="relative">
           <input
             [type]="showPassword ? 'text' : 'password'"
+            class="auth-form-input"
+            placeholder="Confirm password"
             [(ngModel)]="confirmPassword"
             (input)="validateConfirmPassword()"
             name="confirmPassword"
-            placeholder="Confirm password"
-            class="w-full rounded-lg bg-[var(--form)] border border-[var(--border)] px-4 py-3
-              text-[var(--text)] placeholder:text-[var(--text)]/40
-              outline-none transition focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
+            required
           />
           <span *ngIf="confirmPassword && !confirmPasswordError"
             class="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">
@@ -109,9 +104,7 @@
         <div class="relative">
           <input
             type="text"
-            class="w-full rounded-lg bg-[var(--form)] border border-[var(--border)] px-4 py-3
-              text-[var(--text)] placeholder:text-[var(--text)]/40
-              outline-none transition focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
+            class="auth-form-input"
             placeholder="Username"
             [(ngModel)]="username"
             (input)="validateUsername()"
@@ -135,9 +128,7 @@
         <div class="relative">
           <input
             type="text"
-            class="w-full rounded-lg bg-[var(--form)] border border-[var(--border)] px-4 py-3
-              text-[var(--text)] placeholder:text-[var(--text)]/40
-              outline-none transition focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
+            class="auth-form-input"
             placeholder="Display Name"
             [(ngModel)]="displayName"
             (input)="validateDisplayName()"
